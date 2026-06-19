@@ -1,4 +1,4 @@
-const url = "http://127.0.0.1:8000/classificar/";
+const url = "https://projete-2k26.onrender.com/classificar/";
 
 
 
