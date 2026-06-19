@@ -16,6 +16,7 @@ origins = [
     "https://localhost.tiangolo.com",
     "http://localhost",
     "http://localhost:8080",
+    "https://projete-2k26.onrender.com",
     "*"
 ]
 
