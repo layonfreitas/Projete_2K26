@@ -22,7 +22,12 @@ function App() {
         type="file"
         accept="image/*"
         onChange={handleImagem}
+        hidden
+        id="upload"
       />
+      <label htmlFor="upload" className="upload-button">
+        Escolher imagem
+      </label>
       
       {imagem && (
   <button>Analisar imagem</button>
