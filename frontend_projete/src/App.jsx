@@ -23,10 +23,15 @@ function App() {
         accept="image/*"
         onChange={handleImagem}
       />
+      {imagem && (
+  <button>Analisar imagem</button>
+)}
+
 
       {imagem && (
         <div>
           <img
+          id="imagem-selecionada"
             src={imagem}
             alt="Imagem escolhida"
             width="300"
