@@ -23,6 +23,7 @@ function App() {
         accept="image/*"
         onChange={handleImagem}
       />
+      
       {imagem && (
   <button>Analisar imagem</button>
 )}

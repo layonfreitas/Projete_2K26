@@ -116,3 +116,30 @@ code {
   padding: 4px 8px;
   background: var(--code-bg);
 }
+button {
+  background-color: #2e7d32;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  cursor: pointer;
+  margin-top: 15px;
+}
+
+button:hover {
+  opacity: 0.9;
+}
+.botao-upload {
+  display: inline-block;
+  padding: 12px 24px;
+  background-color: #2e7d32;
+  color: white;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: 0.3s;
+}
+
+.botao-upload:hover {
+  background-color: #1b5e20;
+}
