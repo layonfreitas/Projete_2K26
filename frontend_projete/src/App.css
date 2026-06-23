@@ -182,7 +182,8 @@
     border-right-color: var(--border);
   }
 }
-.botao-upload {
+.botao-upload,
+button {
   display: inline-block;
   padding: 12px 24px;
   background-color: #2e7d32;
@@ -191,8 +192,11 @@
   cursor: pointer;
   font-weight: bold;
   transition: 0.3s;
+  border: none;
+  font-size: 16px;
 }
 
-.botao-upload:hover {
+.botao-upload:hover,
+button:hover {
   background-color: #1b5e20;
 }

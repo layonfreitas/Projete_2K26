@@ -29,7 +29,9 @@ const handleAnalisar = async () => {
       <h2>Escolha uma imagem</h2>
 
       <input type="file" accept="image/*" onChange={handleImagem} hidden id="upload" />
-      <label htmlFor="upload" className="upload-button">Escolher imagem</label>
+    <label htmlFor="upload" className="botao-upload">
+      Escolher imagem
+    </label>
 
 
       {imagem && (
