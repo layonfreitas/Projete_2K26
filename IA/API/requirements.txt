@@ -1,7 +1,0 @@
-fastapi
-uvicorn
-ultralytics
-pillow
-python-multipart
-onnx
-onnxruntime

@@ -8,6 +8,8 @@ from ultralytics import YOLO
 import io
 from PIL import Image
 
+
+
 model = YOLO("best.onnx")
 app = FastAPI()
 
@@ -16,7 +18,6 @@ origins = [
     "https://localhost.tiangolo.com",
     "http://localhost",
     "http://localhost:8080",
-    "https://projete-2k26.onrender.com",
     "*"
 ]
 
