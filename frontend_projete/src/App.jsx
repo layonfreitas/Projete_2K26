@@ -45,15 +45,17 @@ const handleAnalisar = async () => {
           <img id="imagem-selecionada" src={imagem} alt="Imagem escolhida" width="300" />
         </div>
       )}
-
-     {resultado && (
+{resultado && (
   <div>
     <h3>Resultado:</h3>
-    {resultado.resultado.length === 0 
-      ? <p>Nenhuma doença detectada</p>
-      : resultado.resultado.map((doenca, index) => (
-          <p key={index}>{doenca}</p>
-        ))
+    {resultado.doencas.length === 0
+      ? <p>{resultado.mensagem}</p>
+      : <>
+          <p>Doenças detectadas:</p>
+          {resultado.doencas.map((doenca, index) => (
+            <p key={index}>• {doenca}</p>
+          ))}
+        </>
     }
   </div>
 )}
