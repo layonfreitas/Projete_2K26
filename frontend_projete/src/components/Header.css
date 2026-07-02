@@ -1,0 +1,107 @@
+.header{
+
+    height:95px;
+
+    background:linear-gradient(
+        90deg,
+        #1B5E20,
+        #2E7D32
+    );
+
+    display:flex;
+
+    justify-content:space-between;
+
+    align-items:center;
+
+    padding:20px;
+
+    color:white;
+
+    border-radius:0 0 28px 28px;
+
+    box-shadow:0 5px 15px rgba(0,0,0,.18);
+
+}
+
+.header-left{
+
+    display:flex;
+
+    align-items:center;
+
+    gap:15px;
+
+}
+
+.avatar{
+
+    width:52px;
+
+    height:52px;
+
+    border-radius:50%;
+
+    background:#43A047;
+
+    display:flex;
+
+    align-items:center;
+
+    justify-content:center;
+
+    font-weight:bold;
+
+    font-size:18px;
+
+    border:2px solid rgba(255,255,255,.3);
+
+}
+
+.bem-vindo{
+
+    font-size:13px;
+
+    opacity:.85;
+
+}
+
+.header h2{
+
+    margin-top:3px;
+
+    font-size:22px;
+
+    font-weight:700;
+
+}
+
+.notificacao{
+
+    width:45px;
+
+    height:45px;
+
+    border-radius:50%;
+
+    border:none;
+
+    background:rgba(255,255,255,.18);
+
+    color:white;
+
+    font-size:20px;
+
+    cursor:pointer;
+
+    transition:.25s;
+
+}
+
+.notificacao:hover{
+
+    background:rgba(255,255,255,.3);
+
+    transform:scale(1.05);
+
+}

@@ -1,0 +1,170 @@
+.upload-card{
+
+    background:white;
+
+    margin:20px;
+
+    border-radius:24px;
+
+    padding:22px;
+
+    box-shadow:0 8px 20px rgba(0,0,0,.08);
+
+}
+
+.titulo-upload h3{
+
+    color:#1B5E20;
+
+    font-size:24px;
+
+}
+
+.titulo-upload p{
+
+    margin-top:6px;
+
+    color:#666;
+
+    font-size:15px;
+
+    line-height:22px;
+
+}
+
+.preview-vazio{
+
+    margin-top:25px;
+
+    border:2px dashed #C8E6C9;
+
+    border-radius:20px;
+
+    padding:45px 20px;
+
+    text-align:center;
+
+    background:#F7FFF8;
+
+}
+
+.preview-vazio .icone{
+
+    font-size:55px;
+
+    margin-bottom:15px;
+
+}
+
+.preview-vazio h4{
+
+    color:#2E7D32;
+
+    margin-bottom:8px;
+
+}
+
+.preview-vazio span{
+
+    color:#777;
+
+    font-size:14px;
+
+}
+
+.preview{
+
+    margin-top:20px;
+
+}
+
+.preview img{
+
+    width:100%;
+
+    border-radius:18px;
+
+    max-height:320px;
+
+    object-fit:cover;
+
+}
+
+.botoes{
+
+    display:flex;
+
+    gap:15px;
+
+    margin-top:25px;
+
+}
+
+.botao-upload,
+.botoes button{
+
+    flex:1;
+
+    border:none;
+
+    padding:16px;
+
+    border-radius:16px;
+
+    cursor:pointer;
+
+    font-size:15px;
+
+    font-weight:600;
+
+    transition:.25s;
+
+    text-align:center;
+
+}
+
+.botao-upload{
+
+    background:#2E7D32;
+
+    color:white;
+
+}
+
+.botao-upload:hover{
+
+    background:#1B5E20;
+
+}
+
+.botoes button{
+
+    background:#5D4037;
+
+    color:white;
+
+}
+
+.botoes button:hover{
+
+    background:#4E342E;
+
+}
+
+.botoes button:disabled{
+
+    opacity:.7;
+
+    cursor:not-allowed;
+
+}
+
+@media(max-width:700px){
+
+.botoes{
+
+    flex-direction:column;
+
+}
+
+}
