@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 
 import Login from "./pages/Login";
 import Home from "./pages/Home";
+import Mapa from "./pages/mapa";
 import RotaProtegida from "./components/RotaProtegida";
 
 function App() {
@@ -14,6 +15,14 @@ function App() {
         element={
           <RotaProtegida>
             <Home />
+          </RotaProtegida>
+        }
+      />
+      <Route
+       path="/mapa"
+        element={
+          <RotaProtegida>
+            <Mapa />
           </RotaProtegida>
         }
       />

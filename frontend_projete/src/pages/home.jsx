@@ -7,7 +7,6 @@ import { analisarImagem } from "../services/FrontendAPI";
 import Header from "../components/Header";
 import UploadCard from "../components/UploadCard";
 import ResultCard from "../components/ResultCard";
-import QuickActions from "../components/QuickActions";
 import BottomNav from "../components/BottomNav";
 
 function Home() {
@@ -52,7 +51,7 @@ function Home() {
 
         {resultado && <ResultCard resultado={resultado} />}
 
-        <QuickActions />
+        
       </main>
 
       <BottomNav />

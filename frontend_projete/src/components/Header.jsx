@@ -20,9 +20,7 @@ function Header() {
 
       </div>
 
-      <button className="notificacao">
-        🔔
-      </button>
+
 
     </header>
   );
