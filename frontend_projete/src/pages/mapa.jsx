@@ -101,6 +101,14 @@ export default function Mapa() {
       .bindPopup(dados[0].display_name)
       .openPopup();
   }
+  
+  const [contornocriado, setContornoCriado] = useState(false);
+
+  function confirmarCadastro() {
+    if (contornoLavoura.current) {
+      // Lógica para confirmar o cadastro
+    }
+  }
 
   function confirmarContorno() {
     if (postos.current.length < 3) {
@@ -120,6 +128,8 @@ export default function Mapa() {
       fillColor: "#ff0000",
       fillOpacity: 0.35,
     }).addTo(map.current);
+
+    setContornoCriado(true);
   }
 
   function apagarContorno() {
@@ -130,6 +140,8 @@ export default function Mapa() {
 
     map.current.removeLayer(contornoLavoura.current);
     contornoLavoura.current = null;
+
+    setContornoCriado(false);
   }
 
   return (
@@ -155,6 +167,12 @@ export default function Mapa() {
         <button onClick={apagarContorno}>
           Apagar Contorno
         </button>
+
+        {contornocriado && (
+          <button onClick={confirmarCadastro}>
+            Confirmar Cadastro
+          </button>
+        )}
 
       </div>
 

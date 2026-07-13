@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import Login from "./pages/Login";
 import Home from "./pages/Home";
 import Mapa from "./pages/mapa";
+import Cadastro from "./pages/Cadastro";
 import RotaProtegida from "./components/RotaProtegida";
 
 function App() {
@@ -23,6 +24,14 @@ function App() {
         element={
           <RotaProtegida>
             <Mapa />
+          </RotaProtegida>
+        }
+      />
+      <Route
+        path="/cadastro"
+        element={
+          <RotaProtegida>
+            <Cadastro />
           </RotaProtegida>
         }
       />
