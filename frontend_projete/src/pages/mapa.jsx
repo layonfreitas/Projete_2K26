@@ -15,6 +15,8 @@ export default function Mapa() {
   const contornoLavoura = useRef(null);
 
   const [cidade, setCidade] = useState("");
+  const [contornoCriado, setContornoCriado] = useState(false);
+
 
   useEffect(() => {
     if (map.current) return;
@@ -74,6 +76,12 @@ export default function Mapa() {
     postos.current.splice(index, 1);
 
     console.log(postos.current);
+
+    if (contornoLavoura.current) {
+    map.current.removeLayer(contornoLavoura.current);
+    contornoLavoura.current = null;
+    setContornoCriado(false);
+}
   }
 
   async function buscarCidade() {
@@ -102,13 +110,36 @@ export default function Mapa() {
       .openPopup();
   }
   
-  const [contornocriado, setContornoCriado] = useState(false);
 
-  function confirmarCadastro() {
-    if (contornoLavoura.current) {
-      // Lógica para confirmar o cadastro
-    }
+async function confirmarCadastro() {
+
+  if (!contornoLavoura.current || postos.current.length < 3){
+    alert("Nenhum contorno desenhado ou pontos insuficientes para cadastro.");
+    return;
   }
+
+  const coordenadas = postos.current.map((p) => ({
+    lat: p.lat,
+    lng: p.lng,
+  }));
+
+  const resposta = await fetch("http://localhost:3000/lavouras", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      nome: "Minha lavoura",
+      coordenadas
+    })
+  });
+
+  if (resposta.ok) {
+    alert("Cadastro realizado!");
+    navigate("/home");
+    setCadastroConfirmado(true);
+  }
+}
 
   function confirmarContorno() {
     if (postos.current.length < 3) {
@@ -168,7 +199,7 @@ export default function Mapa() {
           Apagar Contorno
         </button>
 
-        {contornocriado && (
+        {contornoCriado && (
           <button onClick={confirmarCadastro}>
             Confirmar Cadastro
           </button>
