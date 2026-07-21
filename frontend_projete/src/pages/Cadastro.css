@@ -1,0 +1,255 @@
+/* cadastro.css */
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:Segoe UI,Tahoma,Geneva,Verdana,sans-serif;
+}
+
+body{
+    background:linear-gradient(rgba(25,45,20,.75),rgba(25,45,20,.75)),
+    url("https://images.unsplash.com/photo-1447933601403-0c6688de566e?auto=format&fit=crop&w=1800&q=80");
+    background-size:cover;
+    background-position:center;
+    min-height:100vh;
+}
+
+.cadastro-container{
+
+    display:flex;
+    justify-content:center;
+    align-items:center;
+
+    min-height:100vh;
+
+    padding:40px;
+
+}
+
+.cadastro-card{
+
+    width:800px;
+    max-width:95%;
+
+    background:white;
+
+    border-radius:22px;
+
+    padding:40px;
+
+    box-shadow:0 25px 60px rgba(0,0,0,.25);
+
+}
+
+.cadastro-header{
+
+    text-align:center;
+
+    margin-bottom:35px;
+
+}
+
+.cadastro-header h1{
+
+    color:#2e7d32;
+
+    font-size:40px;
+
+    margin-bottom:10px;
+
+}
+
+.cadastro-header p{
+
+    color:#666;
+
+    font-size:17px;
+
+}
+
+.formulario{
+
+    display:flex;
+    flex-direction:column;
+
+    gap:20px;
+
+}
+
+.campo{
+
+    display:flex;
+
+    flex-direction:column;
+
+}
+
+.campo label{
+
+    margin-bottom:8px;
+
+    font-weight:600;
+
+    color:#444;
+
+}
+
+.campo input,
+.campo textarea,
+.campo select{
+
+    width:100%;
+
+    padding:15px;
+
+    border:2px solid #d9d9d9;
+
+    border-radius:12px;
+
+    font-size:16px;
+
+    transition:.25s;
+
+    outline:none;
+
+}
+
+.campo textarea{
+
+    resize:vertical;
+
+    min-height:120px;
+
+}
+
+.campo input:focus,
+.campo textarea:focus,
+.campo select:focus{
+
+    border-color:#2e7d32;
+
+    box-shadow:0 0 10px rgba(46,125,50,.25);
+
+}
+
+.info-poligono{
+
+    background:#f5f5f5;
+
+    border-left:6px solid #2e7d32;
+
+    padding:18px;
+
+    border-radius:12px;
+
+    color:#444;
+
+}
+
+.info-poligono strong{
+
+    color:#2e7d32;
+
+}
+
+.botoes{
+
+    display:flex;
+
+    justify-content:flex-end;
+
+    gap:15px;
+
+    margin-top:15px;
+
+}
+
+.botao-voltar{
+
+    background:#6d4c41;
+
+    color:white;
+
+    border:none;
+
+    border-radius:12px;
+
+    padding:14px 28px;
+
+    cursor:pointer;
+
+    transition:.3s;
+
+    font-size:16px;
+
+    font-weight:600;
+
+}
+
+.botao-salvar{
+
+    background:#2e7d32;
+
+    color:white;
+
+    border:none;
+
+    border-radius:12px;
+
+    padding:14px 28px;
+
+    cursor:pointer;
+
+    transition:.3s;
+
+    font-size:16px;
+
+    font-weight:600;
+
+}
+
+.botao-voltar:hover{
+
+    background:#4e342e;
+
+    transform:translateY(-2px);
+
+}
+
+.botao-salvar:hover{
+
+    background:#1b5e20;
+
+    transform:translateY(-2px);
+
+}
+
+@media(max-width:700px){
+
+.cadastro-card{
+
+    padding:25px;
+
+}
+
+.cadastro-header h1{
+
+    font-size:30px;
+
+}
+
+.botoes{
+
+    flex-direction:column;
+
+}
+
+.botao-voltar,
+.botao-salvar{
+
+    width:100%;
+
+}
+
+}

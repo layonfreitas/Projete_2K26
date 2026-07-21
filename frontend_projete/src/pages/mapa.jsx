@@ -111,7 +111,7 @@ export default function Mapa() {
   }
   
 
-async function confirmarCadastro() {
+ function confirmarCadastro() {
 
   if (!contornoLavoura.current || postos.current.length < 3){
     alert("Nenhum contorno desenhado ou pontos insuficientes para cadastro.");
@@ -123,23 +123,12 @@ async function confirmarCadastro() {
     lng: p.lng,
   }));
 
-  const resposta = await fetch("http://localhost:3000/lavouras", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      nome: "Minha lavoura",
-      coordenadas
-    })
-  });
-
-  if (resposta.ok) {
-    alert("Cadastro realizado!");
-    navigate("/home");
-    setCadastroConfirmado(true);
+  navigate("/cadastro", {
+        state: {
+            coordenadas,
+        },
+    });
   }
-}
 
   function confirmarContorno() {
     if (postos.current.length < 3) {
