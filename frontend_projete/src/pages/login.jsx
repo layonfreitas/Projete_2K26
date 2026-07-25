@@ -5,24 +5,48 @@ import "./Login.css";
 function Login() {
   const navigate = useNavigate();
 
-  const [email, setEmail] = useState("");
+  const [nome, setNome] = useState("");
   const [senha, setSenha] = useState("");
   const [erro, setErro] = useState("");
+  const [carregando, setCarregando] = useState(false);
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
 
-    if (!email || !senha) {
-      setErro("Preencha e-mail e senha para continuar.");
+    if (!nome || !senha) {
+      setErro("Preencha nome e senha para continuar.");
       return;
     }
 
-    // Login apenas de front-end por enquanto (sem validação real).
-    // Quando o backend tiver uma rota de autenticação, troque este
-    // trecho por uma chamada de API (fetch/axios) e trate a resposta.
-    localStorage.setItem("autenticado", "true");
+    setErro("");
+    setCarregando(true);
 
-    navigate("/home");
+    try {
+      const resposta = await fetch("http://localhost:5000/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nome, senha }),
+      });
+
+      const dados = await resposta.json();
+
+      if (resposta.ok) {
+        // guarda o id e o nome do usuário logado, pra usar depois
+        // (ex: mandar junto no cadastro de lavoura)
+        localStorage.setItem("autenticado", "true");
+        localStorage.setItem("usuarioId", dados.usuarioId);
+        localStorage.setItem("usuarioNome", dados.nome);
+
+        navigate("/home");
+      } else {
+        setErro(dados.mensagem || "Nome ou senha incorretos.");
+      }
+    } catch (erroRequisicao) {
+      setErro("Erro ao conectar com o servidor.");
+      console.error(erroRequisicao);
+    } finally {
+      setCarregando(false);
+    }
   };
 
   return (
@@ -35,13 +59,13 @@ function Login() {
         </div>
 
         <form className="login-form" onSubmit={handleSubmit}>
-          <label htmlFor="email">E-mail</label>
+          <label htmlFor="nome">Nome de usuário</label>
           <input
-            id="email"
-            type="email"
-            placeholder="seuemail@exemplo.com"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
+            id="nome"
+            type="text"
+            placeholder="Seu nome de usuário"
+            value={nome}
+            onChange={(event) => setNome(event.target.value)}
           />
 
           <label htmlFor="senha">Senha</label>
@@ -55,8 +79,8 @@ function Login() {
 
           {erro && <span className="login-erro">{erro}</span>}
 
-          <button type="submit" className="botao-login">
-            Entrar
+          <button type="submit" className="botao-login" disabled={carregando}>
+            {carregando ? "Entrando..." : "Entrar"}
           </button>
         </form>
       </div>

@@ -43,3 +43,39 @@ def cadastro():
     except Exception as erro:
         # erro comum aqui: nome duplicado (por causa do UNIQUE)
         return jsonify({"mensagem": "Erro ao cadastrar", "erro": str(erro)}), 500
+
+
+@auth_bp.route('/login', methods=['POST'])
+def login():
+    dados = request.get_json()
+    nome = dados.get('nome')
+    senha = dados.get('senha')
+
+    if not nome or not senha:
+        return jsonify({"mensagem": "Nome e senha são obrigatórios"}), 400
+
+    try:
+        cursor = mysql.connection.cursor()
+        cursor.execute(
+            "SELECT id, nome, senha_hash FROM usuarios WHERE nome = %s",
+            (nome,)
+        )
+        resultado = cursor.fetchone()
+        cursor.close()
+
+        # verifica se o usuário existe e se a senha bate com o hash salvo
+        # (o hash pode vir como str ou bytes do banco, então tratamos os dois casos)
+        senha_hash_salva = resultado[2] if resultado else None
+        if isinstance(senha_hash_salva, str):
+            senha_hash_salva = senha_hash_salva.encode('utf-8')
+
+        if resultado and bcrypt.checkpw(senha.encode('utf-8'), senha_hash_salva):
+            return jsonify({
+                "mensagem": "Login realizado com sucesso",
+                "usuarioId": resultado[0],
+                "nome": resultado[1]
+            }), 200
+        else:
+            return jsonify({"mensagem": "Nome ou senha incorretos"}), 401
+    except Exception as erro:
+        return jsonify({"mensagem": "Erro ao fazer login", "erro": str(erro)}), 500
