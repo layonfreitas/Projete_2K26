@@ -10,19 +10,45 @@ export default function Cadastro() {
   const coordenadas = location.state?.coordenadas;
 
   const [nome, setNome] = useState("");
-  const [proprietario, setProprietario] = useState("");
+  const [mensagem, setMensagem] = useState("");
+  const [carregando, setCarregando] = useState(false);
 
-  function salvarCadastro() {
+  async function salvarCadastro() {
+    const usuarioId = localStorage.getItem("usuarioId");
 
-    const lavoura = {
-      nome,
-      proprietario,
-      coordenadas
-    };
+    if (!nome || !coordenadas) {
+      setMensagem("Preencha o nome da lavoura e desenhe o polígono no mapa.");
+      return;
+    }
 
-    console.log(lavoura);
+    setCarregando(true);
+    setMensagem("");
 
-    // Aqui futuramente será feito o fetch para a API.
+    try {
+      const resposta = await fetch("http://localhost:5000/lavoura", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          usuarioId,
+          nomeLavoura: nome,
+          coordenadas,
+        }),
+      });
+
+      const dados = await resposta.json();
+
+      if (resposta.ok) {
+        setMensagem("Lavoura cadastrada com sucesso!");
+        setTimeout(() => navigate("/home"), 1500);
+      } else {
+        setMensagem(dados.mensagem || "Erro ao cadastrar lavoura.");
+      }
+    } catch (erro) {
+      setMensagem("Erro ao conectar com o servidor.");
+      console.error(erro);
+    } finally {
+      setCarregando(false);
+    }
   }
 
   return (
@@ -56,19 +82,6 @@ export default function Cadastro() {
 
           </div>
 
-          <div className="campo">
-
-            <label>Proprietário</label>
-
-            <input
-              type="text"
-              value={proprietario}
-              onChange={(e) => setProprietario(e.target.value)}
-              placeholder="Nome do proprietário"
-            />
-
-          </div>
-
           <div className="info-poligono">
 
             <strong>Polígono recebido:</strong>
@@ -80,6 +93,8 @@ export default function Cadastro() {
               : "Nenhum polígono recebido."}
 
           </div>
+
+          {mensagem && <p className="mensagem-cadastro">{mensagem}</p>}
 
           <div className="botoes">
 
@@ -93,8 +108,9 @@ export default function Cadastro() {
             <button
               className="botao-salvar"
               onClick={salvarCadastro}
+              disabled={carregando}
             >
-              Salvar Cadastro
+              {carregando ? "Salvando..." : "Salvar Cadastro"}
             </button>
 
           </div>
