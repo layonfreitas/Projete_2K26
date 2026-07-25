@@ -1,3 +1,4 @@
+CREATE DATABASE IF NOT EXISTS coffeeVision;
 USE coffeeVision;
 DROP TABLE IF EXISTS lavouras;
 DROP TABLE IF EXISTS usuarios;
