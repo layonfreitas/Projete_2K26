@@ -4,6 +4,18 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import "./mapa.css";
 
+
+import iconeMarcador from "leaflet/dist/images/marker-icon.png";
+import iconeMarcador2x from "leaflet/dist/images/marker-icon-2x.png";
+import iconeSombra from "leaflet/dist/images/marker-shadow.png";
+
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: iconeMarcador2x,
+  iconUrl: iconeMarcador,
+  shadowUrl: iconeSombra,
+});
+
 export default function Mapa() {
   const navigate = useNavigate();
 
