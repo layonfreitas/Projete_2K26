@@ -1,3 +1,5 @@
+import { IA_API_URL } from "../config/api";
+
 const traducoes = {
   "miner": "Bicho mineiro",
   "rust": "Ferrugem",
@@ -9,7 +11,7 @@ export async function analisarImagem(arquivo) {
   const formData = new FormData();
   formData.append('imagem', arquivo);
 
-  const response = await fetch('http://127.0.0.1:8000/classificar/', {
+  const response = await fetch(`${IA_API_URL}/classificar/`, {
     method: 'POST',
     body: formData,
   });
