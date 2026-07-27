@@ -24,7 +24,7 @@ function BottomNav() {
         <span>Histórico</span>
       </button>
 
-      <button className="nav-item">
+      <button className="nav-item" onClick={() => navigate("/perfil")}>
         <span className="icon">👤</span>
         <span>Perfil</span>
       </button>

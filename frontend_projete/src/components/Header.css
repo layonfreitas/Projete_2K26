@@ -35,27 +35,19 @@
 }
 
 .avatar{
-
     width:52px;
-
     height:52px;
-
     border-radius:50%;
-
-    background:#43A047;
-
+    background: linear-gradient(135deg, #66BB6A, #2E7D32);
     display:flex;
-
     align-items:center;
-
     justify-content:center;
-
     font-weight:bold;
-
     font-size:18px;
-
-    border:2px solid rgba(255,255,255,.3);
-
+    color:white;
+    letter-spacing: 1px;
+    border:2px solid rgba(255,255,255,.4);
+    box-shadow: 0 3px 8px rgba(0,0,0,.25);
 }
 
 .bem-vindo{

@@ -1,0 +1,62 @@
+.perfil-page{
+    display:flex;
+    justify-content:center;
+    padding:30px 20px 100px;
+}
+
+.perfil-card{
+    width:100%;
+    max-width:400px;
+    background:white;
+    border-radius:24px;
+    box-shadow:0 5px 20px rgba(0,0,0,.1);
+    padding:30px 25px;
+    text-align:center;
+}
+
+.perfil-avatar{
+    width:80px;
+    height:80px;
+    border-radius:50%;
+    margin:0 auto 15px;
+    background: linear-gradient(135deg, #66BB6A, #2E7D32);
+    color:white;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:28px;
+    font-weight:bold;
+    box-shadow:0 3px 8px rgba(0,0,0,.25);
+}
+
+.perfil-email{
+    color:#777;
+    font-size:14px;
+    margin-top:4px;
+}
+
+.perfil-info{
+    margin-top:20px;
+    text-align:left;
+}
+
+.perfil-linha{
+    display:flex;
+    justify-content:space-between;
+    padding:10px 0;
+    border-bottom:1px solid #eee;
+    font-size:14px;
+    color:#444;
+}
+
+.perfil-sair{
+    margin-top:25px;
+    width:100%;
+    padding:12px;
+    border:none;
+    border-radius:14px;
+    background:#C62828;
+    color:white;
+    font-weight:bold;
+    cursor:pointer;
+}
