@@ -21,6 +21,82 @@ def gerar_codigo():
 
 
 
+def montar_html_codigo(codigo):
+    return f"""\
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin:0; padding:0; background-color:#F3ECE3; font-family: 'Segoe UI', Helvetica, Arial, sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#F3ECE3; padding:32px 16px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="max-width:480px; width:100%; background-color:#FFFFFF; border-radius:16px; overflow:hidden; box-shadow:0 4px 18px rgba(93,64,42,0.12);">
+
+          <!-- Cabeçalho -->
+          <tr>
+            <td style="background-color:#4B3621; padding:28px 32px; text-align:center;">
+              <span style="font-size:26px; line-height:1;">☕</span>
+              <span style="display:block; margin-top:6px; font-size:20px; font-weight:700; color:#F3ECE3; letter-spacing:0.5px;">
+                CoffeeVision
+              </span>
+            </td>
+          </tr>
+
+          <!-- Corpo -->
+          <tr>
+            <td style="padding:36px 32px 12px 32px;">
+              <h1 style="margin:0 0 12px 0; font-size:19px; color:#3A2A1A;">
+                Recuperação de senha
+              </h1>
+              <p style="margin:0 0 24px 0; font-size:15px; line-height:1.6; color:#5C4A3A;">
+                Recebemos uma solicitação para redefinir a senha da sua conta no CoffeeVision.
+                Use o código abaixo para continuar:
+              </p>
+            </td>
+          </tr>
+
+          <!-- Código -->
+          <tr>
+            <td style="padding:0 32px 28px 32px;" align="center">
+              <div style="background-color:#FBF3E9; border:1px dashed #C8A27A; border-radius:12px; padding:18px 24px; display:inline-block;">
+                <span style="font-size:32px; font-weight:700; letter-spacing:10px; color:#4B3621; font-family: 'Courier New', monospace;">
+                  {codigo}
+                </span>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Aviso -->
+          <tr>
+            <td style="padding:0 32px 32px 32px;">
+              <p style="margin:0; font-size:13px; line-height:1.6; color:#8A7A6A;">
+                Esse código expira em <strong>15 minutos</strong>. Se você não solicitou essa troca,
+                pode ignorar este e-mail com tranquilidade — sua senha continua a mesma.
+              </p>
+            </td>
+          </tr>
+
+          <!-- Rodapé -->
+          <tr>
+            <td style="background-color:#F3ECE3; padding:18px 32px; text-align:center;">
+              <p style="margin:0; font-size:12px; color:#A6957F;">
+                🌿 CoffeeVision — cuidando das suas lavouras de café
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+"""
+
+
 def enviar_email_codigo(destinatario, codigo):
     resposta = requests.post(
         "https://api.brevo.com/v3/smtp/email",
@@ -33,6 +109,7 @@ def enviar_email_codigo(destinatario, codigo):
             "sender": {"email": current_app.config['BREVO_EMAIL_REMETENTE'], "name": "CoffeeVision"},
             "to": [{"email": destinatario}],
             "subject": "CoffeeVision - Código de recuperação de senha",
+            "htmlContent": montar_html_codigo(codigo),
             "textContent": (
                 f"Seu código de recuperação de senha do CoffeeVision é: {codigo}\n\n"
                 f"Esse código expira em 15 minutos. Se você não solicitou essa troca, ignore este e-mail."
