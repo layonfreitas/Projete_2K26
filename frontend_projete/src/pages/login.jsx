@@ -15,8 +15,8 @@ function Login() {
   const handleSubmit = async (event) => {
     event.preventDefault();
 
-    if (!email || !senha) {
-      setErro("Preencha e-mail e senha para continuar.");
+    if (!email || !senha || !nome) {
+      setErro("Preencha nome,e-mail e senha para continuar.");
       return;
     }
 
@@ -27,7 +27,7 @@ function Login() {
       const resposta = await fetch(`${AUTH_API_URL}/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, senha }),
+        body: JSON.stringify({ nome, email, senha }),
       });
 
       const dados = await resposta.json();
