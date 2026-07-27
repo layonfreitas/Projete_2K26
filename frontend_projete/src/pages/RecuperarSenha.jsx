@@ -13,31 +13,36 @@ function RecuperarSenha() {
   const [carregando, setCarregando] = useState(false);
 
   async function handleSolicitar(event) {
-    event.preventDefault();
-    if (!email) {
-      setMensagem("Informe seu e-mail.");
-      return;
-    }
-
-    setCarregando(true);
-    setMensagem("");
-
-    try {
-      await fetch(`${AUTH_API_URL}/senha/recuperar/solicitar`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      });
-      setMensagem("Se o e-mail existir, um código foi enviado.");
-      setEtapa(2);
-    } catch (erro) {
-      setMensagem("Erro ao conectar com o servidor.");
-      console.error(erro);
-    } finally {
-      setCarregando(false);
-    }
+  event.preventDefault();
+  if (!email) {
+    setMensagem("Informe seu e-mail.");
+    return;
   }
 
+  setCarregando(true);
+  setMensagem("");
+
+  try {
+    const resposta = await fetch(`${AUTH_API_URL}/senha/recuperar/solicitar`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+    const dados = await resposta.json();
+
+    if (resposta.ok) {
+      setMensagem("Código enviado para o seu e-mail.");
+      setEtapa(2);
+    } else {
+      setMensagem(dados.mensagem || "Não foi possível enviar o código.");
+    }
+  } catch (erro) {
+    setMensagem("Erro ao conectar com o servidor.");
+    console.error(erro);
+  } finally {
+    setCarregando(false);
+  }
+}
   async function handleConfirmar(event) {
     event.preventDefault();
     if (!codigo || !novaSenha) {

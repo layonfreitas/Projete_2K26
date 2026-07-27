@@ -49,25 +49,25 @@ def solicitar_codigo():
         cursor.execute("SELECT id FROM usuarios WHERE email = %s", (email,))
         resultado = cursor.fetchone()
 
-        # Por segurança, sempre respondemos "enviado" mesmo se o e-mail
-        # não existir no banco, pra não revelar quais e-mails estão cadastrados.
-        if resultado:
-            codigo = gerar_codigo()
-            expira_em = datetime.now() + timedelta(minutes=15)
+        if not resultado:
+            cursor.close()
+            return jsonify({"mensagem": "Não existe nenhuma conta cadastrada com esse e-mail."}), 404
 
-            cursor.execute(
-                "UPDATE usuarios SET codigo_recuperacao = %s, codigo_expira_em = %s WHERE id = %s",
-                (codigo, expira_em, resultado[0])
-            )
-            mysql.connection.commit()
+        codigo = gerar_codigo()
+        expira_em = datetime.now() + timedelta(minutes=15)
 
-            enviar_email_codigo(email, codigo)
-
+        cursor.execute(
+            "UPDATE usuarios SET codigo_recuperacao = %s, codigo_expira_em = %s WHERE id = %s",
+            (codigo, expira_em, resultado[0])
+        )
+        mysql.connection.commit()
         cursor.close()
-        return jsonify({"mensagem": "Se o e-mail existir, um código foi enviado."}), 200
+
+        enviar_email_codigo(email, codigo)
+
+        return jsonify({"mensagem": "Código enviado para o seu e-mail."}), 200
     except Exception as erro:
         return jsonify({"mensagem": "Erro ao solicitar código", "erro": str(erro)}), 500
-
 
 @senha_bp.route('/senha/recuperar/confirmar', methods=['POST'])
 def confirmar_codigo():
