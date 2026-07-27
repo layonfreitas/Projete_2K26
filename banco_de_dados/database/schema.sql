@@ -10,7 +10,9 @@ CREATE TABLE usuarios(
     email VARCHAR(150) NOT NULL UNIQUE,
     senha_hash VARCHAR(225) NOT NULL,
     confirma_senha_hash VARCHAR(255) NOT NULL,
-    criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    codigo_recuperacao VARCHAR(6) NULL,
+    codigo_expira_em TIMESTAMP NULL
 );
 
 CREATE TABLE lavouras (

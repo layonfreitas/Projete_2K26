@@ -94,3 +94,13 @@
 .botao-login:hover{
     background:#1B5E20;
 }
+
+.link-esqueceu-senha{
+    display:block;
+    text-align:center;
+    margin-top:14px;
+    font-size:13px;
+    color:#2E7D32;
+    cursor:pointer;
+    text-decoration:underline;
+}

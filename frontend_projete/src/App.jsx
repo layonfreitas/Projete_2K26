@@ -5,6 +5,8 @@ import Home from "./pages/home";
 import Mapa from "./pages/mapa";
 import Cadastro from "./pages/Cadastro";
 import Perfil from "./pages/perfil";
+import RecuperarSenha from "./pages/RecuperarSenha";
+import TrocarSenha from "./pages/TrocarSenha";
 import RotaProtegida from "./components/RotaProtegida";
 
 function App() {
@@ -44,6 +46,17 @@ function App() {
           </RotaProtegida>
         }
       />
+
+        <Route path="/recuperar-senha" element={<RecuperarSenha />} />
+
+        <Route
+          path="/trocar-senha"
+          element={
+            <RotaProtegida>
+              <TrocarSenha />
+            </RotaProtegida>
+          }
+        />
 
       <Route path="/" element={<Navigate to="/home" replace />} />
       <Route path="*" element={<Navigate to="/home" replace />} />

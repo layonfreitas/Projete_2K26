@@ -82,7 +82,16 @@ function Login() {
           <button type="submit" className="botao-login" disabled={carregando}>
             {carregando ? "Entrando..." : "Entrar"}
           </button>
+
+          <button type="submit" className="botao-login" disabled={carregando}>
+            {carregando ? "Entrando..." : "Entrar"}
+          </button>
+
+          <a className="link-esqueceu-senha" onClick={() => navigate("/recuperar-senha")}>
+            Esqueceu a senha?
+          </a>         
         </form>
+
       </div>
     </div>
   );

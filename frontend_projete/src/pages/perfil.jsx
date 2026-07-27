@@ -41,8 +41,12 @@ function Perfil() {
           </div>
         </div>
 
+        <button className="perfil-trocar-senha" onClick={() => navigate("/trocar-senha")}>
+        Trocar senha
+        </button>
+
         <button className="perfil-sair" onClick={handleSair}>
-          Sair da conta
+        Sair da conta
         </button>
       </div>
     </div>

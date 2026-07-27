@@ -60,3 +60,20 @@
     font-weight:bold;
     cursor:pointer;
 }
+.perfil-card h2{
+    color:#1B5E20;
+    font-size:22px;
+    margin-top:4px;
+}
+
+.perfil-trocar-senha{
+    margin-top:25px;
+    width:100%;
+    padding:12px;
+    border:none;
+    border-radius:14px;
+    background:#2E7D32;
+    color:white;
+    font-weight:bold;
+    cursor:pointer;
+}
