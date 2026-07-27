@@ -6,17 +6,16 @@ import "./login.css";
 function Login() {
   const navigate = useNavigate();
 
-  const [nome, setNome] = useState("");
-  const [senha, setSenha] = useState("");
   const [email, setEmail] = useState("");
+  const [senha, setSenha] = useState("");
   const [erro, setErro] = useState("");
   const [carregando, setCarregando] = useState(false);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
 
-    if (!email || !senha || !nome) {
-      setErro("Preencha nome,e-mail e senha para continuar.");
+    if (!email || !senha) {
+      setErro("Preencha e-mail e senha para continuar.");
       return;
     }
 
@@ -27,14 +26,12 @@ function Login() {
       const resposta = await fetch(`${AUTH_API_URL}/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nome, email, senha }),
+        body: JSON.stringify({ email, senha }),
       });
 
       const dados = await resposta.json();
 
       if (resposta.ok) {
-        // guarda o id e o nome do usuário logado, pra usar depois
-        // (ex: mandar junto no cadastro de lavoura)
         localStorage.setItem("autenticado", "true");
         localStorage.setItem("usuarioId", dados.usuarioId);
         localStorage.setItem("usuarioNome", dados.nome);
@@ -61,14 +58,6 @@ function Login() {
         </div>
 
         <form className="login-form" onSubmit={handleSubmit}>
-          <label htmlFor="nome">Nome de usuário</label>
-          <input
-            id="nome"
-            type="text"
-            placeholder="Seu nome de usuário"
-            value={nome}
-            onChange={(event) => setNome(event.target.value)}
-          />
           <label htmlFor="email">E-mail</label>
           <input
             id="email"
@@ -77,6 +66,7 @@ function Login() {
             value={email}
             onChange={(event) => setEmail(event.target.value)}
           />
+
           <label htmlFor="senha">Senha</label>
           <input
             id="senha"
@@ -85,7 +75,7 @@ function Login() {
             value={senha}
             onChange={(event) => setSenha(event.target.value)}
           />
-          
+
           {erro && <span className="login-erro">{erro}</span>}
 
           <button type="submit" className="botao-login" disabled={carregando}>
