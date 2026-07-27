@@ -10,10 +10,8 @@ class Config:
     MYSQL_USER = os.getenv("DB_USER")
     MYSQL_PASSWORD = os.getenv("DB_PASSWORD")
     MYSQL_DB = os.getenv("DB_NAME")
-    EMAIL_HOST = os.getenv("EMAIL_HOST")
-    EMAIL_PORT = int(os.getenv("EMAIL_PORT", 587))
-    EMAIL_USER = os.getenv("EMAIL_USER")
-    EMAIL_SENHA = os.getenv("EMAIL_SENHA")
+    BREVO_API_KEY = os.getenv("BREVO_API_KEY")
+    BREVO_EMAIL_REMETENTE = os.getenv("BREVO_EMAIL_REMETENTE")
 
     # Porta do banco. Localmente o MySQL usa 3306 por padrão,
     # mas provedores em nuvem (como a Aiven) usam portas customizadas.

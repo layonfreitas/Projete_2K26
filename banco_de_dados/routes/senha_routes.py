@@ -5,6 +5,7 @@ import smtplib
 from email.mime.text import MIMEText
 from datetime import datetime, timedelta
 import bcrypt
+import requests
 
 senha_bp = Blueprint('senha', __name__)
 mysql = None
@@ -18,23 +19,29 @@ def gerar_codigo():
     return ''.join(random.choices(string.digits, k=6))
 
 
+
+
 def enviar_email_codigo(destinatario, codigo):
-    corpo = (
-        f"Seu código de recuperação de senha do CoffeeVision é: {codigo}\n\n"
-        f"Esse código expira em 15 minutos. Se você não solicitou essa troca, "
-        f"ignore este e-mail."
+    resposta = requests.post(
+        "https://api.brevo.com/v3/smtp/email",
+        headers={
+            "api-key": current_app.config['BREVO_API_KEY'],
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+        },
+        json={
+            "sender": {"email": current_app.config['BREVO_EMAIL_REMETENTE'], "name": "CoffeeVision"},
+            "to": [{"email": destinatario}],
+            "subject": "CoffeeVision - Código de recuperação de senha",
+            "textContent": (
+                f"Seu código de recuperação de senha do CoffeeVision é: {codigo}\n\n"
+                f"Esse código expira em 15 minutos. Se você não solicitou essa troca, ignore este e-mail."
+            ),
+        },
     )
 
-    msg = MIMEText(corpo)
-    msg['Subject'] = 'CoffeeVision - Código de recuperação de senha'
-    msg['From'] = current_app.config['EMAIL_USER']
-    msg['To'] = destinatario
-
-    with smtplib.SMTP(current_app.config['EMAIL_HOST'], current_app.config['EMAIL_PORT']) as servidor:
-        servidor.starttls()
-        servidor.login(current_app.config['EMAIL_USER'], current_app.config['EMAIL_SENHA'])
-        servidor.send_message(msg)
-
+    if resposta.status_code >= 300:
+        raise Exception(f"Erro ao enviar e-mail: {resposta.text}")
 
 @senha_bp.route('/senha/recuperar/solicitar', methods=['POST'])
 def solicitar_codigo():
