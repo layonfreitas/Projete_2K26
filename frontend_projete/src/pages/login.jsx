@@ -7,14 +7,15 @@ function Login() {
 
   const [nome, setNome] = useState("");
   const [senha, setSenha] = useState("");
+  const [email, setEmail] = useState("");
   const [erro, setErro] = useState("");
   const [carregando, setCarregando] = useState(false);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
 
-    if (!nome || !senha) {
-      setErro("Preencha nome e senha para continuar.");
+    if (!email || !senha) {
+      setErro("Preencha e-mail e senha para continuar.");
       return;
     }
 
@@ -25,7 +26,7 @@ function Login() {
       const resposta = await fetch("http://localhost:5000/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nome, senha }),
+        body: JSON.stringify({ email, senha }),
       });
 
       const dados = await resposta.json();
@@ -39,7 +40,7 @@ function Login() {
 
         navigate("/home");
       } else {
-        setErro(dados.mensagem || "Nome ou senha incorretos.");
+        setErro(dados.mensagem || "E-mail ou senha incorretos.");
       }
     } catch (erroRequisicao) {
       setErro("Erro ao conectar com o servidor.");

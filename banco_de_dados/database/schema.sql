@@ -7,6 +7,7 @@ CREATE TABLE usuarios(
     id INT AUTO_INCREMENT PRIMARY KEY,
     nome VARCHAR(100) NOT NULL UNIQUE,
     confirma_nome VARCHAR(100) NOT NULL,
+    email VARCHAR(150) NOT NULL UNIQUE,
     senha_hash VARCHAR(225) NOT NULL,
     confirma_senha_hash VARCHAR(255) NOT NULL,
     criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
