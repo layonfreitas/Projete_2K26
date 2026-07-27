@@ -1,7 +1,6 @@
 fastapi
 uvicorn[standard]
-ultralytics
-pillow
-onnx
 onnxruntime
+pillow
+numpy
 python-multipart
