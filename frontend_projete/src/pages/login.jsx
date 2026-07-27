@@ -69,7 +69,14 @@ function Login() {
             value={nome}
             onChange={(event) => setNome(event.target.value)}
           />
-
+          <label htmlFor="email">E-mail</label>
+          <input
+            id="email"
+            type="email"
+            placeholder="seuemail@exemplo.com"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+          />
           <label htmlFor="senha">Senha</label>
           <input
             id="senha"
@@ -78,7 +85,7 @@ function Login() {
             value={senha}
             onChange={(event) => setSenha(event.target.value)}
           />
-
+          
           {erro && <span className="login-erro">{erro}</span>}
 
           <button type="submit" className="botao-login" disabled={carregando}>
