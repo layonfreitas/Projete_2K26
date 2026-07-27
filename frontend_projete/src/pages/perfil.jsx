@@ -50,6 +50,7 @@ function Perfil() {
         Sair da conta
         </button>
       </div>
+      
       <BottomNav />
     </div>
   );

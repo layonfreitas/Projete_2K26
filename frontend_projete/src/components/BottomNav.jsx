@@ -7,7 +7,7 @@ function BottomNav() {
   return (
     <nav className="bottom-nav">
 
-      <button className="nav-item active">
+      <button className="nav-item active" onClick={() => navigate("/mapa")}>
         <span className="icon">🏠</span>
         <span>Home</span>
       </button>
