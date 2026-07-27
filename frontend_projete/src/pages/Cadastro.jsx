@@ -1,6 +1,7 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { useState } from "react";
-import "./cadastro.css";
+import { AUTH_API_URL } from "../config/api";
+import "./Cadastro.css";
 
 export default function Cadastro() {
 
@@ -25,7 +26,7 @@ export default function Cadastro() {
     setMensagem("");
 
     try {
-      const resposta = await fetch("http://localhost:5000/lavoura", {
+      const resposta = await fetch(`${AUTH_API_URL}/lavoura`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
