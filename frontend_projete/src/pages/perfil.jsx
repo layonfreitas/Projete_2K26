@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import "./perfil.css";
+import BottomNav from "../components/BottomNav";
 
 function Perfil() {
   const navigate = useNavigate();
@@ -49,6 +50,7 @@ function Perfil() {
         Sair da conta
         </button>
       </div>
+      <BottomNav />
     </div>
   );
 }
