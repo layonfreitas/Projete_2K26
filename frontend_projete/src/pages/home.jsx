@@ -54,7 +54,7 @@ function Home() {
         
       </main>
 
-      <BottomNav />
+{!resultado && <BottomNav />}
     </div>
   );
 }

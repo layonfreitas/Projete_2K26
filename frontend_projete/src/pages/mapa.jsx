@@ -4,6 +4,8 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import "./mapa.css";
 
+import BottomNav from "../components/BottomNav";
+
 
 import iconeMarcador from "leaflet/dist/images/marker-icon.png";
 import iconeMarcador2x from "leaflet/dist/images/marker-icon-2x.png";
@@ -212,7 +214,7 @@ export default function Mapa() {
         ref={mapaRef}
         id="mapa"
       ></div>
-
+       <BottomNav />    
     </div>
   );
 }

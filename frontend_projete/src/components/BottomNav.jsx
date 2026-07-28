@@ -7,14 +7,14 @@ function BottomNav() {
   return (
     <nav className="bottom-nav">
 
-      <button className="nav-item active" onClick={() => navigate("/mapa")}>
+      <button className="nav-item active" onClick={() => navigate("/home")}>
         <span className="icon">🏠</span>
         <span>Home</span>
       </button>
 
       <button className="nav-item" onClick={() => navigate("/mapa")}>
-        <span className="icon">🌱</span>
-        <span>Lavouras</span>
+        <span className="icon">🌍</span>
+        <span>mapa</span>
       </button>
 
 
