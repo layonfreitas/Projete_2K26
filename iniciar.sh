@@ -71,7 +71,7 @@ if [[ "$OS_TYPE" == MINGW* || "$OS_TYPE" == MSYS* ]]; then
 
 elif [[ "$OS_TYPE" == "Darwin" ]]; then
     # macOS: abre novas abas do Terminal
-    osascript -e "tell application \"Terminal\" to do script \"cd '$DIR/IA/API' && $PYTHON_CMD -m uvicorn classificar:app --reload\""
+    osascript -e "tell application \"Terminal\" to do script \"cd '$DIR/Backend/API' && $PYTHON_CMD -m uvicorn classificar:app --reload\""
     osascript -e "tell application \"Terminal\" to do script \"cd '$DIR/frontend_projete' && npm run dev\""
 
     sleep 5

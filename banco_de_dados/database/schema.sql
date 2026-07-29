@@ -10,6 +10,9 @@ CREATE TABLE usuarios(
     email VARCHAR(150) NOT NULL UNIQUE,
     senha_hash VARCHAR(225) NOT NULL,
     confirma_senha_hash VARCHAR(255) NOT NULL,
+    cidade VARCHAR(150) NOT NULL,
+    cidade_lat DOUBLE NOT NULL,
+    cidade_lon DOUBLE NOT NULL,
     criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     codigo_recuperacao VARCHAR(6) NULL,
     codigo_expira_em TIMESTAMP NULL

@@ -17,8 +17,12 @@ def cadastro():
     email = dados.get('email')
     senha = dados.get('senha')
     confirma_senha = dados.get('confirmaSenha')
+    cidade = dados.get('cidade')
+    cidade_lat = dados.get('cidadeLat')
+    cidade_lon = dados.get('cidadeLon')
 
-    if not nome or not confirma_nome or not email or not senha or not confirma_senha:
+    if not nome or not confirma_nome or not email or not senha or not confirma_senha \
+       or not cidade or cidade_lat is None or cidade_lon is None:
         return jsonify({"mensagem": "Todos os campos são obrigatórios"}), 400
 
     if nome != confirma_nome:
@@ -32,16 +36,16 @@ def cadastro():
     try:
         cursor = mysql.connection.cursor()
         cursor.execute(
-            "INSERT INTO usuarios (nome, confirma_nome, email, senha_hash, confirma_senha_hash) VALUES (%s, %s, %s, %s, %s)",
-            (nome, confirma_nome, email, senha_hash, confirma_senha_hash)
+            """INSERT INTO usuarios
+               (nome, confirma_nome, email, senha_hash, confirma_senha_hash, cidade, cidade_lat, cidade_lon)
+               VALUES (%s, %s, %s, %s, %s, %s, %s, %s)""",
+            (nome, confirma_nome, email, senha_hash, confirma_senha_hash, cidade, cidade_lat, cidade_lon)
         )
         mysql.connection.commit()
         cursor.close()
         return jsonify({"mensagem": "Usuário cadastrado com sucesso"}), 201
     except Exception as erro:
         return jsonify({"mensagem": "Erro ao cadastrar", "erro": str(erro)}), 500
-
-
 @auth_bp.route('/login', methods=['POST'])
 def login():
     dados = request.get_json()
@@ -54,7 +58,7 @@ def login():
     try:
         cursor = mysql.connection.cursor()
         cursor.execute(
-            "SELECT id, nome, senha_hash FROM usuarios WHERE email = %s",
+            "SELECT id, nome, senha_hash, cidade, cidade_lat, cidade_lon FROM usuarios WHERE email = %s",
             (email,)
         )
         resultado = cursor.fetchone()
@@ -68,7 +72,10 @@ def login():
             return jsonify({
                 "mensagem": "Login realizado com sucesso",
                 "usuarioId": resultado[0],
-                "nome": resultado[1]
+                "nome": resultado[1],
+                "cidade": resultado[3],
+                "cidadeLat": resultado[4],
+                "cidadeLon": resultado[5]
             }), 200
         else:
             return jsonify({"mensagem": "E-mail ou senha incorretos"}), 401

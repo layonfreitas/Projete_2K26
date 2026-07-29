@@ -1,0 +1,41 @@
+.criar-conta-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  padding: 24px;
+}
+
+.criar-conta-card {
+  width: 100%;
+  max-width: 420px;
+}
+
+.criar-conta-form {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.criar-conta-form label {
+  margin-top: 12px;
+  font-weight: 600;
+}
+
+.campo-cidade {
+  display: flex;
+  gap: 8px;
+}
+
+.cidade-confirmada {
+  font-size: 0.85rem;
+  color: #2e7d32;
+}
+
+.mensagem-cadastro {
+  margin-top: 12px;
+}
+
+.botao-salvar {
+  margin-top: 20px;
+}
