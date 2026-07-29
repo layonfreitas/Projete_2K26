@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import "./dados_clima.css"
 // useState: guarda valores que mudam com o tempo (clima, carregando, erro)
 // useEffect: roda um código automaticamente quando o componente aparece na tela
 //            (ou quando latitude/longitude mudam)
