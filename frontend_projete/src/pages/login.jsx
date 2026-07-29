@@ -36,9 +36,6 @@ function Login() {
         localStorage.setItem("usuarioId", dados.usuarioId);
         localStorage.setItem("usuarioNome", dados.nome);
         localStorage.setItem("usuarioEmail", email);
-        localStorage.setItem("usuarioCidade", dados.cidade);
-        localStorage.setItem("usuarioCidadeLat", dados.cidadeLat);
-        localStorage.setItem("usuarioCidadeLon", dados.cidadeLon);
 
         navigate("/home");
       } else {

@@ -7,7 +7,6 @@ import Cadastro from "./pages/Cadastro";
 import Perfil from "./pages/perfil";
 import RecuperarSenha from "./pages/RecuperarSenha";
 import TrocarSenha from "./pages/TrocarSenha";
-import CriarConta from "./pages/CriarConta";
 import RotaProtegida from "./components/RotaProtegida";
 
 function App() {
@@ -61,7 +60,6 @@ function App() {
 
       <Route path="/" element={<Navigate to="/home" replace />} />
       <Route path="*" element={<Navigate to="/home" replace />} />
-      <Route path="/criar-conta" element={<CriarConta />} />
     </Routes>
   );
 }

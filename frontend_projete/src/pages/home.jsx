@@ -8,7 +8,6 @@ import Header from "../components/Header";
 import UploadCard from "../components/UploadCard";
 import ResultCard from "../components/ResultCard";
 import BottomNav from "../components/BottomNav";
-import ClimaCard from "../components/ClimaCard";
 
 function Home() {
   const navigate = useNavigate();
@@ -43,7 +42,6 @@ function Home() {
       <Header aoSair={handleSair} />
 
       <main className="conteudo">
-          <ClimaCard />
         <UploadCard
           imagem={imagem}
           carregando={carregando}
