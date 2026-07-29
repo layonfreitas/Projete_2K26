@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { buscarClima } from "../services/ClimaAPI";
 import { buscarLavouras } from "../services/LavouraAPI";
 import { centroide } from "../utils/geo";
 import "./ClimaCard.css";
