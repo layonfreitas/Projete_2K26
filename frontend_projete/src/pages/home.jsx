@@ -1,9 +1,10 @@
 import { useState , useEffect} from "react";
 import { useNavigate } from "react-router-dom";
 import "../App.css";
-import Clima from "../dados_clima";
+import ClimaBanner from "../components/ClimaBanner";
 
 import { analisarImagem } from "../services/FrontendAPI";
+import { AUTH_API_URL } from "../config/api";
 
 import Header from "../components/Header";
 import UploadCard from "../components/UploadCard";
@@ -17,7 +18,7 @@ function Home() {
   const [arquivo, setArquivo] = useState(null);
   const [resultado, setResultado] = useState(null);
   const [carregando, setCarregando] = useState(false);
-  const [lavoura, setLavoura] = useState(null);
+  const [lavouras, setLavouras] = useState([]);
 
   useEffect(() => {
   async function buscarLavouras() {
@@ -26,12 +27,12 @@ function Home() {
 
     try {
       const resposta = await fetch(
-        `http://localhost:5000/lavouras/${usuarioId}`
+        `${AUTH_API_URL}/lavouras/${usuarioId}`
       );
       const dados = await resposta.json();
 
-      if (resposta.ok && dados.length > 0) {
-        setLavoura(dados[0]);
+      if (resposta.ok) {
+        setLavouras(dados);
       }
     } catch (erro) {
       console.error("Erro ao buscar lavouras:", erro);
@@ -66,12 +67,7 @@ function Home() {
       <Header aoSair={handleSair} />
 
       <main className="conteudo">
-  {lavoura && lavoura.coordenadas && lavoura.coordenadas.length > 0 && (
-  <Clima
-    latitude={lavoura.coordenadas[0].lat}
-    longitude={lavoura.coordenadas[0].lng}
-  />
-)}
+        <ClimaBanner lavouras={lavouras} />
 
         <UploadCard
           imagem={imagem}

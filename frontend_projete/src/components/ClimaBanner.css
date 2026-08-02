@@ -1,0 +1,75 @@
+.clima-banner {
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto 20px;
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 18px 22px;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.18);
+  border-left: 6px solid #2e7d32;
+  box-sizing: border-box;
+}
+
+.clima-banner-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.clima-banner-topo h3 {
+  color: #2e7d32;
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.clima-banner-select {
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid #d0d0d0;
+  font-size: 14px;
+  color: #333;
+  background: #f9f9f9;
+  cursor: pointer;
+}
+
+.clima-banner-dados {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.clima-banner-dados span {
+  background: #f4f9f4;
+  border: 1px solid #e2ede2;
+  border-radius: 10px;
+  padding: 8px 14px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+}
+
+.clima-banner-status {
+  margin-top: 12px;
+  font-size: 14px;
+  color: #666;
+}
+
+.clima-banner-erro {
+  color: #c62828;
+  font-weight: 600;
+}
+
+@media (max-width: 600px) {
+  .clima-banner {
+    padding: 14px 16px;
+  }
+
+  .clima-banner-dados span {
+    font-size: 13px;
+    padding: 7px 10px;
+  }
+}
