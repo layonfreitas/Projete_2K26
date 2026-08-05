@@ -27,7 +27,7 @@ app = FastAPI()
 @app.post("/day_maps/", status_code=status.HTTP_201_CREATED)
 async def create_day_maps(day_req: Day_req):
     geometria = ee.Geometry.Polygon(day_req.coordenadas)
-    imagemHoje = get_indices_image(geometria,date.today(), 5, 30)
+    imagemHoje = get_indices_image(geometria,date.today().isoformat(), 5, 30)
      # será necessário implementar a lógica para verificar se já foram obtido os dados da data da imagem
     if len(imagemHoje.bandNames().getInfo())==0:
         return {
@@ -46,7 +46,7 @@ async def create_day_maps(day_req: Day_req):
 @app.post("/get_zona_de_manejo/", status_code=status.HTTP_201_CREATED)
 async def zonas_de_manejo(zona_de_manejo_req: Zona_de_manejo_req):
     geometria = ee.Geometry.Polygon(zona_de_manejo_req.coordenadas)
-    array = Imagem_para_zona_de_manejo(geometria, zona_de_manejo_req.data_inicio, zona_de_manejo_req.data_fim)
+    array = Imagem_para_zona_de_manejo(geometria, zona_de_manejo_req.data_inicio.isoformat(), zona_de_manejo_req.data_fim.isoformat())
     arquivo = create_zonas_de_manejo(array, zona_de_manejo_req.tamanho_min)
     return{
         "status": "sucesso",
