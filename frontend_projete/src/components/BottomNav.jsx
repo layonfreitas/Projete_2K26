@@ -14,7 +14,7 @@ function BottomNav() {
 
       <button className="nav-item" onClick={() => navigate("/mapa")}>
         <span className="icon">🌍</span>
-        <span>mapa</span>
+        <span>Mapa</span>
       </button>
 
 
