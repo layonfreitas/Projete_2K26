@@ -7,6 +7,7 @@ import Cadastro from "./pages/Cadastro";
 import Perfil from "./pages/perfil";
 import RecuperarSenha from "./pages/RecuperarSenha";
 import TrocarSenha from "./pages/TrocarSenha";
+import Agronomo from "./pages/agronomo";
 import RotaProtegida from "./components/RotaProtegida";
 
 function App() {
@@ -43,6 +44,15 @@ function App() {
         element={
           <RotaProtegida>
             <Perfil />
+          </RotaProtegida>
+        }
+      />
+
+      <Route
+        path="/agronomo"
+        element={
+          <RotaProtegida>
+            <Agronomo />
           </RotaProtegida>
         }
       />
