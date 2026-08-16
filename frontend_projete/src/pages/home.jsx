@@ -1,7 +1,7 @@
 import { useState , useEffect} from "react";
 import { useNavigate } from "react-router-dom";
 import "../App.css";
-import Clima from "../dados_clima";
+import Clima from "./dados_clima";
 
 import { analisarImagem } from "../services/FrontendAPI";
 
