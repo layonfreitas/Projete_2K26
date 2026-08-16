@@ -1,18 +1,12 @@
+from flask import Flask, request, jsonify
+from flask_cors import CORS
 from flask import Blueprint, request, jsonify
 from MySQLdb import IntegrityError
+import os
+from dotenv import load_dotenv
+from flask import app
 
-# Cria o Blueprint (igual auth_routes.py, lavoura_routes.py, etc)
-agronomo_bp = Blueprint("agronomo_bp", __name__)
-
-# Variável global que vai guardar a conexão MySQL recebida do app.py
-mysql = None
-
-def init_mysql(mysql_instance):
-    global mysql
-    mysql = mysql_instance
-
-
-@agronomo_bp.route("/agronomos", methods=["POST"])
+@app.route("/agronomos", methods=["POST"])
 def cadastrar_agronomo():
     # 1. Pega os dados que o front mandou no corpo da requisição
     dados = request.get_json()
@@ -25,15 +19,15 @@ def cadastrar_agronomo():
     if not nome or not crea or not contato or not area_atuacao:
         return jsonify({"mensagem": "Preencha todos os campos."}), 400
 
-    # 3. Tenta inserir no banco usando a conexão real (flask_mysqldb)
+    # 3. Tenta inserir no banco
     try:
-        cursor = mysql.connection.cursor()
+        conexao = ...  # sua conexão MySQL já existente no projeto
+        cursor = conexao.cursor()
         cursor.execute(
             "INSERT INTO agronomos (nome, crea, contato, area_atuacao) VALUES (%s, %s, %s, %s)",
             (nome, crea, contato, area_atuacao)
         )
-        mysql.connection.commit()
-        cursor.close()
+        conexao.commit()
         return jsonify({"mensagem": "Agrônomo cadastrado com sucesso!"}), 201
 
     except IntegrityError:
@@ -41,5 +35,4 @@ def cadastrar_agronomo():
         return jsonify({"mensagem": "Esse CREA já está cadastrado."}), 409
 
     except Exception as erro:
-        print(erro)  # ajuda a ver o erro real no terminal do Flask durante o teste
         return jsonify({"mensagem": "Erro ao cadastrar agrônomo."}), 500
