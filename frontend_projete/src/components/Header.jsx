@@ -19,9 +19,9 @@ function Header() {
 
         <div>
           <span className="bem-vindo">
-            Bem-vindo
+            Bem-vindo,
           </span>
-          <h2>{nomeUsuario ? `, ${nomeUsuario}` : ""}</h2>
+          <h2>{nomeUsuario ? ` ${nomeUsuario}` : ""}</h2>
         </div>
       </div>
     </header>

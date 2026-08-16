@@ -11,3 +11,4 @@
 
 export const AUTH_API_URL = import.meta.env.VITE_AUTH_API_URL || "http://localhost:5000";
 export const IA_API_URL = import.meta.env.VITE_IA_API_URL || "http://127.0.0.1:8000";
+export const CLIMA_API_URL = import.meta.env.VITE_CLIMA_API_URL || "http://localhost:5001";

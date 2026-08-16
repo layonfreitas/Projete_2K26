@@ -178,6 +178,11 @@ export default function Mapa() {
     setContornoCriado(false);
   }
 
+  function CadastroRealizado(){
+    confirmarContorno();
+    
+  }
+
   return (
     <div className="pagina-mapa">
 

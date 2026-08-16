@@ -36,6 +36,7 @@ function Login() {
         localStorage.setItem("usuarioId", dados.usuarioId);
         localStorage.setItem("usuarioNome", dados.nome);
         localStorage.setItem("usuarioEmail", email);
+        localStorage.setItem("usuarioTipo", dados.tipo);
 
         navigate("/home");
       } else {

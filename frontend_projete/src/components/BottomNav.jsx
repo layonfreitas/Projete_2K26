@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 
 function BottomNav() {
   const navigate = useNavigate();
+  const tipoUsuario = localStorage.getItem("usuarioTipo");
 
   return (
     <nav className="bottom-nav">
@@ -14,10 +15,15 @@ function BottomNav() {
 
       <button className="nav-item" onClick={() => navigate("/mapa")}>
         <span className="icon">🌍</span>
-        <span>mapa</span>
+        <span>Mapa</span>
       </button>
 
-
+      {tipoUsuario === "agronomo" && (
+        <button className="nav-item" onClick={() => navigate("/agronomo")}>
+          <span className="icon">👨‍🌾</span>
+          <span>Produtores</span>
+        </button>
+      )}
 
       <button className="nav-item">
         <span className="icon">📈</span>

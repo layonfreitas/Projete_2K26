@@ -54,7 +54,7 @@ def login():
     try:
         cursor = mysql.connection.cursor()
         cursor.execute(
-            "SELECT id, nome, senha_hash FROM usuarios WHERE email = %s",
+            "SELECT id, nome, senha_hash, tipo FROM usuarios WHERE email = %s",
             (email,)
         )
         resultado = cursor.fetchone()
@@ -68,7 +68,8 @@ def login():
             return jsonify({
                 "mensagem": "Login realizado com sucesso",
                 "usuarioId": resultado[0],
-                "nome": resultado[1]
+                "nome": resultado[1],
+                "tipo": resultado[3]
             }), 200
         else:
             return jsonify({"mensagem": "E-mail ou senha incorretos"}), 401
