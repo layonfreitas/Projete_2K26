@@ -17,6 +17,10 @@ export default function Cadastro() {
   async function salvarCadastro() {
     const usuarioId = localStorage.getItem("usuarioId");
 
+     console.log("USUARIO ID:", usuarioId);
+  console.log("NOME:", nome);
+  console.log("COORDENADAS:", coordenadas);
+
     if (!nome || !coordenadas) {
       setMensagem("Preencha o nome da lavoura e desenhe o polígono no mapa.");
       return;
@@ -30,7 +34,7 @@ export default function Cadastro() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          usuarioId,
+          usuario_id: usuarioId,
           nomeLavoura: nome,
           coordenadas,
         }),
