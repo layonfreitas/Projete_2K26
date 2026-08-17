@@ -10,6 +10,7 @@ import BottomNav from "../components/BottomNav";
 import iconeMarcador from "leaflet/dist/images/marker-icon.png";
 import iconeMarcador2x from "leaflet/dist/images/marker-icon-2x.png";
 import iconeSombra from "leaflet/dist/images/marker-shadow.png";
+import { AUTH_API_URL } from "../config/api";
 
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -43,6 +44,8 @@ export default function Mapa() {
         attribution: "Tiles © Esri",
       }
     ).addTo(map.current);
+
+    carregarLavouras();
 
     map.current.on("click", (e) => {
       contadorPostos.current++;
@@ -178,10 +181,52 @@ export default function Mapa() {
     setContornoCriado(false);
   }
 
-  function CadastroRealizado(){
-    confirmarContorno();
-    
+  function desenharLavoura(coordenadas) {
+  if (!map.current || !coordenadas || coordenadas.length < 3) {
+    return;
   }
+
+  const pontos = coordenadas.map((p) => [
+    p.lat,
+    p.lng,
+  ]);
+
+  L.polygon(pontos, {
+    color: "#ff0000",
+    weight: 3,
+    fillColor: "#ff0000",
+    fillOpacity: 0.35,
+  }).addTo(map.current);
+}
+
+async function carregarLavouras() {
+  const usuarioId = localStorage.getItem("usuarioId");
+
+  if (!usuarioId) return;
+
+  try {
+    const resposta = await fetch(
+      `${AUTH_API_URL}/lavouras/${usuarioId}`
+    );
+
+    const dados = await resposta.json();
+
+    if (!resposta.ok) {
+      console.error("Erro ao buscar lavouras:", dados);
+      return;
+    }
+
+    console.log("Lavouras cadastradas:", dados);
+
+    dados.forEach((lavoura) => {
+      desenharLavoura(lavoura.coordenadas);
+    });
+
+  } catch (erro) {
+    console.error("Erro ao carregar lavouras:", erro);
+  }
+}
+
 
   return (
     <div className="pagina-mapa">

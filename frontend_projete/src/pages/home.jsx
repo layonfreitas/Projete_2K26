@@ -1,11 +1,7 @@
 import { useState , useEffect} from "react";
 import { useNavigate } from "react-router-dom";
 import "../App.css";
-<<<<<<< HEAD
-import Clima from "./dados_clima";
-=======
 import ClimaBanner from "../components/ClimaBanner";
->>>>>>> 3e43c493621528cc5ab01ed173293e94167a1573
 
 import { analisarImagem } from "../services/FrontendAPI";
 import { AUTH_API_URL } from "../config/api";
