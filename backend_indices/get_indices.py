@@ -1,9 +1,14 @@
 import google.auth
 import ee
 import requests
+import io
+from googleapiclient.http import MediaIoBaseUpload
+from googleapiclient.discovery import build
+from google.oauth2 import service_account
 
 credentials, project_id = google.auth.default()
 ee.Initialize(credentials, project="projete2k26")
+
 
 CESP = ee.FeatureCollection("projects/projete2k26/assets/Shape_SaoSeb_CESP").geometry()
 
@@ -82,7 +87,11 @@ def get_indices_image(geometria, data_alvo, janela, nuvem_maxima):
     )
 
 
-def save_indice_map(imagem, indice,geometria):
+def save_indice_map(imagem, indice,geometria, pasta_id = "1Baekyjb_ZyKw-uZ3QXBuNQvEJxMcETr3"):
+    SCOPES = ["https://www.googleapis.com/auth/drive.file"]
+    creds = service_account.Credentials.from_service_account_info(json.loads(os.environ["GEE_SERVICE_ACCOUNT_JSON"]), scopes=SCOPES)
+    drive_service = build("drive", "v3", credentials=creds)
+
     data = imagem.date().format('YYYY-mm-dd').getInfo()
     nome_arquivo = indice + '_' + data + ".png"
     imagem_indice = imagem.select(indice)
@@ -108,8 +117,9 @@ def save_indice_map(imagem, indice,geometria):
     })
 
     response_indice = requests.get(url_indice)
-
-    with open(nome_arquivo, "wb") as f:
-        f.write(response_indice.content)
+    media = MediaIoBaseUpload(io.BytesIO(response_indice.content), mimetype='image/png')
+    arquivo = drive_service.files().create(body={'name': nome_arquivo}, parents=[pasta_id], media_body=media, fields='id, webViewLink').execute()
+    return arquivo['webViewLink']
+ 
     
 imagemHoje = get_indices_image(CESP, "2020-04-01",5 , 30)
