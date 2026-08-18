@@ -34,7 +34,7 @@ export default function Cadastro() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          usuario_id: usuarioId,
+          usuarioId: usuarioId,
           nomeLavoura: nome,
           coordenadas,
         }),
