@@ -1,6 +1,8 @@
 import google.auth
 import ee
 import requests
+import json
+import os
 import io
 from googleapiclient.http import MediaIoBaseUpload
 from googleapiclient.discovery import build
@@ -89,10 +91,18 @@ def get_indices_image(geometria, data_alvo, janela, nuvem_maxima):
 
 def save_indice_map(imagem, indice,geometria, pasta_id = "1Baekyjb_ZyKw-uZ3QXBuNQvEJxMcETr3"):
     SCOPES = ["https://www.googleapis.com/auth/drive.file"]
+
+    gee_service_account_env = os.environ.get("GEE_SERVICE_ACCOUNT_JSON")
+    if not gee_service_account_env:
+            raise RuntimeError(
+                "A variável de ambiente 'GEE_SERVICE_ACCOUNT_JSON' não foi encontrada. "
+                "Verifique se o arquivo .env existe ou se a variável foi configurada no sistema."
+            )
+
     creds = service_account.Credentials.from_service_account_info(json.loads(os.environ["GEE_SERVICE_ACCOUNT_JSON"]), scopes=SCOPES)
     drive_service = build("drive", "v3", credentials=creds)
 
-    data = imagem.date().format('YYYY-mm-dd').getInfo()
+    data = imagem.date().format('YYYY-MM-dd').getInfo()
     nome_arquivo = indice + '_' + data + ".png"
     imagem_indice = imagem.select(indice)
     VisParams = {
@@ -121,5 +131,3 @@ def save_indice_map(imagem, indice,geometria, pasta_id = "1Baekyjb_ZyKw-uZ3QXBuN
     arquivo = drive_service.files().create(body={'name': nome_arquivo}, parents=[pasta_id], media_body=media, fields='id, webViewLink').execute()
     return arquivo['webViewLink']
  
-    
-imagemHoje = get_indices_image(CESP, "2020-04-01",5 , 30)

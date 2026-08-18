@@ -1,0 +1,27 @@
+# Core Framework & API
+fastapi
+pydantic
+
+# Google Earth Engine & Google Cloud / API Services
+earthengine-api
+google-auth
+google-api-python-client
+oauth2client
+
+# Geospatial & Remote Sensing
+geemap
+
+# Data Processing & Numerical Computing
+numpy
+pandas
+scipy
+
+# Image Processing & Computer Vision
+Pillow
+scikit-image
+
+# Clustering & Fuzzy Logic
+scikit-fuzzy
+
+# HTTP Requests
+requests

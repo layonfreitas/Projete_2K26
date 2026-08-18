@@ -26,6 +26,7 @@ app = FastAPI()
 
 @app.post("/day_maps/", status_code=status.HTTP_201_CREATED)
 async def create_day_maps(day_req: Day_req):
+    print("Iniciando processamento de imagens para a geometria")
     geometria = ee.Geometry.Polygon(day_req.coordenadas)
     imagemHoje = get_indices_image(geometria,date.today().isoformat(), 5, 30)
      # será necessário implementar a lógica para verificar se já foram obtido os dados da data da imagem
@@ -35,6 +36,7 @@ async def create_day_maps(day_req: Day_req):
             "mensagem": "nehuma imagem válida foi encontrada."
         }
     for indice in indices:
+        print(f"Salvando mapa do índice {indice} para a geometria")
         save_indice_map(imagemHoje, indice, geometria)
         salvar_mapa_z_score(imagemHoje, indice, geometria)
 
