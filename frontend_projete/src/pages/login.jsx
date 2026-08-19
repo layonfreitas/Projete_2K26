@@ -37,6 +37,7 @@ function Login() {
         localStorage.setItem("usuarioNome", dados.nome);
         localStorage.setItem("usuarioEmail", email);
         localStorage.setItem("usuarioTipo", dados.tipo);
+        //console.log("Login bem-sucedido:", usuarioTipo);
 
         navigate("/home");
       } else {

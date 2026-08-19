@@ -20,6 +20,8 @@ function Home() {
   const [carregando, setCarregando] = useState(false);
   const [lavouras, setLavouras] = useState([]);
 
+  const usuarioTipo = localStorage.getItem("usuarioTipo");
+
   useEffect(() => {
   async function buscarLavouras() {
     const usuarioId = localStorage.getItem("usuarioId");
@@ -37,6 +39,7 @@ function Home() {
     } catch (erro) {
       console.error("Erro ao buscar lavouras:", erro);
     }
+
   }
 
   buscarLavouras();
@@ -69,14 +72,18 @@ function Home() {
       <main className="conteudo">
         <ClimaBanner lavouras={lavouras} />
 
-        <UploadCard
+
+
+        {usuarioTipo !== "agronomo" && (
+         <UploadCard
           imagem={imagem}
           carregando={carregando}
           handleImagem={handleImagem}
           handleAnalisar={handleAnalisar}
         />
+)}
 
-        {resultado && <ResultCard resultado={resultado} />}
+{resultado && <ResultCard resultado={resultado} />}
 
         
       </main>
