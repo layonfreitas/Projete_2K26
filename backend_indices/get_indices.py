@@ -4,9 +4,20 @@ import requests
 import json
 import os
 import io
-from googleapiclient.http import MediaIoBaseUpload
-from googleapiclient.discovery import build
-from google.oauth2 import service_account
+import cloudinary
+import cloudinary.uploader
+from cloudinary import CloudinaryImage
+from dotenv import load_dotenv
+
+
+load_dotenv()
+
+cloudinary.config(
+    cloud_name=os.environ.get("CLOUDINARY_CLOUD_NAME"),
+    api_key=os.environ.get("CLOUDINARY_API_KEY"),
+    api_secret=os.environ.get("CLOUDINARY_API_SECRET"),
+    secure=True
+)
 
 credentials, project_id = google.auth.default()
 ee.Initialize(credentials, project="projete2k26")
@@ -89,21 +100,10 @@ def get_indices_image(geometria, data_alvo, janela, nuvem_maxima):
     )
 
 
-def save_indice_map(imagem, indice,geometria, pasta_id = "1Baekyjb_ZyKw-uZ3QXBuNQvEJxMcETr3"):
-    SCOPES = ["https://www.googleapis.com/auth/drive.file"]
-
-    gee_service_account_env = os.environ.get("GEE_SERVICE_ACCOUNT_JSON")
-    if not gee_service_account_env:
-            raise RuntimeError(
-                "A variável de ambiente 'GEE_SERVICE_ACCOUNT_JSON' não foi encontrada. "
-                "Verifique se o arquivo .env existe ou se a variável foi configurada no sistema."
-            )
-
-    creds = service_account.Credentials.from_service_account_info(json.loads(os.environ["GEE_SERVICE_ACCOUNT_JSON"]), scopes=SCOPES)
-    drive_service = build("drive", "v3", credentials=creds)
+def save_indice_map(imagem, indice,geometria, pasta_id = os.environ.get("MAPAS_INDICES_FOLDER")):
 
     data = imagem.date().format('YYYY-MM-dd').getInfo()
-    nome_arquivo = indice + '_' + data + ".png"
+    nome_arquivo = indice + '_' + data
     imagem_indice = imagem.select(indice)
     VisParams = {
             "min":0,
@@ -126,8 +126,15 @@ def save_indice_map(imagem, indice,geometria, pasta_id = "1Baekyjb_ZyKw-uZ3QXBuN
         "format": "png"
     })
 
-    response_indice = requests.get(url_indice)
-    media = MediaIoBaseUpload(io.BytesIO(response_indice.content), mimetype='image/png')
-    arquivo = drive_service.files().create(body={'name': nome_arquivo}, parents=[pasta_id], media_body=media, fields='id, webViewLink').execute()
-    return arquivo['webViewLink']
+    response = cloudinary.uploader.upload(
+        url_indice,
+        public_id=nome_arquivo,
+        folder=pasta_id,
+        overwrite=True,
+        resorce_type="image"
+    )
+
+    
+
+    
  
