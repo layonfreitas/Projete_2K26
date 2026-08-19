@@ -75,3 +75,17 @@ def login():
             return jsonify({"mensagem": "E-mail ou senha incorretos"}), 401
     except Exception as erro:
         return jsonify({"mensagem": "Erro ao fazer login", "erro": str(erro)}), 500
+
+
+@auth_bp.route('/produtores', methods=['GET'])
+def listar_produtores():
+    try:
+        cursor = mysql.connection.cursor()
+        cursor.execute("SELECT id, nome, email FROM usuarios WHERE tipo = 'produtor'")
+        produtores = cursor.fetchall()
+        cursor.close()
+
+        produtores_list = [{"id": p[0], "nome": p[1], "email": p[2]} for p in produtores]
+        return jsonify(produtores_list), 200
+    except Exception as erro:
+        return jsonify({"mensagem": "Erro ao listar produtores", "erro": str(erro)}), 500
