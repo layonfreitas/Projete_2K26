@@ -2,6 +2,7 @@ import "./Header.css";
 
 function Header() {
   const nomeUsuario = localStorage.getItem("usuarioNome");
+  const produtorSelecionadoNome = localStorage.getItem("produtorSelecionadoNome");
 
   function pegarIniciais(nome) {
     if (!nome) return "CV";
@@ -24,6 +25,14 @@ function Header() {
           <h2>{nomeUsuario ? ` ${nomeUsuario}` : ""}</h2>
         </div>
       </div>
+
+      {produtorSelecionadoNome && (
+        <div className="header-right">
+          <span className="produtor-selecionado">
+            Produtor selecionado: {produtorSelecionadoNome}
+          </span>
+        </div>
+      )}
     </header>
   );
 }

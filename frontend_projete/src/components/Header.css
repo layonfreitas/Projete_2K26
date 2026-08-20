@@ -97,3 +97,14 @@
     transform:scale(1.05);
 
 }
+.header-right{
+    display:flex;
+    align-items:center;
+}
+
+.produtor-selecionado{
+    font-size:15px;
+    font-weight:700;
+    color:white;
+    white-space:nowrap;
+}

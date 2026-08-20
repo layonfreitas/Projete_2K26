@@ -21,6 +21,7 @@ function Home() {
   const [lavouras, setLavouras] = useState([]);
 
   const usuarioTipo = localStorage.getItem("usuarioTipo");
+  const produtorSelecionadoNome = localStorage.getItem("produtorSelecionadoNome");
 
   useEffect(() => {
   async function buscarLavouras() {
@@ -79,8 +80,9 @@ function Home() {
           imagem={imagem}
           carregando={carregando}
           handleImagem={handleImagem}
-          handleAnalisar={handleAnalisar}
-        />
+          handleAnalisar={handleAnalisar} 
+        /> 
+              
 )}
 
 {resultado && <ResultCard resultado={resultado} />}

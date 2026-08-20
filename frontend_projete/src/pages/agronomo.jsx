@@ -17,7 +17,7 @@ function Agronomo() {
         // TODO: quando a tela da cooperativa existir, trocar essa rota
         // por /agronomo/<agronomoId>/produtores, que já filtra pela
         // carteira certa (só os produtores vinculados a esse agrônomo).
-        const resposta = await fetch(`${VITE_AUTH_API_URL}/produtores`);
+        const resposta = await fetch(`${AUTH_API_URL}/produtores`);
         const dados = await resposta.json();
 
         if (resposta.ok) {
