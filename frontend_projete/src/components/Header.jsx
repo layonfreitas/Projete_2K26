@@ -5,7 +5,6 @@ import "./Header.css";
 function Header() {
   const navigate = useNavigate();
   const nomeUsuario = localStorage.getItem("usuarioNome");
-  const produtorSelecionadoNome = localStorage.getItem("produtorSelecionadoNome");
   const usuarioTipo = localStorage.getItem("usuarioTipo");
 
   function pegarIniciais(nome) {

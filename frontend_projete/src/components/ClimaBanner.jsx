@@ -88,14 +88,18 @@ function ClimaBanner({ lavouras }) {
         <p className="clima-banner-status clima-banner-erro">{erro}</p>
       )}
     
-      {!carregando && !erro && clima && produtorSelecionadoNome && (
+      {!carregando && !erro && clima && (
         <div className="clima-banner-dados">
           <span>🌡️ {clima.temperatura}°C</span>
           <span>💧 {clima.umidade}%</span>
           <span>🌬️ {clima.vento} m/s</span>
           <span>☁️ {clima.condicao}</span>
+          {produtorSelecionadoNome && (
+            <span>👨‍🌾 Produtor: {produtorSelecionadoNome}</span>
+          )}
         </div>
       )}
+
     </div>
   );
 }

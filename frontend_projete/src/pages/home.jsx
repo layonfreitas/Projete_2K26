@@ -19,24 +19,37 @@ function Home() {
   const [resultado, setResultado] = useState(null);
   const [carregando, setCarregando] = useState(false);
   const [lavouras, setLavouras] = useState([]);
+  const [semLavouras, setSemLavouras] = useState(false);
 
   const usuarioTipo = localStorage.getItem("usuarioTipo");
-  const produtorSelecionadoNome = localStorage.getItem("produtorSelecionadoNome");
 
   useEffect(() => {
   async function buscarLavouras() {
     const usuarioId = localStorage.getItem("usuarioId");
-    if (!usuarioId) return;
+    const produtorSelecionadoId = localStorage.getItem("produtorSelecionadoId");
+          const idParaBuscar =
+        usuarioTipo === "agronomo"
+          ? produtorSelecionadoId
+          : usuarioId;
+
+      if (!idParaBuscar) return;
 
     try {
       const resposta = await fetch(
-        `${AUTH_API_URL}/lavouras/${usuarioId}`
+        `${AUTH_API_URL}/lavouras/${idParaBuscar}`
       );
       const dados = await resposta.json();
 
       if (resposta.ok) {
-        setLavouras(dados);
+        if (dados.length === 0) {
+          setSemLavouras(true);
+        } else {
+          setLavouras(dados);
+          setSemLavouras(false);
+        }
       }
+    
+
     } catch (erro) {
       console.error("Erro ao buscar lavouras:", erro);
     }
@@ -66,6 +79,7 @@ function Home() {
     navigate("/login");
   };
 
+
   return (
     <div className="app">
       <Header aoSair={handleSair} />
@@ -73,17 +87,30 @@ function Home() {
       <main className="conteudo">
         <ClimaBanner lavouras={lavouras} />
 
-
-
         {usuarioTipo !== "agronomo" && (
          <UploadCard
           imagem={imagem}
           carregando={carregando}
           handleImagem={handleImagem}
           handleAnalisar={handleAnalisar} 
-        /> 
-              
+        />
+        )}
+        {semLavouras && (
+    <div className="sem-lavouras">
+    <div className="sem-lavouras-icone">
+      🌱
+    </div>
+
+    <h2>Nenhuma lavoura cadastrada</h2>
+
+    <p>
+      Este produtor ainda não possui nenhuma lavoura cadastrada
+      no sistema.
+    </p>
+    </div>
 )}
+
+        
 
 {resultado && <ResultCard resultado={resultado} />}
 
@@ -94,5 +121,6 @@ function Home() {
     </div>
   );
 }
+
 
 export default Home;
