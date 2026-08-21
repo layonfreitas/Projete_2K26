@@ -23,6 +23,7 @@ function ClimaBanner({ lavouras }) {
   const [clima, setClima] = useState(null);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState("");
+  const produtorSelecionadoNome = localStorage.getItem("produtorSelecionadoNome");
 
   // assim que a lista de lavouras chega, seleciona a primeira por padrão
   useEffect(() => {
@@ -86,8 +87,8 @@ function ClimaBanner({ lavouras }) {
       {!carregando && erro && (
         <p className="clima-banner-status clima-banner-erro">{erro}</p>
       )}
-
-      {!carregando && !erro && clima && (
+    
+      {!carregando && !erro && clima && produtorSelecionadoNome && (
         <div className="clima-banner-dados">
           <span>🌡️ {clima.temperatura}°C</span>
           <span>💧 {clima.umidade}%</span>
