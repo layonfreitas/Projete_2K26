@@ -5,6 +5,24 @@ function BottomNav() {
   const navigate = useNavigate();
   const tipoUsuario = localStorage.getItem("usuarioTipo");
 
+  // A cooperativa não usa mapa, upload de imagem nem histórico de
+  // lavoura — o menu dela fica só com o essencial.
+  if (tipoUsuario === "cooperativa") {
+    return (
+      <nav className="bottom-nav">
+        <button className="nav-item active" onClick={() => navigate("/cooperativa")}>
+          <span className="icon">🏢</span>
+          <span>Gestão</span>
+        </button>
+
+        <button className="nav-item" onClick={() => navigate("/perfil")}>
+          <span className="icon">👤</span>
+          <span>Perfil</span>
+        </button>
+      </nav>
+    );
+  }
+
   return (
     <nav className="bottom-nav">
 
@@ -22,13 +40,6 @@ function BottomNav() {
         <button className="nav-item" onClick={() => navigate("/agronomo")}>
           <span className="icon">👨‍🌾</span>
           <span>Produtores</span>
-        </button>
-      )}
-
-      {tipoUsuario === "cooperativa" && (
-        <button className="nav-item" onClick={() => navigate("/cooperativa")}>
-          <span className="icon">🏢</span>
-          <span>Gestão</span>
         </button>
       )}
 

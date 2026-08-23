@@ -39,7 +39,7 @@ function Login() {
         localStorage.setItem("usuarioTipo", dados.tipo);
         //console.log("Login bem-sucedido:", usuarioTipo);
 
-        navigate("/home");
+        navigate(dados.tipo === "cooperativa" ? "/cooperativa" : "/home");
       } else {
         setErro(dados.mensagem || "E-mail ou senha incorretos.");
       }
