@@ -32,12 +32,16 @@ function Header() {
           <h2>{nomeUsuario ? ` ${nomeUsuario}` : ""}</h2>
         </div>
       </div>
-       
-      {usuarioTipo === "agronomo" && (
-         <button type="button" onClick={handleProdutor}>
-            selecionar produtor
-          </button>
+        {usuarioTipo === "agronomo" && (
+    <div>
+      {localStorage.getItem("produtorSelecionadoNome") && (
+        <span>Acompanhando: {localStorage.getItem("produtorSelecionadoNome")}</span>
       )}
+      <button type="button" onClick={handleProdutor}>
+        selecionar produtor
+      </button>
+    </div>
+  )}
     </header>
   );
 }

@@ -25,6 +25,13 @@ function BottomNav() {
         </button>
       )}
 
+      {tipoUsuario === "cooperativa" && (
+        <button className="nav-item" onClick={() => navigate("/cooperativa")}>
+          <span className="icon">🏢</span>
+          <span>Gestão</span>
+        </button>
+      )}
+
       <button className="nav-item">
         <span className="icon">📈</span>
         <span>Histórico</span>

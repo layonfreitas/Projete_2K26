@@ -200,13 +200,18 @@ export default function Mapa() {
 }
 
 async function carregarLavouras() {
-  const usuarioId = localStorage.getItem("usuarioId");
+   const usuarioId = localStorage.getItem("usuarioId");
+  const usuarioTipo = localStorage.getItem("usuarioTipo");
+  const produtorSelecionadoId = localStorage.getItem("produtorSelecionadoId");
 
-  if (!usuarioId) return;
+  const idParaBuscar =
+    usuarioTipo === "agronomo" ? produtorSelecionadoId : usuarioId;
+
+  if (!idParaBuscar) return;
 
   try {
     const resposta = await fetch(
-      `${AUTH_API_URL}/lavouras/${usuarioId}`
+      `${AUTH_API_URL}/lavouras/${idParaBuscar}`
     );
 
     const dados = await resposta.json();

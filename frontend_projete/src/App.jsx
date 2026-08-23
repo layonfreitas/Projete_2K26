@@ -8,6 +8,7 @@ import Perfil from "./pages/perfil";
 import RecuperarSenha from "./pages/RecuperarSenha";
 import TrocarSenha from "./pages/TrocarSenha";
 import Agronomo from "./pages/agronomo";
+import Cooperativa from "./pages/cooperativa";
 import RotaProtegida from "./components/RotaProtegida";
 
 function App() {
@@ -53,6 +54,15 @@ function App() {
         element={
           <RotaProtegida>
             <Agronomo />
+          </RotaProtegida>
+        }
+      />
+
+      <Route
+        path="/cooperativa"
+        element={
+          <RotaProtegida>
+            <Cooperativa />
           </RotaProtegida>
         }
       />
