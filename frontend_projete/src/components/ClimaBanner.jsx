@@ -41,6 +41,7 @@ function ClimaBanner({ lavouras }) {
     navigate(`/observacao/${lavouraSelecionada.id}`);
   }
 
+
   useEffect(() => {
     if (!lavouraSelecionada?.coordenadas?.length) return;
 

@@ -17,6 +17,10 @@ function Header() {
   function handleProdutor() {
     navigate("/agronomo");
   }
+  function receberObservacao(id) {
+    navigate(`/observacao/${id}`);
+  }
+
 
   return (
     <header className="header">

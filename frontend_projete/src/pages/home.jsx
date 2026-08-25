@@ -80,6 +80,7 @@ function Home() {
   };
 
 
+
   return (
     <div className="app">
       <Header aoSair={handleSair} />
@@ -108,6 +109,7 @@ function Home() {
       no sistema.
     </p>
     </div>
+    
 )}
 
 

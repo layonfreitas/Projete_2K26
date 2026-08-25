@@ -1,12 +1,20 @@
 import { useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
+
+import { AUTH_API_URL } from "../config/api";
 import "./observacao.css";
 
 export default function Observacao() {
 
   const { id } = useParams();
 
+  const navigate = useNavigate();
+
   const [texto, setTexto] = useState("");
+
+  function Sair() {
+    navigate("/home");
+  }
 
   async function salvarObservacao() {
 
@@ -18,7 +26,6 @@ export default function Observacao() {
     try {
 
       const resposta = await fetch(`${AUTH_API_URL}/observacoes`, {
-
         method: "POST",
 
         headers: {
@@ -29,7 +36,6 @@ export default function Observacao() {
           lavoura_id: id,
           texto: texto,
         }),
-
       });
 
       const dados = await resposta.json();
@@ -46,10 +52,9 @@ export default function Observacao() {
 
     } catch (error) {
 
-      console.error("Erro ao salvar observação:", error);
+      console.log("Erro ao salvar observação:", error);
 
       alert("Erro ao salvar observação. Tente novamente.");
-
     }
   }
 
@@ -70,9 +75,17 @@ export default function Observacao() {
           placeholder="Digite sua observação..."
         />
 
-        <button onClick={salvarObservacao}>
-          Salvar observação
-        </button>
+        <div className="observacao-acoes">
+
+          <button onClick={Sair}>
+            Sair
+          </button>
+
+          <button onClick={salvarObservacao}>
+            Salvar observação
+          </button>
+
+        </div>
 
       </div>
 
