@@ -39,7 +39,7 @@ def save_image_indatabase(imagem, nome_arquivo:str,pasta_id: str, usuario_id: in
         "lavouraId": lavoura_id,
         "dataImagem": data_imagem,
         "urlImagem": response['secure_url'],
-        "indice" : nome_arquivo.split('_')[1]  # Extrai o índice do nome do arquivo
+        "indice" : nome_arquivo.split('_')[0]  # Extrai o índice do nome do arquivo
         
 
     }  
