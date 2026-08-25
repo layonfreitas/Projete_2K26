@@ -26,14 +26,19 @@ CREATE TABLE lavouras (
     FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
 );
 
--- Vínculo entre um produtor e o agrônomo responsável por ele.
--- Quem cria/atualiza essa linha é a cooperativa (rota /vincular).
-CREATE TABLE vinculos_agronomo (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    agronomo_id INT NOT NULL,
-    produtor_id INT NOT NULL,
-    criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (agronomo_id) REFERENCES usuarios(id),
-    FOREIGN KEY (produtor_id) REFERENCES usuarios(id),
-    UNIQUE (produtor_id)
+CREATE TABLE agronomos(
+ id INT AUTO_INCREMENT PRIMARY KEY,
+ nome VARCHAR(150) INT NOT NULL,
+ contato VARCHAR(100) NOT NULL,
+ criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+
+);
+
+CREATE TABLE produtores(
+id INT AUTO_INCREMENT PRIMARY KEY,
+nome VARCHAR(150) NOT NULL,
+propriedades VARCHAR(150) NOT NULL UNIQUE,
+localizacao VARCHAR(255) NOT NULL UNIQUE,
+contato VARCHAR(100) NOT NULL,
+criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

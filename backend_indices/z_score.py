@@ -1,12 +1,23 @@
 import ee
 import google.auth
-import requests
 import os
+import cloudinary
+from dotenv import load_dotenv
+from get_indices import save_image_indatabase
+
+load_dotenv()
+
+cloudinary.config(
+    cloud_name=os.environ.get("CLOUDINARY_CLOUD_NAME"),
+    api_key=os.environ.get("CLOUDINARY_API_KEY"),
+    api_secret=os.environ.get("CLOUDINARY_API_SECRET"),
+    secure=True
+)
 
 credentials, project_id = google.auth.default()
 ee.Initialize(credentials, project="projete2k26")
 
-def salvar_mapa_z_score(imagem, nome_indice, geometria, pasta_saida="."):
+def salvar_mapa_z_score(imagem, nome_indice,  usuario_id, lavoura__id,  geometria, pasta_id = os.environ.get("MAPAS_INDICES_FOLDER")):
 
     indice = imagem.select(nome_indice)
 
@@ -87,11 +98,8 @@ def salvar_mapa_z_score(imagem, nome_indice, geometria, pasta_saida="."):
         "format": "png"
     })
 
-    resposta = requests.get(url)
+    save_image_indatabase(url, nome_arquivo, pasta_id, usuario_id, lavoura__id, data_imagem)
 
-    caminho = os.path.join(pasta_saida, nome_arquivo)
+    
 
-    with open(caminho, "wb") as arquivo:
-        arquivo.write(resposta.content)
-
-    return caminho
+    
