@@ -78,12 +78,6 @@ function Home() {
     localStorage.removeItem("autenticado");
     navigate("/login");
   };
-
-<<<<<<< HEAD
-=======
-
-
->>>>>>> 2a0d94e75ae8017604551b35376cf290d65b2597
   return (
     <div className="app">
       <Header aoSair={handleSair} />
