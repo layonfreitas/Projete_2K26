@@ -42,6 +42,12 @@ function Header() {
         selecionar produtor
       </button>
   )}
+
+  {usuarioTipo === "produtor" && (
+    <button type="button" onClick={receberObservacao}>
+      Analisar Observação da Lavoura
+    </button>
+  )}
     </header>
   );
 }
