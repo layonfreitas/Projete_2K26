@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { buscarClima } from "../services/climaAPI";
 import "./ClimaBanner.css";
+import { useNavigate } from "react-router-dom";
 
 // calcula o centro aproximado do polígono da lavoura, pra consultar o
 // clima de um ponto representativo da área (em vez de só o 1º vértice)
@@ -24,6 +25,8 @@ function ClimaBanner({ lavouras }) {
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState("");
   const produtorSelecionadoNome = localStorage.getItem("produtorSelecionadoNome");
+  const usuarioTipo = localStorage.getItem("usuarioTipo");
+  const navigate = useNavigate();
 
   // assim que a lista de lavouras chega, seleciona a primeira por padrão
   useEffect(() => {
@@ -33,6 +36,10 @@ function ClimaBanner({ lavouras }) {
   }, [lavouras, lavouraId]);
 
   const lavouraSelecionada = lavouras?.find((l) => l.id === lavouraId);
+
+       function observacao() {
+    navigate("/observacao");
+  }
 
   useEffect(() => {
     if (!lavouraSelecionada?.coordenadas?.length) return;
@@ -52,6 +59,7 @@ function ClimaBanner({ lavouras }) {
         setCarregando(false);
       }
     }
+
 
     carregarClima();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -96,6 +104,11 @@ function ClimaBanner({ lavouras }) {
           <span>☁️ {clima.condicao}</span>
           {produtorSelecionadoNome && (
             <span>👨‍🌾 Produtor: {produtorSelecionadoNome}</span>
+          )}
+          {usuarioTipo === "agronomo" && (
+            <button type="button" onClick={observacao}>
+              adicionar observação
+            </button>
           )}
         </div>
       )}

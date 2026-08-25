@@ -89,3 +89,30 @@ def listar_produtores():
         return jsonify(produtores_list), 200
     except Exception as erro:
         return jsonify({"mensagem": "Erro ao listar produtores", "erro": str(erro)}), 500
+
+@auth_bp.route("/observacoes", methods=["POST"])
+def criar_observacao():
+
+    dados = request.get_json()
+
+    texto = dados.get("texto")
+
+    if not texto:
+        return jsonify({
+            "erro": "Observação não informada"
+        }), 400
+
+    cursor = mysql.connection.cursor()
+
+    cursor.execute(
+        "INSERT INTO observacoes (texto) VALUES (%s)",
+        (texto,)
+    )
+
+    mysql.connection.commit()
+
+    cursor.close()
+
+    return jsonify({
+        "mensagem": "Observação salva com sucesso"
+    }), 201
