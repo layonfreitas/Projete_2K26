@@ -37,14 +37,14 @@ function Login() {
         localStorage.setItem("usuarioNome", dados.nome);
         localStorage.setItem("usuarioEmail", email);
         localStorage.setItem("usuarioTipo", dados.tipo);
+        //console.log("Login bem-sucedido:", usuarioTipo);
 
-        navigate("/home");
+        navigate(dados.tipo === "cooperativa" ? "/cooperativa" : "/home");
       } else {
         setErro(dados.mensagem || "E-mail ou senha incorretos.");
       }
     } catch (erroRequisicao) {
       setErro("Erro ao conectar com o servidor.");
-      console.error(erroRequisicao);
     } finally {
       setCarregando(false);
     }

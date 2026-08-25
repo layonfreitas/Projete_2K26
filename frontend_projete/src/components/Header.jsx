@@ -1,13 +1,21 @@
+
+import { useNavigate } from "react-router-dom";
 import "./Header.css";
 
 function Header() {
+  const navigate = useNavigate();
   const nomeUsuario = localStorage.getItem("usuarioNome");
+  const usuarioTipo = localStorage.getItem("usuarioTipo");
 
   function pegarIniciais(nome) {
     if (!nome) return "CV";
     const partes = nome.trim().split(" ");
     if (partes.length === 1) return partes[0].substring(0, 2).toUpperCase();
     return (partes[0][0] + partes[partes.length - 1][0]).toUpperCase();
+  }
+
+  function handleProdutor() {
+    navigate("/agronomo");
   }
 
   return (
@@ -24,6 +32,16 @@ function Header() {
           <h2>{nomeUsuario ? ` ${nomeUsuario}` : ""}</h2>
         </div>
       </div>
+        {usuarioTipo === "agronomo" && (
+    <div>
+      {localStorage.getItem("produtorSelecionadoNome") && (
+        <span>Acompanhando: {localStorage.getItem("produtorSelecionadoNome")}</span>
+      )}
+      <button type="button" onClick={handleProdutor}>
+        selecionar produtor
+      </button>
+    </div>
+  )}
     </header>
   );
 }

@@ -1,0 +1,134 @@
+.cooperativa-page {
+    padding: 30px 20px 100px;
+    max-width: 500px;
+    margin: 0 auto;
+}
+
+.cooperativa-cabecalho {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.cooperativa-cabecalho h1 {
+    color: #1B5E20;
+    font-size: 22px;
+    margin: 0 0 6px;
+}
+
+.cooperativa-cabecalho p {
+    color: #777;
+    font-size: 14px;
+    margin: 0;
+}
+
+.cooperativa-mensagem {
+    text-align: center;
+    background: #E8F5E9;
+    color: #1B5E20;
+    border-radius: 10px;
+    padding: 10px;
+    font-size: 13px;
+    margin-bottom: 16px;
+}
+
+.cooperativa-card {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 3px 12px rgba(0, 0, 0, .08);
+    padding: 18px;
+    margin-bottom: 16px;
+}
+
+.cooperativa-card h2 {
+    color: #1B5E20;
+    font-size: 16px;
+    margin: 0 0 12px;
+}
+
+.cooperativa-form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.cooperativa-form input,
+.cooperativa-form select {
+    padding: 10px 12px;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    font-size: 14px;
+}
+
+.cooperativa-form button {
+    background: #2E7D32;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    padding: 11px;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.cooperativa-form button:disabled {
+    opacity: 0.6;
+}
+
+.cooperativa-status {
+    color: #777;
+    font-size: 13px;
+}
+
+.cooperativa-erro {
+    color: #C62828;
+}
+
+.cooperativa-lista {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.cooperativa-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 8px;
+}
+
+.cooperativa-item:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.cooperativa-nome {
+    display: block;
+    color: #1B5E20;
+    font-weight: bold;
+    font-size: 14px;
+}
+
+.cooperativa-email {
+    display: block;
+    color: #777;
+    font-size: 12px;
+}
+
+.cooperativa-tag {
+    font-size: 11px;
+    padding: 4px 8px;
+    border-radius: 20px;
+    white-space: nowrap;
+}
+
+.cooperativa-tag-ok {
+    background: #E8F5E9;
+    color: #1B5E20;
+}
+
+.cooperativa-tag-pendente {
+    background: #FFF3E0;
+    color: #E65100;
+}

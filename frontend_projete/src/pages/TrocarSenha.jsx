@@ -48,6 +48,9 @@ function TrocarSenha() {
       setCarregando(false);
     }
   }
+  function handleVoltar() {
+    navigate("/perfil");
+  }
 
   return (
     <div className="trocar-page">
@@ -80,6 +83,9 @@ function TrocarSenha() {
 
           <button type="submit" disabled={carregando}>
             {carregando ? "Salvando..." : "Salvar nova senha"}
+          </button>
+          <button type="button" onClick={handleVoltar}>
+            Voltar
           </button>
         </form>
       </div>

@@ -1,5 +1,6 @@
 CREATE DATABASE IF NOT EXISTS coffeeVision;
 USE coffeeVision;
+DROP TABLE IF EXISTS vinculos_agronomo;
 DROP TABLE IF EXISTS lavouras;
 DROP TABLE IF EXISTS usuarios;
 
@@ -12,7 +13,8 @@ CREATE TABLE usuarios(
     confirma_senha_hash VARCHAR(255) NOT NULL,
     criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     codigo_recuperacao VARCHAR(6) NULL,
-    codigo_expira_em TIMESTAMP NULL
+    codigo_expira_em TIMESTAMP NULL,
+    tipo ENUM('produtor', 'agronomo', 'cooperativa') NOT NULL DEFAULT 'produtor'
 );
 
 CREATE TABLE lavouras (
@@ -40,4 +42,3 @@ localizacao VARCHAR(255) NOT NULL UNIQUE,
 contato VARCHAR(100) NOT NULL,
 criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
-
