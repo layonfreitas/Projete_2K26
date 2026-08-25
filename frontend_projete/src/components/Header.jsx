@@ -17,6 +17,10 @@ function Header() {
   function handleProdutor() {
     navigate("/agronomo");
   }
+  function receberObservacao(id) {
+    navigate(`/observacao/${id}`);
+  }
+
 
   return (
     <header className="header">
@@ -33,14 +37,10 @@ function Header() {
         </div>
       </div>
         {usuarioTipo === "agronomo" && (
-    <div>
-      {localStorage.getItem("produtorSelecionadoNome") && (
-        <span>Acompanhando: {localStorage.getItem("produtorSelecionadoNome")}</span>
-      )}
+
       <button type="button" onClick={handleProdutor}>
         selecionar produtor
       </button>
-    </div>
   )}
     </header>
   );

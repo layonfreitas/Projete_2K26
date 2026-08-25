@@ -8,6 +8,20 @@ from PIL import Image
 from datetime import datetime
 from skimage.measure import label
 from scipy.ndimage import binary_dilation
+import os 
+from dotenv import load_dotenv
+import cloudinary
+from  get_indices import save_image_indatabase
+
+load_dotenv()
+
+
+cloudinary.config(
+    cloud_name=os.environ.get("CLOUDINARY_CLOUD_NAME"),
+    api_key=os.environ.get("CLOUDINARY_API_KEY"),
+    api_secret=os.environ.get("CLOUDINARY_API_SECRET"),
+    secure=True
+)
 
 credentials, project_id = google.auth.default()
 ee.Initialize(credentials, project="projete2k26")
@@ -118,7 +132,7 @@ def remover_ilhas(mapa, min_pixels):
 
     return mapa
 
-def create_zonas_de_manejo(array, tamanho_min=0.5):
+def create_zonas_de_manejo(array,usuario_id: int, lavoura_id: int,pasta_id = os.environ.get("MAPAS_INDICES_FOLDER"),  tamanho_min=0.5 ):
 
     linhas, colunas, bandas = array.shape
 
@@ -337,7 +351,9 @@ def create_zonas_de_manejo(array, tamanho_min=0.5):
     nome_arquivo = (
         f"zonas_de_manejo_{datetime.now().strftime('%Y-%m-%d')}.png"
     )
+    
+    
 
 
-    Image.fromarray(rgba).save(nome_arquivo)
-    return nome_arquivo
+    image_timeseries = Image.fromarray(rgba)
+    save_image_indatabase(image_timeseries, nome_arquivo, pasta_id, usuario_id, lavoura_id, datetime.now().strftime('%Y-%m-%d'))

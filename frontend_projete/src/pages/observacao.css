@@ -1,0 +1,417 @@
+/* =========================================
+   PÁGINA
+========================================= */
+
+.observacao-page {
+  min-height: 100vh;
+  width: 100%;
+  padding: 50px 30px;
+  box-sizing: border-box;
+
+  background:
+    radial-gradient(
+      circle at top left,
+      rgba(46, 125, 50, 0.08),
+      transparent 35%
+    ),
+    #f5f7f5;
+
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+
+/* =========================================
+   CARD PRINCIPAL
+========================================= */
+
+.observacao-card {
+  width: 100%;
+  max-width: 900px;
+
+  background: #ffffff;
+
+  border: 1px solid #e6ebe6;
+  border-radius: 24px;
+
+  padding: 42px;
+
+  box-sizing: border-box;
+
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.07);
+
+  animation: observacaoEntrada 0.35s ease;
+}
+
+
+/* =========================================
+   ANIMAÇÃO
+========================================= */
+
+@keyframes observacaoEntrada {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+
+/* =========================================
+   CABEÇALHO
+========================================= */
+
+.observacao-header {
+  display: flex;
+  align-items: center;
+
+  gap: 16px;
+
+  margin-bottom: 32px;
+}
+
+.observacao-icon {
+  width: 52px;
+  height: 52px;
+
+  flex-shrink: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 15px;
+
+  background: #e8f5e9;
+
+  font-size: 25px;
+}
+
+
+/* =========================================
+   TÍTULO
+========================================= */
+
+.observacao-card h1 {
+  margin: 0;
+
+  color: #1b5e20;
+
+  font-size: 29px;
+  font-weight: 700;
+
+  letter-spacing: -0.4px;
+}
+
+
+/* =========================================
+   DESCRIÇÃO
+========================================= */
+
+.observacao-card p {
+  margin: 6px 0 0;
+
+  color: #737873;
+
+  font-size: 15px;
+
+  line-height: 1.5;
+}
+
+
+/* =========================================
+   ÁREA DE TEXTO
+========================================= */
+
+.observacao-input-container {
+  width: 100%;
+}
+
+.observacao-label {
+  display: block;
+
+  margin-bottom: 10px;
+
+  color: #303530;
+
+  font-size: 14px;
+  font-weight: 600;
+}
+
+
+/* =========================================
+   TEXTAREA
+========================================= */
+
+.observacao-card textarea {
+  display: block;
+
+  width: 100%;
+  min-height: 300px;
+
+  padding: 20px;
+
+  box-sizing: border-box;
+
+  border: 1px solid #dce3dc;
+  border-radius: 16px;
+
+  background: #fafcf9;
+
+  color: #303530;
+
+  font-family: inherit;
+  font-size: 16px;
+  line-height: 1.6;
+
+  resize: vertical;
+
+  outline: none;
+
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    background 0.2s ease;
+}
+
+.observacao-card textarea::placeholder {
+  color: #a2a7a2;
+}
+
+.observacao-card textarea:focus {
+  background: #ffffff;
+
+  border-color: #4caf50;
+
+  box-shadow: 0 0 0 4px rgba(76, 175, 80, 0.10);
+}
+
+
+/* =========================================
+   CONTADOR
+========================================= */
+
+.observacao-contador {
+  display: flex;
+  justify-content: flex-end;
+
+  margin-top: 8px;
+
+  color: #909590;
+
+  font-size: 12px;
+}
+
+
+/* =========================================
+   ÁREA DOS BOTÕES
+========================================= */
+
+.observacao-acoes {
+  width: 100%;
+
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  margin-top: 25px;
+  padding-top: 22px;
+
+  border-top: 1px solid #edf0ed;
+}
+
+
+/* =========================================
+   BOTÃO SAIR
+========================================= */
+
+.observacao-card button.sair {
+  margin: 0;
+
+  padding: 12px 24px;
+
+  border: none;
+  border-radius: 12px;
+
+  background: #287928;
+  color: #ffffff;
+
+  font-size: 14px;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  box-shadow: 0 5px 12px rgba(40, 121, 40, 0.18);
+
+  transition: all 0.2s ease;
+}
+
+.observacao-card button.sair:hover {
+  background: #256628;
+
+  transform: translateY(-1px);
+
+  box-shadow: 0 7px 16px rgba(40, 121, 40, 0.25);
+}
+
+
+/* =========================================
+   BOTÃO SALVAR
+========================================= */
+
+.observacao-card button.observacao-btn-salvar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  gap: 8px;
+
+  margin: 0;
+
+  padding: 12px 24px;
+
+  border: none;
+  border-radius: 12px;
+
+  background: #287928;
+  color: #ffffff;
+
+  font-size: 14px;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  box-shadow: 0 5px 12px rgba(40, 121, 40, 0.18);
+
+  transition: all 0.2s ease;
+}
+
+.observacao-card button.observacao-btn-salvar:hover {
+  background: #256628;
+
+  transform: translateY(-1px);
+
+  box-shadow: 0 7px 16px rgba(40, 121, 40, 0.25);
+}
+
+.observacao-card button.observacao-btn-salvar:active,
+.observacao-card button.sair:active {
+  transform: translateY(0);
+}
+
+
+/* =========================================
+   MENSAGEM DE SUCESSO
+========================================= */
+
+.observacao-sucesso {
+  margin-top: 18px;
+
+  padding: 13px 16px;
+
+  border-radius: 12px;
+
+  background: #e8f5e9;
+
+  border: 1px solid #c8e6c9;
+
+  color: #2e7d32;
+
+  font-size: 14px;
+  font-weight: 600;
+}
+
+
+/* =========================================
+   TABLET
+========================================= */
+
+@media (max-width: 768px) {
+
+  .observacao-page {
+    padding: 30px 18px;
+  }
+
+  .observacao-card {
+    padding: 30px;
+
+    border-radius: 20px;
+  }
+
+  .observacao-card h1 {
+    font-size: 25px;
+  }
+
+  .observacao-card textarea {
+    min-height: 260px;
+  }
+}
+
+
+/* =========================================
+   CELULAR
+========================================= */
+
+@media (max-width: 480px) {
+
+  .observacao-page {
+    padding: 18px 12px;
+  }
+
+  .observacao-card {
+    padding: 22px;
+
+    border-radius: 18px;
+  }
+
+  .observacao-header {
+    align-items: flex-start;
+
+    gap: 12px;
+
+    margin-bottom: 25px;
+  }
+
+  .observacao-icon {
+    width: 44px;
+    height: 44px;
+
+    border-radius: 12px;
+
+    font-size: 21px;
+  }
+
+  .observacao-card h1 {
+    font-size: 21px;
+  }
+
+  .observacao-card p {
+    font-size: 13px;
+  }
+
+  .observacao-card textarea {
+    min-height: 220px;
+
+    padding: 15px;
+
+    font-size: 15px;
+  }
+
+  .observacao-acoes {
+    flex-direction: column;
+
+    gap: 12px;
+
+    align-items: stretch;
+  }
+
+  .observacao-card button.sair,
+  .observacao-card button.observacao-btn-salvar {
+    width: 100%;
+  }
+}

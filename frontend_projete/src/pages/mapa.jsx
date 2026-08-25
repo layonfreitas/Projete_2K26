@@ -36,7 +36,23 @@ export default function Mapa() {
   useEffect(() => {
     if (map.current) return;
 
-    map.current = L.map(mapaRef.current).setView([-14.2350, -51.9253], 4);
+    // Retângulo que cobre todo o território brasileiro
+    // (sudoeste -> nordeste)
+    const limitesBrasil = L.latLngBounds(
+      [-35.0, -75.0],
+      [6.0, -32.0]
+    );
+
+    map.current = L.map(mapaRef.current, {
+      center: [-14.2350, -51.9253],
+      zoom: 4,
+      minZoom: 4,
+      maxBounds: limitesBrasil,
+      maxBoundsViscosity: 1.0,
+    });
+
+    // Enquadra o Brasil por completo ao carregar
+    map.current.fitBounds(limitesBrasil);
 
     L.tileLayer(
       "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
@@ -104,7 +120,7 @@ export default function Mapa() {
   async function buscarCidade() {
     if (!cidade.trim()) return;
 
-    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
+    const url = `https://nominatim.openstreetmap.org/search?format=json&countrycodes=br&q=${encodeURIComponent(
       cidade
     )}`;
 

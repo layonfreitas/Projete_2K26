@@ -1,13 +1,13 @@
 import google.auth
 import ee
-import requests
 import json
 import os
-import io
+import requests
 import cloudinary
 import cloudinary.uploader
-from cloudinary import CloudinaryImage
 from dotenv import load_dotenv
+
+
 
 
 load_dotenv()
@@ -21,6 +21,33 @@ cloudinary.config(
 
 credentials, project_id = google.auth.default()
 ee.Initialize(credentials, project="projete2k26")
+
+
+def save_image_indatabase(imagem, nome_arquivo:str,pasta_id: str, usuario_id: int, lavoura_id: int, data_imagem: str):
+    response = cloudinary.uploader.upload(
+            imagem,
+            public_id=nome_arquivo,
+            folder=pasta_id,
+            overwrite=True,
+            resorce_type="image"
+        )
+
+    print(f"Imagem {nome_arquivo} salva no Cloudinary com sucesso. URL: {response['secure_url']}")
+
+    dados = {
+        "usuarioId": usuario_id,
+        "lavouraId": lavoura_id,
+        "dataImagem": data_imagem,
+        "urlImagem": response['secure_url'],
+        "indice" : nome_arquivo.split('_')[0]  # Extrai o índice do nome do arquivo
+        
+
+    }  
+
+    json_string = json.dumps(dados)
+    resposta = requests.post(url = os.environ.get("DATABASE_URL") + "/imagens", data=json_string, headers={"Content-Type": "application/json"})
+    print(f"Resposta do banco de dados: {resposta.status_code} - {resposta.text}")
+
 
 
 CESP = ee.FeatureCollection("projects/projete2k26/assets/Shape_SaoSeb_CESP").geometry()
@@ -100,7 +127,7 @@ def get_indices_image(geometria, data_alvo, janela, nuvem_maxima):
     )
 
 
-def save_indice_map(imagem, indice,geometria, pasta_id = os.environ.get("MAPAS_INDICES_FOLDER")):
+def save_indice_map(imagem, indice,geometria, usuario_id: int, lavoura_id: int, pasta_id = os.environ.get("MAPAS_INDICES_FOLDER")):
 
     data = imagem.date().format('YYYY-MM-dd').getInfo()
     nome_arquivo = indice + '_' + data
@@ -126,13 +153,12 @@ def save_indice_map(imagem, indice,geometria, pasta_id = os.environ.get("MAPAS_I
         "format": "png"
     })
 
-    response = cloudinary.uploader.upload(
-        url_indice,
-        public_id=nome_arquivo,
-        folder=pasta_id,
-        overwrite=True,
-        resorce_type="image"
-    )
+    save_image_indatabase(url_indice, nome_arquivo, pasta_id, usuario_id, lavoura_id, data)
+
+
+
+    
+    
 
     
 

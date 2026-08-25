@@ -51,7 +51,7 @@ function Home() {
     
 
     } catch (erro) {
-      console.error("Erro ao buscar lavouras:", erro);
+      console.log("Erro ao buscar lavouras:", erro);
     }
 
   }
@@ -79,6 +79,11 @@ function Home() {
     navigate("/login");
   };
 
+<<<<<<< HEAD
+=======
+
+
+>>>>>>> 2a0d94e75ae8017604551b35376cf290d65b2597
   return (
     <div className="app">
       <Header aoSair={handleSair} />
@@ -107,7 +112,9 @@ function Home() {
       no sistema.
     </p>
     </div>
+    
 )}
+
 
         
 
