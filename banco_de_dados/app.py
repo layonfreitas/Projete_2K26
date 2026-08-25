@@ -18,11 +18,15 @@ init_auth_mysql(mysql)
 init_lavoura_mysql(mysql)
 init_senha_mysql(mysql)
 init_agronomo_mysql(mysql)
+init_imagens_mysql(mysql)
+init_cooperativa_mysql(mysql)
 
 app.register_blueprint(agronomo_bp)
 app.register_blueprint(auth_bp)
 app.register_blueprint(lavoura_bp)
 app.register_blueprint(senha_bp)
+app.register_blueprint(cadastrar_imagens_bp)
+app.register_blueprint(cooperativa_bp)
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
