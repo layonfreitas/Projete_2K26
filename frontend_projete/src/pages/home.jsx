@@ -79,7 +79,6 @@ function Home() {
     navigate("/login");
   };
 
-
   return (
     <div className="app">
       <Header aoSair={handleSair} />

@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import { AUTH_API_URL } from "../config/api";
 import BottomNav from "../components/BottomNav";
+import { useNavigate } from "react-router-dom";
 import "./cooperativa.css";
 
 function Cooperativa() {
+  const navigate = useNavigate();
   const [usuarios, setUsuarios] = useState([]);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState("");
@@ -31,7 +33,7 @@ function Cooperativa() {
       }
     } catch (erroRequisicao) {
       setErro("Erro ao conectar com o servidor.");
-      console.error(erroRequisicao);
+      //console.error(erroRequisicao);
     } finally {
       setCarregando(false);
     }
@@ -169,40 +171,80 @@ function Cooperativa() {
         </form>
       </section>
 
-      <section className="cooperativa-card">
-        <h2>Produtores ({produtores.length})</h2>
-        {carregando && <p className="cooperativa-status">Carregando...</p>}
-        {!carregando && erro && <p className="cooperativa-status cooperativa-erro">{erro}</p>}
-        <div className="cooperativa-lista">
-          {produtores.map((p) => (
-            <div key={p.id} className="cooperativa-item">
-              <div>
-                <span className="cooperativa-nome">{p.nome}</span>
-                <span className="cooperativa-email">{p.email}</span>
-              </div>
-              <span className={`cooperativa-tag ${p.agronomoId ? "cooperativa-tag-ok" : "cooperativa-tag-pendente"}`}>
-                {p.agronomoId ? `Agrônomo: ${nomeDoAgronomo(p.agronomoId) || "—"}` : "Sem agrônomo"}
-              </span>
-            </div>
-          ))}
-        </div>
-      </section>
+<section className="cooperativa-card">
+  <h2>Produtores ({produtores.length})</h2>
 
-      <section className="cooperativa-card">
-        <h2>Agrônomos ({agronomos.length})</h2>
-        <div className="cooperativa-lista">
-          {agronomos.map((a) => (
-            <div key={a.id} className="cooperativa-item">
-              <div>
-                <span className="cooperativa-nome">{a.nome}</span>
-                <span className="cooperativa-email">{a.email}</span>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
+  {carregando && <p className="cooperativa-status">Carregando...</p>}
 
-      <BottomNav />
+  {!carregando && erro && (
+    <p className="cooperativa-status cooperativa-erro">{erro}</p>
+  )}
+
+  <div className="cooperativa-lista">
+    {produtores.map((p) => (
+      <div key={p.id} className="cooperativa-item">
+
+        <div>
+          <span className="cooperativa-nome">{p.nome}</span>
+          <span className="cooperativa-email">{p.email}</span>
+        </div>
+
+        <span
+          className={`cooperativa-tag ${
+            p.agronomoId
+              ? "cooperativa-tag-ok"
+              : "cooperativa-tag-pendente"
+          }`}
+        >
+          {p.agronomoId
+            ? `Agrônomo: ${nomeDoAgronomo(p.agronomoId) || "—"}`
+            : "Sem agrônomo"}
+        </span>
+
+        {/* BOTÕES */}
+        <div className="cooperativa-acoes">
+          <button onClick={() => editarProdutor(p)}>
+            Editar
+          </button>
+
+          <button onClick={() => desativarProdutor(p.id)}>
+            Desativar
+          </button>
+        </div>
+
+      </div>
+    ))}
+  </div>
+</section>
+
+<section className="cooperativa-card">
+  <h2>Agrônomos ({agronomos.length})</h2>
+
+  <div className="cooperativa-lista">
+    {agronomos.map((a) => (
+      <div key={a.id} className="cooperativa-item">
+
+        <div>
+          <span className="cooperativa-nome">{a.nome}</span>
+          <span className="cooperativa-email">{a.email}</span>
+        </div>
+
+        {/* BOTÕES */}
+        <div className="cooperativa-acoes">
+          <button onClick={() => editarAgronomo(a)}>
+            Editar
+          </button>
+
+          <button onClick={() => desativarAgronomo(a.id)}>
+            Desativar
+          </button>
+        </div>
+
+      </div>
+    ))}
+  </div>
+</section>
+      <BottomNav/>
     </div>
   );
 }
