@@ -15,6 +15,7 @@ def cadastrar_imagem():
     lavoura_id = dados.get('lavouraId')
     data_imagem = dados.get('dataImagem')
     url_imagem = dados.get('urlImagem')
+    indice = dados.get('indice')  # Novo campo para o índice
 
     # validação básica
     if not usuario_id or not data_imagem or not url_imagem or not lavoura_id:
@@ -23,8 +24,8 @@ def cadastrar_imagem():
     try:
         cursor = mysql.connection.cursor()
         cursor.execute(
-            "INSERT INTO imagens (usuario_id, lavoura_id, data_imagem, url_imagem) VALUES (%s, %s, %s, %s)",
-            (usuario_id, lavoura_id, data_imagem, url_imagem)
+            "INSERT INTO imagens (usuario_id, lavoura_id, data_imagem, url_imagem, indice) VALUES (%s, %s, %s, %s, %s)",
+            (usuario_id, lavoura_id, data_imagem, url_imagem, indice)
         )
         mysql.connection.commit()
         cursor.close()
