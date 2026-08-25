@@ -51,7 +51,7 @@ function Home() {
     
 
     } catch (erro) {
-      console.error("Erro ao buscar lavouras:", erro);
+      console.log("Erro ao buscar lavouras:", erro);
     }
 
   }
@@ -109,6 +109,7 @@ function Home() {
     </p>
     </div>
 )}
+
 
         
 

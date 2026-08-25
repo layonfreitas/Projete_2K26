@@ -9,6 +9,7 @@ import RecuperarSenha from "./pages/RecuperarSenha";
 import TrocarSenha from "./pages/TrocarSenha";
 import Agronomo from "./pages/agronomo";
 import Cooperativa from "./pages/cooperativa";
+import Observacao from "./pages/observacao";
 import RotaProtegida from "./components/RotaProtegida";
 
 function App() {
@@ -66,6 +67,16 @@ function App() {
           </RotaProtegida>
         }
       />
+      <Route
+        path="/observacao/:id"
+        element={
+          <RotaProtegida>
+            <Observacao />
+          </RotaProtegida>
+        }
+      />
+
+
 
         <Route path="/recuperar-senha" element={<RecuperarSenha />} />
 
