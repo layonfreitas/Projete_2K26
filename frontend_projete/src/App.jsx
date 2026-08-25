@@ -68,7 +68,7 @@ function App() {
         }
       />
       <Route
-        path="/observacao"
+        path="/observacao/:id"
         element={
           <RotaProtegida>
             <Observacao />

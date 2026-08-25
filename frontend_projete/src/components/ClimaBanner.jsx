@@ -38,7 +38,7 @@ function ClimaBanner({ lavouras }) {
   const lavouraSelecionada = lavouras?.find((l) => l.id === lavouraId);
 
        function observacao() {
-    navigate("/observacao");
+    navigate(`/observacao/${lavouraSelecionada.id}`);
   }
 
   useEffect(() => {
