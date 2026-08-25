@@ -93,7 +93,7 @@ function Home() {
           handleAnalisar={handleAnalisar} 
         />
         )}
-        {semLavouras && (
+        {semLavouras && usuarioTipo === "agronomo" && (
     <div className="sem-lavouras">
     <div className="sem-lavouras-icone">
       🌱
