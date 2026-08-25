@@ -90,7 +90,7 @@ def salvar_mapa_z_score(imagem, nome_indice,  usuario_id, lavoura__id,  geometri
 
     data_imagem = ee.Date(imagem.get("system:time_start")).format("yyyy-MM-dd").getInfo()
 
-    nome_arquivo = f"z_score_{nome_indice}_{data_imagem}"
+    nome_arquivo = f"z-score-{nome_indice}_{data_imagem}"
 
     url = imagem_visualizacao.getThumbURL({
         "region": geometria,
