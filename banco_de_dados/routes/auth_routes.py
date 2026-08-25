@@ -89,3 +89,4 @@ def listar_produtores():
         return jsonify(produtores_list), 200
     except Exception as erro:
         return jsonify({"mensagem": "Erro ao listar produtores", "erro": str(erro)}), 500
+        
