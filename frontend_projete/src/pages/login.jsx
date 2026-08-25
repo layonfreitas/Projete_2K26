@@ -45,7 +45,6 @@ function Login() {
       }
     } catch (erroRequisicao) {
       setErro("Erro ao conectar com o servidor.");
-      console.error(erroRequisicao);
     } finally {
       setCarregando(false);
     }
