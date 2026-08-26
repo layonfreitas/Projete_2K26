@@ -1,287 +1,69 @@
-*{
-    margin:0;
-    padding:0;
-    box-sizing:border-box;
-    font-family:Segoe UI,Tahoma,Geneva,Verdana,sans-serif;
+/* Shell do app (usado pela tela Home) — ocupa a tela inteira, sem
+   moldura de "cartão" centralizado; o conteúdo usa grid responsivo
+   para aproveitar bem o espaço em telas largas. */
+.app {
+  width: 100%;
+  min-height: 100svh;
+  background: var(--parchment);
+  position: relative;
+  padding-bottom: 120px;
 }
 
-body{
-    background:linear-gradient(rgba(25,45,20,.75),rgba(25,45,20,.75)),
-    url("https://images.unsplash.com/photo-1447933601403-0c6688de566e?auto=format&fit=crop&w=1800&q=80");
-    background-size:cover;
-    background-position:center;
-    min-height:100vh;
+.conteudo {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 40px 24px 32px;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 28px;
 }
 
-.container{
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    min-height:100vh;
-    padding:40px;
+@media (min-width: 720px) {
+  .conteudo {
+    padding: 48px 40px 40px;
+    gap: 28px 32px;
+    grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+    align-items: start;
+  }
 }
 
-.card{
-
-    width:900px;
-    max-width:95%;
-
-    background:white;
-
-    border-radius:22px;
-
-    padding:40px;
-
-    box-shadow:
-    0 25px 60px rgba(0,0,0,.25);
-
+@media (min-width: 1100px) {
+  .conteudo {
+    padding: 56px 56px 48px;
+  }
 }
 
-.header{
-
-    text-align:center;
-
-    margin-bottom:35px;
-
+.sem-lavouras {
+  background: var(--surface);
+  border: 1.5px dashed var(--border-strong);
+  border-radius: var(--radius-md);
+  padding: 52px 32px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  grid-column: 1 / -1;
 }
 
-.header h1{
-
-    color:#2e7d32;
-
-    font-size:42px;
-
-    margin-bottom:12px;
-
+.sem-lavouras-icone {
+  font-size: 40px;
+  margin-bottom: 8px;
 }
 
-.header p{
-
-    color:#666;
-
-    font-size:18px;
-
+.sem-lavouras h2 {
+  font-size: 18px;
+  margin-bottom: 4px;
 }
 
-.botoes{
-
-    display:flex;
-
-    justify-content:center;
-
-    gap:20px;
-
-    flex-wrap:wrap;
-
-    margin-bottom:35px;
-
+.sem-lavouras p {
+  font-size: 14px;
+  max-width: 34ch;
+  line-height: 1.6;
+  margin-bottom: 6px;
 }
 
-.botao-upload,
-button{
-
-    padding:15px 30px;
-
-    border:none;
-
-    border-radius:12px;
-
-    cursor:pointer;
-
-    font-size:17px;
-
-    font-weight:600;
-
-    transition:.3s;
-
-    color:white;
-
-}
-
-.botao-upload{
-
-    background:#2e7d32;
-
-}
-
-button{
-
-    background:#6d4c41;
-
-}
-
-.botao-upload:hover{
-
-    background:#1b5e20;
-
-    transform:translateY(-3px);
-
-}
-
-button:hover{
-
-    background:#4e342e;
-
-    transform:translateY(-3px);
-
-}
-
-button:disabled{
-
-    opacity:.7;
-
-    cursor:not-allowed;
-
-}
-
-.imagem-card{
-
-    display:flex;
-
-    justify-content:center;
-
-    margin-top:25px;
-
-}
-
-#imagem-selecionada{
-
-    width:420px;
-
-    max-width:100%;
-
-    border-radius:18px;
-
-    border:5px solid #f5f5f5;
-
-    box-shadow:0 12px 35px rgba(0,0,0,.2);
-
-}
-
-.resultado{
-
-    margin-top:40px;
-
-    padding:25px;
-
-    border-radius:18px;
-
-    background:#f7f7f7;
-
-    border-left:8px solid #2e7d32;
-
-}
-
-.resultado h2{
-
-    color:#2e7d32;
-
-    margin-bottom:18px;
-
-}
-
-.resultado ul{
-
-    margin-top:15px;
-
-    padding-left:22px;
-
-}
-
-.resultado li{
-
-    margin-bottom:10px;
-
-    font-size:17px;
-
-}
-
-.sucesso{
-
-    background:#e8f5e9;
-
-    color:#1b5e20;
-
-    padding:15px;
-
-    border-radius:10px;
-
-    font-weight:bold;
-
-}
-
-.alerta{
-
-    background:#fff8e1;
-
-    color:#ef6c00;
-
-    padding:15px;
-
-    border-radius:10px;
-
-    font-weight:bold;
-
-}
-
-@media(max-width:700px){
-
-.card{
-
-    padding:25px;
-
-}
-
-.header h1{
-
-    font-size:32px;
-
-}
-
-.header p{
-
-    font-size:16px;
-
-}
-
-.botoes{
-
-    flex-direction:column;
-
-}
-
-.botao-upload,
-button{
-
-    width:100%;
-
-}
-body{
-
-    background:#F4F6F5;
-
-}
-
-.app{
-
-    max-width:480px;
-
-    margin:auto;
-
-    min-height:100vh;
-
-    background:#F4F6F5;
-
-    position:relative;
-
-    padding-bottom:110px;
-
-}
-
-.conteudo{
-
-    padding-bottom:30px;
-
-}
-
+.sem-lavouras-botao {
+  margin-top: 8px;
+  padding: 13px 26px;
 }

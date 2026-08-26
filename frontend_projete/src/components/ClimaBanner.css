@@ -1,81 +1,80 @@
 .clima-banner {
-  background: #ffffff;
-  margin: 20px;
-  border-radius: 24px;
-  padding: 26px 24px;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
-  border-left: 8px solid #2e7d32;
-  box-sizing: border-box;
+  background: linear-gradient(135deg, var(--canopy) 0%, var(--canopy-dark) 100%);
+  color: #fff;
+  border-radius: var(--radius-md);
+  padding: 26px 26px;
+  box-shadow: var(--shadow-sm);
 }
 
 .clima-banner-topo {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 14px;
+  gap: 12px;
   flex-wrap: wrap;
+  margin-bottom: 8px;
 }
 
 .clima-banner-topo h3 {
-  color: #1b5e20;
-  font-size: 22px;
-  font-weight: 700;
+  color: #fff;
+  font-size: 15.5px;
   margin: 0;
 }
 
 .clima-banner-select {
-  padding: 10px 14px;
-  border-radius: 12px;
-  border: 1px solid #c8e6c9;
-  font-size: 15px;
-  color: #333;
-  background: #f7fff8;
-  cursor: pointer;
+  width: auto;
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: #fff;
+  font-size: 12.5px;
+  padding: 8px 12px;
 }
 
-.clima-banner-dados {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin-top: 20px;
-}
-
-.clima-banner-dados span {
-  background: #f7fff8;
-  border: 1px solid #e2ede2;
-  border-radius: 14px;
-  padding: 12px 18px;
-  font-size: 16px;
-  font-weight: 500;
-  color: #333;
+/* opções do select precisam de cor escura — senão somem no dropdown nativo */
+.clima-banner-select option {
+  color: var(--ink);
+  background: var(--surface);
 }
 
 .clima-banner-status {
-  margin-top: 18px;
-  font-size: 15px;
-  color: #666;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.8);
+  margin-top: 10px;
 }
 
 .clima-banner-erro {
-  color: #c62828;
-  font-weight: 600;
+  color: var(--gold-soft);
 }
 
-@media (max-width: 700px) {
-  .clima-banner {
-    margin: 20px;
-    padding: 22px 20px;
-  }
+.clima-banner-dados {
+  margin-top: 16px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
 
-  .clima-banner-topo h3 {
-    font-size: 20px;
-  }
+.clima-banner-dados span {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  font-size: 13px;
+  font-weight: 500;
+}
 
-  .clima-banner-dados {
-    flex-direction: column;
-  }
+.clima-banner-dados button {
+  grid-column: 1 / -1;
+}
 
-  .clima-banner-dados span {
-    font-size: 15px;
-  }
+.clima-banner-dados button {
+  background: var(--gold);
+  color: var(--ink);
+  font-size: 12.5px;
+  font-weight: 700;
+  padding: 12px 14px;
+  margin-top: 4px;
+}
+
+.clima-banner-dados button:hover {
+  background: #b6842f;
 }

@@ -1,72 +1,62 @@
-.recuperar-page{
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    min-height:100vh;
-    padding:20px;
+.recuperar-page {
+  min-height: 100svh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 18px;
+  background: var(--parchment);
 }
 
-.recuperar-card{
-    width:100%;
-    max-width:400px;
-    background:white;
-    border-radius:22px;
-    padding:35px 28px;
-    box-shadow:0 25px 60px rgba(0,0,0,.25);
+.recuperar-card {
+  width: 100%;
+  max-width: 460px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 30px 26px;
+  box-shadow: var(--shadow-md);
 }
 
-.recuperar-card h1{
-    color:#2E7D32;
-    font-size:26px;
-    margin-bottom:8px;
+.recuperar-card h1 {
+  font-size: 21px;
 }
 
-.recuperar-sub{
-    color:#666;
-    font-size:14px;
-    margin-bottom:20px;
+.recuperar-sub {
+  font-size: 13.5px;
+  margin: 4px 0 18px;
 }
 
-.recuperar-card label{
-    display:block;
-    font-size:13px;
-    color:#444;
-    margin:14px 0 5px;
+.recuperar-card form {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
-.recuperar-card input{
-    width:100%;
-    padding:10px 12px;
-    border-radius:10px;
-    border:1px solid #ddd;
-    font-size:14px;
+.recuperar-card label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink-soft);
+  margin-top: 8px;
 }
 
-.recuperar-mensagem{
-    display:block;
-    margin-top:12px;
-    font-size:13px;
-    color:#2E7D32;
+.recuperar-card button {
+  margin-top: 18px;
+  padding: 12px;
+  font-size: 14px;
 }
 
-.recuperar-card button{
-    width:100%;
-    margin-top:20px;
-    padding:12px;
-    border:none;
-    border-radius:14px;
-    background:#2E7D32;
-    color:white;
-    font-weight:bold;
-    cursor:pointer;
+.recuperar-mensagem {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--canopy);
+  margin-top: 4px;
 }
 
-.recuperar-aviso{
-    margin-top:22px;
-    padding:12px;
-    background:#FFF3E0;
-    border-radius:12px;
-    font-size:12.5px;
-    color:#8a5a00;
-    line-height:1.4;
+.recuperar-aviso {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px dashed var(--border);
+  font-size: 12px;
+  color: var(--ink-soft);
+  line-height: 1.5;
 }

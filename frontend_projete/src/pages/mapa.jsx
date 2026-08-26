@@ -28,6 +28,7 @@ export default function Mapa() {
   const postos = useRef([]);
   const contadorPostos = useRef(0);
   const contornoLavoura = useRef(null);
+  const previewLavoura = useRef(null);
 
   const [cidade, setCidade] = useState("");
   const [contornoCriado, setContornoCriado] = useState(false);
@@ -95,9 +96,36 @@ export default function Mapa() {
         lng,
       });
 
-      console.log(postos.current);
+      atualizarPreview();
     });
   }, []);
+
+  // Redesenha, a cada clique/remoção, um contorno "rascunho" (tracejado)
+  // ligando os postos já marcados — assim o produtor vê a área tomando
+  // forma em tempo real, antes de confirmar o contorno definitivo.
+  function atualizarPreview() {
+    if (previewLavoura.current) {
+      map.current.removeLayer(previewLavoura.current);
+      previewLavoura.current = null;
+    }
+
+    if (postos.current.length < 2) return;
+
+    const coordenadas = postos.current.map((p) => [p.lat, p.lng]);
+
+    const estiloPreview = {
+      color: "#c6923c",
+      weight: 3,
+      dashArray: "6 8",
+      fillColor: "#c6923c",
+      fillOpacity: 0.12,
+    };
+
+    previewLavoura.current =
+      postos.current.length === 2
+        ? L.polyline(coordenadas, estiloPreview).addTo(map.current)
+        : L.polygon(coordenadas, estiloPreview).addTo(map.current);
+  }
 
   function removerPosto(id) {
     const index = postos.current.findIndex((p) => p.id === id);
@@ -108,7 +136,7 @@ export default function Mapa() {
 
     postos.current.splice(index, 1);
 
-    console.log(postos.current);
+    atualizarPreview();
 
     if (contornoLavoura.current) {
     map.current.removeLayer(contornoLavoura.current);
@@ -173,13 +201,18 @@ export default function Mapa() {
       map.current.removeLayer(contornoLavoura.current);
     }
 
+    if (previewLavoura.current) {
+      map.current.removeLayer(previewLavoura.current);
+      previewLavoura.current = null;
+    }
+
     const coordenadas = postos.current.map((p) => [p.lat, p.lng]);
 
     contornoLavoura.current = L.polygon(coordenadas, {
-      color: "#ff0000",
+      color: "#2f4a33",
       weight: 3,
-      fillColor: "#ff0000",
-      fillOpacity: 0.35,
+      fillColor: "#2f4a33",
+      fillOpacity: 0.3,
     }).addTo(map.current);
 
     setContornoCriado(true);
@@ -195,6 +228,8 @@ export default function Mapa() {
     contornoLavoura.current = null;
 
     setContornoCriado(false);
+
+    atualizarPreview();
   }
 
   function desenharLavoura(coordenadas) {
@@ -208,10 +243,10 @@ export default function Mapa() {
   ]);
 
   L.polygon(pontos, {
-    color: "#ff0000",
+    color: "#2f4a33",
     weight: 3,
-    fillColor: "#ff0000",
-    fillOpacity: 0.35,
+    fillColor: "#2f4a33",
+    fillOpacity: 0.3,
   }).addTo(map.current);
 }
 
@@ -273,11 +308,18 @@ async function carregarLavouras() {
           Apagar Contorno
         </button>
 
-        {contornoCriado && (
-          <button onClick={confirmarCadastro}>
-            Confirmar Cadastro
-          </button>
-        )}
+        <button
+          className="botao-confirmar-cadastro"
+          onClick={confirmarCadastro}
+          disabled={!contornoCriado}
+          title={
+            contornoCriado
+              ? "Ir para o cadastro da lavoura"
+              : "Marque os pontos no mapa e clique em Confirmar Contorno primeiro"
+          }
+        >
+          Confirmar Cadastro
+        </button>
 
       </div>
 

@@ -93,7 +93,7 @@ function Home() {
           handleAnalisar={handleAnalisar} 
         />
         )}
-        {semLavouras && usuarioTipo === "agronomo" && (
+        {semLavouras && (
     <div className="sem-lavouras">
     <div className="sem-lavouras-icone">
       🌱
@@ -105,6 +105,16 @@ function Home() {
       Este produtor ainda não possui nenhuma lavoura cadastrada
       no sistema.
     </p>
+
+    {usuarioTipo !== "agronomo" && (
+      <button
+        type="button"
+        className="sem-lavouras-botao"
+        onClick={() => navigate("/mapa")}
+      >
+        🌍 Cadastrar lavoura
+      </button>
+    )}
     </div>
     
 )}

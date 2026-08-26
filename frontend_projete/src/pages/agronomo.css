@@ -1,92 +1,112 @@
 .agronomo-page {
-    padding: 30px 20px 100px;
-    max-width: 500px;
-    margin: 0 auto;
+  max-width: 640px;
+  margin: 0 auto;
+  min-height: 100svh;
+  background: var(--parchment);
+  padding: 26px 18px 100px;
+}
+
+@media (min-width: 540px) {
+  .agronomo-page {
+    margin: 16px auto;
+    min-height: calc(100svh - 32px);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+  }
 }
 
 .agronomo-cabecalho {
-    text-align: center;
-    margin-bottom: 24px;
-}
-
-.agronomo-cabecalho h1 {
-    color: #1B5E20;
-    font-size: 22px;
-    margin: 0 0 6px;
+  margin-bottom: 20px;
 }
 
 .agronomo-cabecalho p {
-    color: #777;
-    font-size: 14px;
-    margin: 0;
+  font-size: 13.5px;
 }
 
 .agronomo-status {
-    text-align: center;
-    color: #777;
-    font-size: 14px;
-    margin-top: 20px;
+  font-size: 13.5px;
+  color: var(--ink-soft);
+  padding: 14px 0;
 }
 
 .agronomo-erro {
-    color: #C62828;
+  color: var(--cherry);
 }
 
 .agronomo-lista {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .agronomo-card {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    width: 100%;
-    background: white;
-    border: none;
-    border-radius: 16px;
-    box-shadow: 0 3px 12px rgba(0, 0, 0, .08);
-    padding: 14px 16px;
-    cursor: pointer;
-    text-align: left;
-    transition: transform .1s;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 13px 16px;
+  color: var(--ink);
+  box-shadow: var(--shadow-sm);
+  transition: border-color 0.15s ease, background 0.15s ease, transform 0.12s ease;
 }
 
 .agronomo-card:hover {
-    transform: translateY(-2px);
+  border-color: var(--canopy);
+  background: var(--canopy-soft);
+  transform: translateY(-1px);
 }
 
 .agronomo-avatar {
-    width: 48px;
-    height: 48px;
-    min-width: 48px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #66BB6A, #2E7D32);
-    color: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 16px;
-    font-weight: bold;
+  flex-shrink: 0;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: var(--canopy-soft);
+  color: var(--canopy-dark);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 14px;
 }
 
 .agronomo-info {
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
 }
 
 .agronomo-nome {
-    color: #1B5E20;
-    font-weight: bold;
-    font-size: 15px;
+  font-weight: 600;
+  font-size: 14.5px;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .agronomo-email {
-    color: #777;
-    font-size: 13px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+  font-size: 12.5px;
+  color: var(--ink-soft);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.agronomo-card::after {
+  content: "→";
+  margin-left: auto;
+  flex-shrink: 0;
+  color: var(--border-strong);
+  font-size: 16px;
+}
+
+.agronomo-card:hover::after {
+  color: var(--canopy);
 }

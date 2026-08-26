@@ -1,91 +1,59 @@
-.bottom-nav{
-
-    position:fixed;
-
-    bottom:0;
-
-    left:50%;
-
-    transform:translateX(-50%);
-
-    width:100%;
-
-    max-width:480px;
-
-    height:60px;
-
-    background:white;
-
-    display:flex;
-
-    justify-content:space-around;
-
-    align-items:center;
-
-    box-shadow:0 -5px 20px rgba(0,0,0,.12);
-
-    border-radius:25px 25px 0 0;
-
-    z-index:999;
-
+.bottom-nav {
+  position: fixed;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(100% - 28px);
+  max-width: 600px;
+  display: flex;
+  justify-content: space-around;
+  align-items: stretch;
+  gap: 4px;
+  padding: 9px 8px calc(9px + env(safe-area-inset-bottom));
+  background: rgba(255, 253, 248, 0.98);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  box-shadow: var(--shadow-lg);
+  z-index: 1200;
 }
 
-.nav-item{
-
-    border:none;
-
-    background:none;
-
-    display:flex;
-
-    flex-direction:column;
-
-    align-items:center;
-
-    gap:4px;
-
-    color:#777;
-
-    font-size:12px;
-
-    cursor:pointer;
-
+.nav-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  background: transparent;
+  color: var(--ink-soft);
+  border-radius: 14px;
+  padding: 8px 4px 7px;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  transition: background 0.15s ease, color 0.15s ease, transform 0.12s ease;
 }
 
-.nav-item .icon{
-
-    font-size:22px;
-
+.nav-item:hover {
+  background: var(--canopy-soft);
+  color: var(--canopy-dark);
+  transform: translateY(-1px);
 }
 
-.active{
-
-    color:#2E7D32;
-
-    font-weight:bold;
-
+.nav-item .icon {
+  font-size: 19px;
+  line-height: 1;
 }
 
-.center-button{
-
-    width:65px;
-
-    height:65px;
-
-    border-radius:50%;
-
-    background:#2E7D32;
-
-    margin-top:-35px;
-
-    box-shadow:0 8px 20px rgba(46,125,50,.35);
-
+.nav-item.active {
+  color: var(--canopy);
+  background: var(--canopy-soft);
 }
 
-.camera{
-
-    font-size:28px;
-
-    color:white;
-
+@media (min-width: 540px) {
+  .bottom-nav {
+    bottom: 22px;
+  }
 }

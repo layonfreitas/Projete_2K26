@@ -24,30 +24,26 @@ function Header() {
 
   return (
     <header className="header">
-      <div className="header-left">
-        <div className="avatar">
-          {pegarIniciais(nomeUsuario)}
-        </div>
+      <div className="header-inner">
+        <div className="header-left">
+          <div className="avatar">
+            {pegarIniciais(nomeUsuario)}
+          </div>
 
-        <div>
-          <span className="bem-vindo">
-            Bem-vindo,
-          </span>
-          <h2>{nomeUsuario ? ` ${nomeUsuario}` : ""}</h2>
+          <div>
+            <span className="bem-vindo">
+              Bem-vindo,
+            </span>
+            <h2>{nomeUsuario ? ` ${nomeUsuario}` : ""}</h2>
+          </div>
         </div>
+          {usuarioTipo === "agronomo" && (
+
+        <button type="button" onClick={handleProdutor}>
+          selecionar produtor
+        </button>
+    )}
       </div>
-        {usuarioTipo === "agronomo" && (
-
-      <button type="button" onClick={handleProdutor}>
-        selecionar produtor
-      </button>
-  )}
-
-  {usuarioTipo === "produtor" && (
-    <button type="button" onClick={receberObservacao}>
-      Analisar Observação da Lavoura
-    </button>
-  )}
     </header>
   );
 }
