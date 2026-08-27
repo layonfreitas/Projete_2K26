@@ -5,15 +5,15 @@
   justify-content: center;
   padding: 24px 18px;
   background:
-    linear-gradient(160deg, rgba(32, 51, 36, 0.85), rgba(28, 22, 16, 0.88)),
-    url("/imagem1_projete.jpg");
+    linear-gradient(160deg, rgba(27, 94, 32, 0.82), rgba(28, 22, 16, 0.86)),
+    url("/cafe-grao-torrado.jpg");
   background-size: cover;
   background-position: center;
 }
 
 .login-card {
   width: 100%;
-  max-width: 460px;
+  max-width: 380px;
   background: var(--surface);
   border-radius: var(--radius-lg);
   padding: 34px 28px;

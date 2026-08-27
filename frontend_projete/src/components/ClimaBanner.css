@@ -30,12 +30,6 @@
   padding: 8px 12px;
 }
 
-/* opções do select precisam de cor escura — senão somem no dropdown nativo */
-.clima-banner-select option {
-  color: var(--ink);
-  background: var(--surface);
-}
-
 .clima-banner-status {
   font-size: 13px;
   color: rgba(255, 255, 255, 0.8);

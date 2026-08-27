@@ -209,9 +209,9 @@ export default function Mapa() {
     const coordenadas = postos.current.map((p) => [p.lat, p.lng]);
 
     contornoLavoura.current = L.polygon(coordenadas, {
-      color: "#2f4a33",
+      color: "#2e7d32",
       weight: 3,
-      fillColor: "#2f4a33",
+      fillColor: "#2e7d32",
       fillOpacity: 0.3,
     }).addTo(map.current);
 
@@ -243,9 +243,9 @@ export default function Mapa() {
   ]);
 
   L.polygon(pontos, {
-    color: "#2f4a33",
+    color: "#2e7d32",
     weight: 3,
-    fillColor: "#2f4a33",
+    fillColor: "#2e7d32",
     fillOpacity: 0.3,
   }).addTo(map.current);
 }
@@ -308,18 +308,11 @@ async function carregarLavouras() {
           Apagar Contorno
         </button>
 
-        <button
-          className="botao-confirmar-cadastro"
-          onClick={confirmarCadastro}
-          disabled={!contornoCriado}
-          title={
-            contornoCriado
-              ? "Ir para o cadastro da lavoura"
-              : "Marque os pontos no mapa e clique em Confirmar Contorno primeiro"
-          }
-        >
-          Confirmar Cadastro
-        </button>
+        {contornoCriado && (
+          <button className="botao-confirmar-cadastro" onClick={confirmarCadastro}>
+            Confirmar Cadastro
+          </button>
+        )}
 
       </div>
 

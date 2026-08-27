@@ -1,5 +1,5 @@
 .cooperativa-page {
-  max-width: 760px;
+  max-width: 640px;
   margin: 0 auto;
   min-height: 100svh;
   background: var(--parchment);
@@ -26,7 +26,7 @@
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  padding: 24px;
+  padding: 20px;
   box-shadow: var(--shadow-sm);
 }
 

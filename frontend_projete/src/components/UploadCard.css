@@ -12,7 +12,6 @@
 
 .titulo-upload p {
   font-size: 13.5px;
-  line-height: 1.5;
 }
 
 .preview-vazio {
@@ -60,24 +59,24 @@
   border: 1px solid var(--border);
 }
 
-.upload-card .botoes {
+.botoes {
   display: flex;
   gap: 12px;
   margin-top: 20px;
   flex-wrap: wrap;
 }
 
-.upload-card .botoes .botao-upload,
-.upload-card .botoes button {
+.botoes .botao-upload,
+.botoes button {
   flex: 1;
   min-width: 150px;
   justify-content: center;
 }
 
-.upload-card .botoes button:not(.botao-upload) {
+.botoes button:not(.botao-upload) {
   background: var(--ink);
 }
 
-.upload-card .botoes button:not(.botao-upload):hover {
+.botoes button:not(.botao-upload):hover {
   background: #3a2f22;
 }

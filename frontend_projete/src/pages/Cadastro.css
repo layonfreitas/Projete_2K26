@@ -9,38 +9,36 @@
 
 .cadastro-card {
   width: 100%;
-  max-width: 480px;
+  max-width: 420px;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  padding: 36px 28px;
+  padding: 30px 26px;
   box-shadow: var(--shadow-md);
 }
 
 .cadastro-header {
-  margin-bottom: 28px;
+  margin-bottom: 22px;
 }
 
 .cadastro-header h1 {
   font-size: 22px;
-  margin-bottom: 8px;
 }
 
 .cadastro-header p {
   font-size: 13.5px;
-  line-height: 1.5;
 }
 
 .formulario {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
 }
 
 .campo {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
 .campo label {
@@ -53,35 +51,34 @@
   background: var(--canopy-soft);
   color: var(--canopy-dark);
   border-radius: var(--radius-sm);
-  padding: 14px 16px;
+  padding: 12px 14px;
   font-size: 13px;
-  line-height: 1.55;
+  line-height: 1.5;
 }
 
 .mensagem-cadastro {
   font-size: 13px;
   font-weight: 500;
   color: var(--cherry);
-  margin: 0;
+  margin: -4px 0 0;
 }
 
 .cadastro-card .botoes {
   display: flex;
-  gap: 12px;
-  margin-top: 8px;
+  gap: 10px;
+  margin-top: 4px;
 }
 
 .botao-voltar,
 .botao-salvar {
   flex: 1;
-  padding: 13px;
+  padding: 12px;
   font-size: 14px;
-  color: inherit;
 }
 
 .botao-voltar {
   background: var(--parchment);
-  color: var(--ink) !important;
+  color: var(--ink);
   border: 1.5px solid var(--border-strong);
 }
 
@@ -91,5 +88,4 @@
 
 .botao-salvar {
   background: var(--canopy);
-  color: #fff !important;
 }

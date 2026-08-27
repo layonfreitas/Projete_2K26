@@ -9,7 +9,7 @@
 
 .observacao-card {
   width: 100%;
-  max-width: 480px;
+  max-width: 420px;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
