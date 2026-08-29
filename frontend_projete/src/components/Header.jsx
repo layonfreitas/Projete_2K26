@@ -43,6 +43,11 @@ function Header() {
           selecionar produtor
         </button>
     )}
+    {usuarioTipo === "produtor" && (
+        <button type="button" onClick={() => receberObservacao(localStorage.getItem("lavouraId"))}>
+          Observação
+        </button>
+    )}
       </div>
     </header>
   );
