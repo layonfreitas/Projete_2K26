@@ -30,10 +30,11 @@
   padding: 8px 12px;
 }
 
-.clima-banner-status {
-  font-size: 13px;
-  color: rgba(255, 255, 255, 0.8);
-  margin-top: 10px;
+/* corrige o texto invisível dentro da lista suspensa (fundo do dropdown
+   nativo é branco, então as opções precisam de cor escura) */
+.clima-banner-select option {
+  color: var(--ink, #1a1a1a);
+  background: #fff;
 }
 
 .clima-banner-erro {

@@ -348,9 +348,9 @@ export default function Mapa() {
     ]);
 
   L.polygon(pontos, {
-    color: "#2f4a33",
+    color: "#ff0000",
     weight: 3,
-    fillColor: "#2f4a33",
+    fillColor: "#ff0000",
     fillOpacity: 0.3,
   }).addTo(map.current);
 }

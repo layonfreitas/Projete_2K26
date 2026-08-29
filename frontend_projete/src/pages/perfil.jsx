@@ -26,9 +26,11 @@ function Perfil() {
   return (
     <div className="perfil-page">
       <div className="perfil-card">
+        <div className="perfil-header-gradient"></div>
+        
         <div className="perfil-avatar">{pegarIniciais(nomeUsuario)}</div>
 
-        <h2>{nomeUsuario || "Usuário"}</h2>
+        <h2 className="perfil-nome">{nomeUsuario || "Usuário"}</h2>
         <p className="perfil-email">{emailUsuario}</p>
 
         <div className="perfil-info">
@@ -42,13 +44,21 @@ function Perfil() {
           </div>
         </div>
 
-        <button className="perfil-trocar-senha" onClick={() => navigate("/trocar-senha")}>
-        Trocar senha
-        </button>
+        <div className="perfil-botoes">
+          <button 
+            className="perfil-btn perfil-btn-primario" 
+            onClick={() => navigate("/trocar-senha")}
+          >
+            Trocar senha
+          </button>
 
-        <button className="perfil-sair" onClick={handleSair}>
-        Sair da conta
-        </button>
+          <button 
+            className="perfil-btn perfil-btn-secundario" 
+            onClick={handleSair}
+          >
+            Sair da conta
+          </button>
+        </div>
       </div>
       
       <BottomNav />

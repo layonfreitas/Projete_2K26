@@ -65,27 +65,33 @@
 
 .cadastro-card .botoes {
   display: flex;
-  gap: 10px;
-  margin-top: 4px;
+  gap: 12px;
+  margin-top: 8px;
 }
 
 .botao-voltar,
 .botao-salvar {
   flex: 1;
-  padding: 12px;
+  min-height: 46px;
+  padding: 12px 14px;
+  font-family: inherit;
   font-size: 14px;
-}
-
-.botao-voltar {
-  background: var(--parchment);
-  color: var(--ink);
-  border: 1.5px solid var(--border-strong);
-}
-
-.botao-voltar:hover {
-  background: var(--border);
-}
-
-.botao-salvar {
+  font-weight: 600;
+  color: #fff;
   background: var(--canopy);
+  border: 1.5px solid var(--canopy);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.botao-voltar:hover,
+.botao-salvar:hover:not(:disabled) {
+  background: var(--canopy-dark);
+  border-color: var(--canopy-dark);
+}
+
+.botao-salvar:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
 }

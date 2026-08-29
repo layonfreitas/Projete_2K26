@@ -1,21 +1,17 @@
 .perfil-page {
-  max-width: 480px;
-  margin: 0 auto;
+  width: 100%;
+  max-width: 580px;
   min-height: 100svh;
+  margin: 0 auto;
   background: var(--parchment);
   padding: 30px 18px 110px;
-}
-
-@media (min-width: 540px) {
-  .perfil-page {
-    margin: 16px auto;
-    min-height: calc(100svh - 32px);
-    border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-lg);
-  }
+  box-sizing: border-box;
 }
 
 .perfil-card {
+  width: 100%;
+  max-width: 500px;
+  margin: 0 auto;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
@@ -24,8 +20,8 @@
   box-shadow: var(--shadow-md);
   position: relative;
   overflow: hidden;
+  box-sizing: border-box;
 }
-
 .perfil-card::before {
   content: "";
   position: absolute;
@@ -33,7 +29,11 @@
   left: 0;
   right: 0;
   height: 80px;
-  background: linear-gradient(135deg, var(--canopy) 0%, var(--canopy-dark) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--canopy) 0%,
+    var(--canopy-dark) 100%
+  );
 }
 
 .perfil-avatar {
@@ -61,21 +61,26 @@
 
 .perfil-card h2 {
   font-size: 21px;
-  margin-bottom: 8px;
+  margin: 0 0 8px;
 }
 
 .perfil-email {
   font-size: 14px;
-  margin-bottom: 36px;
+  margin: 0 0 36px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .perfil-info {
+  width: 100%;
+  box-sizing: border-box;
   text-align: left;
   background: var(--parchment);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   padding: 6px 22px;
-  margin-bottom: 36px;
+  margin: 0 auto 36px;
 }
 
 .perfil-linha {
@@ -92,6 +97,7 @@
 }
 
 .perfil-label {
+  flex-shrink: 0;
   font-size: 12.5px;
   color: var(--ink-soft);
   font-weight: 600;
@@ -100,6 +106,8 @@
 }
 
 .perfil-valor {
+  min-width: 0;
+  max-width: 70%;
   font-size: 13.5px;
   font-weight: 500;
   color: var(--ink);
@@ -107,7 +115,6 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  max-width: 60%;
 }
 
 .perfil-trocar-senha,
@@ -115,14 +122,17 @@
   width: 100%;
   padding: 15px;
   font-size: 14px;
-  margin-top: 16px;
 }
 
 .perfil-trocar-senha {
+  margin-top: 16px;
+  margin-bottom: 58px; /* espaço bem maior entre os botões */
   background: var(--canopy);
 }
 
 .perfil-sair {
+  margin-top: 0;
+  margin-bottom: 0;
   background: transparent;
   color: var(--cherry);
   border: 1.5px solid var(--cherry-soft);
@@ -130,4 +140,72 @@
 
 .perfil-sair:hover {
   background: var(--cherry-soft);
+}
+
+/* Tablet e telas médias */
+@media (min-width: 540px) {
+  .perfil-page {
+    max-width: 760px;
+    padding: 40px 32px 120px;
+  }
+
+  .perfil-card {
+    max-width: 680px;
+    padding: 40px 42px 32px;
+  }
+}
+
+/* Desktop */
+@media (min-width: 900px) {
+  .perfil-page {
+    max-width: 900px;
+    padding: 48px 40px 120px;
+  }
+
+  .perfil-card {
+    max-width: 760px;
+    padding: 44px 56px 36px;
+  }
+}
+
+/* Celulares pequenos */
+@media (min-width: 540px) {
+  .perfil-page {
+    max-width: 620px;
+    padding: 32px 24px 110px;
+  }
+
+  .perfil-card {
+    max-width: 520px;
+    padding: 38px 30px 30px;
+  }
+}
+
+  .perfil-info {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .perfil-linha {
+    gap: 10px;
+  }
+
+  .perfil-label {
+    font-size: 11px;
+  }
+
+  .perfil-valor {
+    max-width: 64%;
+    font-size: 13px;
+  }
+
+.perfil-trocar-senha {
+  margin-bottom: 14px;
+}
+
+.perfil-sair {
+  margin-top: 0;
+}
+.perfil-trocar-senha {
+  margin-bottom: 28px !important;
 }
