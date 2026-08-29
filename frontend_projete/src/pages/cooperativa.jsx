@@ -103,9 +103,9 @@ function Cooperativa() {
       console.error(erroRequisicao);
     }
   }
- const Deletarconta = async () =>{
+ /*const Deletarconta = async () =>{
   if(window.confirm("Você tem certeza que deseja deletar essa conta?"))
- }
+ }*/
   function nomeDoAgronomo(agronomoId) {
     const agronomo = agronomos.find((a) => a.id === agronomoId);
     return agronomo ? agronomo.nome : null;
