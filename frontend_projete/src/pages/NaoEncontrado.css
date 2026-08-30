@@ -1,0 +1,46 @@
+.nao-encontrado-page {
+  min-height: 100svh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--parchment);
+  padding: 24px;
+}
+
+.nao-encontrado-card {
+  max-width: 360px;
+  width: 100%;
+  text-align: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  padding: 40px 28px;
+}
+
+.nao-encontrado-codigo {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 52px;
+  font-weight: 700;
+  color: var(--canopy);
+  line-height: 1;
+  margin-bottom: 10px;
+}
+
+.nao-encontrado-card h1 {
+  font-size: 18px;
+  margin: 0 0 10px 0;
+  color: var(--ink);
+}
+
+.nao-encontrado-card p {
+  font-size: 13.5px;
+  color: var(--ink-soft);
+  margin: 0 0 24px 0;
+  line-height: 1.5;
+}
+
+.nao-encontrado-card button {
+  width: 100%;
+}

@@ -1,6 +1,6 @@
-
 import { useNavigate } from "react-router-dom";
 import "./Header.css";
+import NotificationBell from "./NotificationBell";
 
 function Header() {
   const navigate = useNavigate();
@@ -17,10 +17,6 @@ function Header() {
   function handleProdutor() {
     navigate("/agronomo");
   }
-  function receberObservacao(id) {
-    navigate(`/observacao/${id}`);
-  }
-
 
   return (
     <header className="header">
@@ -37,17 +33,16 @@ function Header() {
             <h2>{nomeUsuario ? ` ${nomeUsuario}` : ""}</h2>
           </div>
         </div>
-          {usuarioTipo === "agronomo" && (
 
-        <button type="button" onClick={handleProdutor}>
-          selecionar produtor
-        </button>
-    )}
-    {usuarioTipo === "produtor" && (
-        <button type="button" onClick={() => receberObservacao(localStorage.getItem("lavouraId"))}>
-          Observação
-        </button>
-    )}
+        <div className="header-right">
+          <NotificationBell />
+
+          {usuarioTipo === "agronomo" && (
+            <button type="button" onClick={handleProdutor}>
+              selecionar produtor
+            </button>
+          )}
+        </div>
       </div>
     </header>
   );
