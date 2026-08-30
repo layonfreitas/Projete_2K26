@@ -3,7 +3,7 @@ import bcrypt
 import csv
 import io
 
-from banco_de_dados.auth_utils import requer_tipo, init_mysql as init_auth_utils_mysql
+from auth_utils import requer_tipo, init_mysql as init_auth_utils_mysql
 
 cooperativa_bp = Blueprint("cooperativa_bp", __name__)
 
