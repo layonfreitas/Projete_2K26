@@ -53,7 +53,7 @@ function App() {
       <Route
         path="/agronomo"
         element={
-          <RotaProtegida>
+          <RotaProtegida tiposPermitidos={["agronomo"]}>
             <Agronomo />
           </RotaProtegida>
         }
@@ -62,7 +62,7 @@ function App() {
       <Route
         path="/cooperativa"
         element={
-          <RotaProtegida>
+          <RotaProtegida tiposPermitidos={["cooperativa"]}>
             <Cooperativa />
           </RotaProtegida>
         }

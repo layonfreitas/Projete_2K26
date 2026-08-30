@@ -20,7 +20,7 @@ init_lavoura_mysql(mysql)
 init_senha_mysql(mysql)
 init_agronomo_mysql(mysql)
 init_imagens_mysql(mysql)
-init_cooperativa_mysql(mysql)
+init_cooperativa_mysql(mysql)  # também inicializa auth_utils internamente
 
 app.register_blueprint(agronomo_bp)
 app.register_blueprint(auth_bp)

@@ -125,3 +125,122 @@
 .cooperativa-acoes button:last-child:hover {
   background: #832f21;
 }
+
+.cooperativa-btn-perigo {
+  background: var(--cherry);
+}
+
+.cooperativa-btn-perigo:hover {
+  background: #832f21;
+}
+
+/* ---------- Dashboard ---------- */
+
+.cooperativa-stats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.cooperativa-stat {
+  background: var(--parchment);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  text-align: center;
+}
+
+.cooperativa-stat-numero {
+  display: block;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.cooperativa-stat-label {
+  display: block;
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+
+.cooperativa-status-lavouras {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.cooperativa-tag-atencao {
+  background: var(--gold-soft);
+  color: #7a5b1c;
+}
+
+.cooperativa-tag-critico {
+  background: #fbe3e0;
+  color: var(--cherry);
+}
+
+.cooperativa-alertas h3 {
+  font-size: 13.5px;
+  margin-bottom: 8px;
+}
+
+.cooperativa-btn-relatorio {
+  width: 100%;
+  margin-top: 14px;
+  background: var(--parchment);
+  color: var(--ink);
+  border: 1px solid var(--border);
+}
+
+.cooperativa-btn-relatorio:hover {
+  background: var(--canopy-soft);
+}
+
+/* ---------- Ranking ---------- */
+
+.cooperativa-tabela {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.cooperativa-tabela th,
+.cooperativa-tabela td {
+  text-align: left;
+  padding: 8px 6px;
+  border-bottom: 1px solid var(--border);
+}
+
+.cooperativa-tabela th {
+  color: var(--ink-soft);
+  font-weight: 600;
+  font-size: 12px;
+}
+
+/* ---------- Edição inline ---------- */
+
+.cooperativa-form-edicao {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  width: 100%;
+}
+
+.cooperativa-form-edicao input {
+  flex: 1 1 180px;
+}
+
+.cooperativa-form-edicao .cooperativa-acoes {
+  flex: 1 1 100%;
+}
+
+.cooperativa-form textarea {
+  flex: 1 1 100%;
+  min-height: 80px;
+  resize: vertical;
+  font-family: inherit;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
