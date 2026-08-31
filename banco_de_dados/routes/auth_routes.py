@@ -183,3 +183,41 @@ def criar_observacao():
         return jsonify({
             "erro": str(erro)
         }), 500
+
+@auth_bp.route("/observacoes/<int:lavoura_id>", methods=["GET"])
+def buscar_observacoes(lavoura_id):
+
+    try:
+
+        cursor = mysql.connection.cursor()
+
+        cursor.execute(
+            """
+            SELECT id, texto
+            FROM observacoes
+            WHERE lavoura_id = %s
+            """,
+            (lavoura_id,)
+        )
+
+        observacoes = cursor.fetchall()
+
+        cursor.close()
+
+        resultado = []
+
+        for observacao in observacoes:
+            resultado.append({
+                "id": observacao[0],
+                "texto": observacao[1]
+            })
+
+        return jsonify(resultado), 200
+
+    except Exception as erro:
+
+        print("Erro ao buscar observações:", erro)
+
+        return jsonify({
+            "erro": str(erro)
+        }), 500

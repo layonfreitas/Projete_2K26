@@ -1,0 +1,84 @@
+
+.observacoes-page {
+  min-height: 100svh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 18px;
+  background: var(--parchment);
+}
+
+.observacoes-card {
+  width: 100%;
+  max-width: 520px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 28px 26px;
+  box-shadow: var(--shadow-md);
+}
+
+.observacoes-card h1 {
+  font-size: 20px;
+  margin-bottom: 8px;
+}
+
+.observacoes-card > p {
+  font-size: 13.5px;
+  margin-bottom: 20px;
+}
+
+/* Área onde ficam as observações */
+.lista-observacoes {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Cada observação */
+.observacao-item {
+  background: var(--parchment);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+}
+
+.observacao-item p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--ink);
+  white-space: pre-wrap;
+}
+
+/* Mensagem quando não existem observações */
+.sem-observacoes {
+  font-size: 14px;
+  color: var(--ink-muted);
+  text-align: center;
+  padding: 20px 10px;
+}
+
+/* Botão de voltar */
+.observacoes-acoes {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.observacoes-acoes button {
+  flex: 1;
+  padding: 12px;
+  font-size: 14px;
+}
+
+.observacoes-acoes button:first-child {
+  background: var(--parchment);
+  color: var(--ink);
+  border: 1.5px solid var(--border-strong);
+}
+
+.observacoes-acoes button:first-child:hover {
+  background: var(--border);
+}
+

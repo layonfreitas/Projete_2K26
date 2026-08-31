@@ -14,9 +14,21 @@ function Header() {
     return (partes[0][0] + partes[partes.length - 1][0]).toUpperCase();
   }
 
+  
   function handleProdutor() {
     navigate("/agronomo");
   }
+function receberObservacao() {
+  const lavouraId = localStorage.getItem("lavouraId");
+
+  if (!lavouraId) {
+    console.error("ID da lavoura não encontrado.");
+    return;
+  }
+
+  navigate(`/observacao_produtor/${lavouraId}`);
+}
+
 
   return (
     <header className="header">
@@ -42,6 +54,12 @@ function Header() {
               selecionar produtor
             </button>
           )}
+
+            {usuarioTipo === "produtor" && (
+              <button type="button" onClick={receberObservacao}>
+                receber observação
+              </button>
+            )}
         </div>
       </div>
     </header>
