@@ -44,6 +44,9 @@ useEffect(() => {
        function observacao() {
     navigate(`/observacao/${lavouraSelecionada.id}`);
   }
+  function laudo() {
+    navigate(`/laudo/${lavouraSelecionada.id}`);
+  }
 
 
   useEffect(() => {
@@ -118,6 +121,11 @@ useEffect(() => {
           {usuarioTipo === "agronomo" && (
             <button type="button" onClick={observacao}>
               adicionar observação
+            </button>
+          )}
+            {usuarioTipo === "agronomo" && (
+            <button type="button" onClick={laudo}>
+              emitir laudo
             </button>
           )}
         </div>

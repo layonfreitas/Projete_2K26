@@ -12,6 +12,7 @@ import Cooperativa from "./pages/cooperativa";
 import Observacao from "./pages/observacao";
 import Observacao_Produtor from "./pages/observacao_produtor";
 import NaoEncontrado from "./pages/NaoEncontrado";
+import Laudo from "./pages/laudo";
 import RotaProtegida from "./components/RotaProtegida";
 
 function App() {
@@ -74,6 +75,14 @@ function App() {
         element={
           <RotaProtegida>
             <Observacao />
+          </RotaProtegida>
+        }
+      />
+      <Route
+        path="/laudo/:id"
+        element={
+          <RotaProtegida>
+            <Laudo />
           </RotaProtegida>
         }
       />
