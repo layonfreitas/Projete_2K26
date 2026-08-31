@@ -4,6 +4,7 @@ import csv
 import io
 
 from auth_utils import requer_tipo, init_mysql as init_auth_utils_mysql
+from email_utils import enviar_email, montar_email_aviso
 
 cooperativa_bp = Blueprint("cooperativa_bp", __name__)
 
@@ -340,8 +341,35 @@ def criar_aviso():
             (cooperativa_id, titulo, mensagem, destinatario_tipo)
         )
         mysql.connection.commit()
+
+        # Busca os e-mails de quem deve receber, conforme o destinatarioTipo
+        if destinatario_tipo == 'todos':
+            cursor.execute("SELECT email FROM usuarios WHERE tipo IN ('produtor', 'agronomo')")
+        elif destinatario_tipo == 'produtores':
+            cursor.execute("SELECT email FROM usuarios WHERE tipo = 'produtor'")
+        else:  # 'agronomos'
+            cursor.execute("SELECT email FROM usuarios WHERE tipo = 'agronomo'")
+
+        emails = [linha[0] for linha in cursor.fetchall()]
         cursor.close()
-        return jsonify({"mensagem": "Aviso enviado com sucesso"}), 201
+
+        # Manda o e-mail pra cada destinatário. Um e-mail que falhar não
+        # derruba a resposta inteira (o aviso já foi salvo com sucesso) —
+        # só registra no log do servidor pra investigar depois.
+        html, texto = montar_email_aviso(titulo, mensagem)
+        falhas = []
+        for email in emails:
+            try:
+                enviar_email(email, f"CoffeeVision — {titulo}", html, texto)
+            except Exception as erro_email:
+                falhas.append(email)
+                print(f"Erro ao enviar aviso por e-mail para {email}: {erro_email}")
+
+        resposta = {"mensagem": "Aviso enviado com sucesso", "emailsEnviados": len(emails) - len(falhas)}
+        if falhas:
+            resposta["emailsComFalha"] = len(falhas)
+
+        return jsonify(resposta), 201
     except Exception as erro:
         return jsonify({"mensagem": "Erro ao criar aviso", "erro": str(erro)}), 500
 

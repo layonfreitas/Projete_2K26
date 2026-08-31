@@ -10,7 +10,6 @@ import TrocarSenha from "./pages/TrocarSenha";
 import Agronomo from "./pages/agronomo";
 import Cooperativa from "./pages/cooperativa";
 import Observacao from "./pages/observacao";
-import Observacao_Produtor from "./pages/observacao_produtor";
 import RotaProtegida from "./components/RotaProtegida";
 
 function App() {
@@ -85,21 +84,21 @@ function App() {
         }
       />
 
+      <Route path="/nao-encontrado" element={<NaoEncontrado />} />
 
+      <Route path="/recuperar-senha" element={<RecuperarSenha />} />
 
-        <Route path="/recuperar-senha" element={<RecuperarSenha />} />
-
-        <Route
-          path="/trocar-senha"
-          element={
-            <RotaProtegida>
-              <TrocarSenha />
-            </RotaProtegida>
-          }
-        />
+      <Route
+        path="/trocar-senha"
+        element={
+          <RotaProtegida>
+            <TrocarSenha />
+          </RotaProtegida>
+        }
+      />
 
       <Route path="/" element={<Navigate to="/home" replace />} />
-      <Route path="*" element={<Navigate to="/home" replace />} />
+      <Route path="*" element={<NaoEncontrado />} />
     </Routes>
   );
 }
