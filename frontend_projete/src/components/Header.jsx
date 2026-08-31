@@ -18,7 +18,7 @@ function Header() {
     navigate("/agronomo");
   }
   function receberObservacao(id) {
-    navigate(`/observacao/${id}`);
+    navigate(`/observacao_produtor/${id}`);
   }
 
 

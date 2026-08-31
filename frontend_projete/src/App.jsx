@@ -10,6 +10,7 @@ import TrocarSenha from "./pages/TrocarSenha";
 import Agronomo from "./pages/agronomo";
 import Cooperativa from "./pages/cooperativa";
 import Observacao from "./pages/observacao";
+import Observacao_Produtor from "./pages/observacao_produtor";
 import RotaProtegida from "./components/RotaProtegida";
 
 function App() {
@@ -72,6 +73,14 @@ function App() {
         element={
           <RotaProtegida>
             <Observacao />
+          </RotaProtegida>
+        }
+      />
+      <Route
+        path="/observacao_produtor/:id"
+        element={
+          <RotaProtegida>
+            <Observacao_Produtor />
           </RotaProtegida>
         }
       />
