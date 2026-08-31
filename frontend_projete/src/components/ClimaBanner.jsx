@@ -29,13 +29,17 @@ function ClimaBanner({ lavouras }) {
   const navigate = useNavigate();
 
   // assim que a lista de lavouras chega, seleciona a primeira por padrão
-  useEffect(() => {
-    if (lavouras && lavouras.length > 0 && lavouraId === null) {
-      setLavouraId(lavouras[0].id);
-    }
-  }, [lavouras, lavouraId]);
+useEffect(() => {
+  if (lavouras && lavouras.length > 0 && lavouraId === null) {
+    const id = lavouras[0].id;
+
+    setLavouraId(id);
+    localStorage.setItem("lavouraId", id);
+  }
+}, [lavouras, lavouraId]);
 
   const lavouraSelecionada = lavouras?.find((l) => l.id === lavouraId);
+
 
        function observacao() {
     navigate(`/observacao/${lavouraSelecionada.id}`);
@@ -80,7 +84,12 @@ function ClimaBanner({ lavouras }) {
           <select
             className="clima-banner-select"
             value={lavouraId ?? ""}
-            onChange={(evento) => setLavouraId(Number(evento.target.value))}
+           onChange={(evento) => {
+  const id = Number(evento.target.value);
+
+  setLavouraId(id);
+  localStorage.setItem("lavouraId", id);
+}}
           >
             {lavouras.map((lavoura) => (
               <option key={lavoura.id} value={lavoura.id}>

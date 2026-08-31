@@ -14,12 +14,20 @@ function Header() {
     return (partes[0][0] + partes[partes.length - 1][0]).toUpperCase();
   }
 
+  
   function handleProdutor() {
     navigate("/agronomo");
   }
-  function receberObservacao(id) {
-    navigate(`/observacao_produtor/${id}`);
+function receberObservacao() {
+  const lavouraId = localStorage.getItem("lavouraId");
+
+  if (!lavouraId) {
+    console.error("ID da lavoura não encontrado.");
+    return;
   }
+
+  navigate(`/observacao_produtor/${lavouraId}`);
+}
 
 
   return (
