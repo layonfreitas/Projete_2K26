@@ -49,7 +49,6 @@ function Laudo() {
                             <label>Produtor</label>
 
                             <input
-                                type="text"
                                 placeholder={`Nome do produtor: ${produtorNome}`}
                             />
                         </div>
