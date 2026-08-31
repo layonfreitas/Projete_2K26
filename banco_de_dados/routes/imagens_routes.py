@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify
 
 cadastrar_imagens_bp = Blueprint('cadastrar_imagens', __name__)
+acessar_imagem_bp = Blueprint('acessar_imagem', __name__)
 mysql = None  # vai ser injetado pelo app.py
 
 def init_mysql(mysql_instance):
@@ -34,4 +35,17 @@ def cadastrar_imagem():
         return jsonify({"mensagem": "Erro ao cadastrar imagem", "erro": str(erro)}), 500
     
 
+@acessar_imagem_bp.route('/acessar_imagem', method=['GET'])
+def acessar_imagem():
+    dados = request.get_json()
+    id = dados.get('id')
+    data = dados.get('data')
+    indice = dados.get('indice')
 
+    try:
+        cursor = mysql.connection.cursor()
+        cursor.execute("SELECT coordenadas FROM lavouras WHERE id = %s", (id))
+
+
+    except Exception as erro:
+        return jsonify({"mensagem": "Não foi possível encontrar dos dados."}),500

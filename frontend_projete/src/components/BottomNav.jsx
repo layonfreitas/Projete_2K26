@@ -43,7 +43,7 @@ function BottomNav() {
         </button>
       )}
 
-      <button className="nav-item">
+      <button className="nav-item" onClick={() => navigate("/historico")}>
         <span className="icon">📈</span>
         <span>Histórico</span>
       </button>
