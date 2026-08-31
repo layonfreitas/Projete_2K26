@@ -10,6 +10,8 @@ import TrocarSenha from "./pages/TrocarSenha";
 import Agronomo from "./pages/agronomo";
 import Cooperativa from "./pages/cooperativa";
 import Observacao from "./pages/observacao";
+import Observacao_Produtor from "./pages/observacao_produtor";
+import NaoEncontrado from "./pages/NaoEncontrado";
 import RotaProtegida from "./components/RotaProtegida";
 
 function App() {
@@ -83,8 +85,8 @@ function App() {
           </RotaProtegida>
         }
       />
-
-      <Route path="/nao-encontrado" element={<NaoEncontrado />} />
+      
+      <Route path="/NaoEncontrado" element={<NaoEncontrado />} />
 
       <Route path="/recuperar-senha" element={<RecuperarSenha />} />
 

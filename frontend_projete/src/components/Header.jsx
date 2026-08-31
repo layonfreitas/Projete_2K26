@@ -18,7 +18,7 @@ function Header() {
     navigate("/agronomo");
   }
   function receberObservacao(id) {
-    navigate(`/observacao/${id}`);
+    navigate(`/observacao_produtor/${id}`);
   }
 
 
@@ -46,6 +46,12 @@ function Header() {
               selecionar produtor
             </button>
           )}
+
+            {usuarioTipo === "produtor" && (
+              <button type="button" onClick={receberObservacao}>
+                receber observação
+              </button>
+            )}
         </div>
       </div>
     </header>
