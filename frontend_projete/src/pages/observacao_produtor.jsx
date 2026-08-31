@@ -24,6 +24,8 @@ export default function Observacoes() {
 
         const dados = await resposta.json();
 
+        
+
         if (!resposta.ok) {
           throw new Error(
             dados.erro || "Erro ao buscar observações."
