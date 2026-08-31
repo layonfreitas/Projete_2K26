@@ -35,7 +35,7 @@ def cadastrar_imagem():
         return jsonify({"mensagem": "Erro ao cadastrar imagem", "erro": str(erro)}), 500
     
 
-@acessar_imagem_bp.route('/acessar_imagem', method=['GET'])
+@acessar_imagem_bp.route('/acessar_imagem', methods=['GET'])
 def acessar_imagem():
     dados = request.get_json()
     id = dados.get('id')

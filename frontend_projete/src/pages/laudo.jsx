@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import logoCoffeeVision from "../assets/logo-coffeevision.png";
 import "./laudo.css";
 
 function Laudo() {
@@ -30,7 +31,7 @@ function Laudo() {
                     </div>
 
                     <div className="laudo-icon">
-                        ☕
+                        <img src={logoCoffeeVision} alt="CoffeeVision" />
                     </div>
 
                 </header>

@@ -13,11 +13,18 @@ function Agronomo() {
 
   useEffect(() => {
     async function buscarProdutores() {
+      const agronomoId = localStorage.getItem("usuarioId");
+
+      if (!agronomoId) {
+        setErro("Usuário não identificado.");
+        setCarregando(false);
+        return;
+      }
+
       try {
-        // TODO: quando a tela da cooperativa existir, trocar essa rota
-        // por /agronomo/<agronomoId>/produtores, que já filtra pela
-        // carteira certa (só os produtores vinculados a esse agrônomo).
-        const resposta = await fetch(`${AUTH_API_URL}/produtores`);
+        const resposta = await fetch(
+          `${AUTH_API_URL}/agronomo/${agronomoId}/produtores`
+        );
         const dados = await resposta.json();
 
         if (resposta.ok) {
