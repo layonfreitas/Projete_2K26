@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import Login from "./pages/login";
 import Home from "./pages/home";
 import Mapa from "./pages/mapa";
+import Historico from "./pages/historico";
 import Cadastro from "./pages/Cadastro";
 import Perfil from "./pages/perfil";
 import RecuperarSenha from "./pages/RecuperarSenha";
@@ -34,6 +35,14 @@ function App() {
           </RotaProtegida>
         }
       />
+      <Route
+        path="/historico"
+          element={
+            <RotaProtegida>
+              <Historico />
+            </RotaProtegida>
+          }
+        />
       <Route
         path="/cadastro"
         element={
@@ -92,6 +101,7 @@ function App() {
 
       <Route path="/" element={<Navigate to="/home" replace />} />
       <Route path="*" element={<NaoEncontrado />} />
+
     </Routes>
   );
 }
