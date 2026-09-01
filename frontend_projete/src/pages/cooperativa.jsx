@@ -3,7 +3,7 @@ import { AUTH_API_URL } from "../config/api";
 import { useNavigate } from "react-router-dom";
 import { fetchAutenticado } from "../services/apiAutenticado";
 import BottomNav from "../components/BottomNav";
-import Editar_senha from "./editar_senha.jsx";
+import Editar_senha from "./Editar_senha.jsx";
 import "./cooperativa.css";
 import "./Editar_senha.css";
 
