@@ -14,6 +14,8 @@ import Observacao from "./pages/observacao";
 import Observacao_Produtor from "./pages/observacao_produtor";
 import NaoEncontrado from "./pages/NaoEncontrado";
 import Laudo from "./pages/laudo";
+import Edicao from "./pages/edicao";
+import EditarSenha from "./pages/Editar_senha";
 import RotaProtegida from "./components/RotaProtegida";
 
 function App() {
