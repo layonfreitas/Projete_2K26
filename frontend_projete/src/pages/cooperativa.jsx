@@ -3,9 +3,7 @@ import { AUTH_API_URL } from "../config/api";
 import { useNavigate } from "react-router-dom";
 import { fetchAutenticado } from "../services/apiAutenticado";
 import BottomNav from "../components/BottomNav";
-import Editar_senha from "./Editar_senha.jsx";
 import "./cooperativa.css";
-import "./Editar_senha.css";
 
 const ROTULO_STATUS = {
   ok: "Ok",
@@ -70,11 +68,11 @@ function Cooperativa() {
     }
   }
 
-  function editar_senha(usuario_id)
-{
-  localStorage.setItem("editarSenhaUsuarioId", usuario_id);
-  navigate("/Editar_senha");
-}
+  function editar_senha(usuario_id) {
+    localStorage.setItem("editarSenhaUsuarioId", usuario_id);
+    navigate("/editar_senha");
+  }
+
   async function buscarRanking() {
     try {
       const resposta = await fetchAutenticado(`${AUTH_API_URL}/cooperativa/ranking-agronomos`);
@@ -489,21 +487,21 @@ function Cooperativa() {
             <div key={p.id} className="cooperativa-item">
               {editandoId === p.id ? (
                 <form
-                className="cooperativa-form-edicao"
-  onSubmit={(e) => { e.preventDefault(); salvarEdicao(p.id); }}
->
-  <input value={editNome} onChange={(e) => setEditNome(e.target.value)} required />
-  <input type="email" value={editEmail} onChange={(e) => setEditEmail(e.target.value)} required />
+                  className="cooperativa-form-edicao"
+                  onSubmit={(e) => { e.preventDefault(); salvarEdicao(p.id); }}
+                >
+                  <input value={editNome} onChange={(e) => setEditNome(e.target.value)} required />
+                  <input type="email" value={editEmail} onChange={(e) => setEditEmail(e.target.value)} required />
 
-  <div className="cooperativa-acoes">
-    <button type="submit">Salvar</button>
-    <button type="button" onClick={cancelarEdicao}>Cancelar</button>
-  </div>
+                  <div className="cooperativa-editar-senha">
+                    <button type="button" onClick={() => editar_senha(p.id)}>Editar senha</button>
+                  </div>
 
-  <div className="cooperativa-editar-senha">
-    <button type="button" onClick={()=> editar_senha(p.id)}>Editar senha</button>
-  </div>
-</form>
+                  <div className="cooperativa-acoes">
+                    <button type="submit">Salvar</button>
+                    <button type="button" onClick={cancelarEdicao}>Cancelar</button>
+                  </div>
+                </form>
               ) : (
                 <>
                   <div>
