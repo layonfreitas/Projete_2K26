@@ -407,7 +407,7 @@ def listar_avisos():
     except Exception as erro:
         return jsonify({"mensagem": "Erro ao listar avisos", "erro": str(erro)}), 500
 
-@cooperativa_bp.routes("/usuario/<int:usuario_id>/senha", methods=["PUT"])
+@cooperativa_bp.route("/usuario/<int:usuario_id>/senha", methods=["PUT"])
 def senha_edit(usuario_id):
     dados= request.get_json()
     nova_senha = dados.get("senha")
