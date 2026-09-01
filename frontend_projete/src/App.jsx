@@ -14,8 +14,8 @@ import Observacao from "./pages/observacao";
 import Observacao_Produtor from "./pages/observacao_produtor";
 import NaoEncontrado from "./pages/NaoEncontrado";
 import Laudo from "./pages/laudo";
+import EditarSenha from "./pages/Editar_senha";
 import RotaProtegida from "./components/RotaProtegida";
-import EditarSenha from "./pages/editar_senha";
 
 function App() {
   return (
@@ -110,7 +110,7 @@ function App() {
       <Route path="/recuperar-senha" element={<RecuperarSenha />} />
 
      <Route
-  path="/editar_senha"
+  path="/Editar_senha"
   element={
     <RotaProtegida tiposPermitidos={["cooperativa"]}>
       <EditarSenha />

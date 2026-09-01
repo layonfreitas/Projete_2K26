@@ -73,7 +73,7 @@ function Cooperativa() {
   function editar_senha(usuario_id)
 {
   localStorage.setItem("editarSenhaUsuarioId", usuario_id);
-  navigate("/editar_senha");
+  navigate("/Editar_senha");
 }
   async function buscarRanking() {
     try {
