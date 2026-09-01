@@ -164,3 +164,115 @@ def buscar_lavoura(lavoura_id):
             "mensagem": "Erro ao buscar lavoura",
             "erro": str(erro)
         }), 500
+
+    
+@lavoura_bp.route('/lavoura/<int:lavoura_id>', methods=['PUT'])
+def editar_lavoura(lavoura_id):
+    dados = request.get_json()
+
+    nome_lavoura = dados.get('nomeLavoura')
+    coordenadas = dados.get('coordenadas')
+
+    if not nome_lavoura and coordenadas is None:
+        return jsonify({
+            "mensagem": "Nenhum dado foi enviado para alteração"
+        }), 400
+
+    try:
+        cursor = mysql.connection.cursor()
+
+        if nome_lavoura is not None and coordenadas is not None:
+            if len(coordenadas) < 3:
+                return jsonify({
+                    "mensagem": "O polígono precisa de pelo menos 3 pontos"
+                }), 400
+
+            coordenadas_json = json.dumps(coordenadas)
+
+            cursor.execute(
+                """
+                UPDATE lavouras
+                SET nome_lavoura = %s, coordenadas = %s
+                WHERE id = %s
+                """,
+                (nome_lavoura, coordenadas_json, lavoura_id)
+            )
+
+        elif nome_lavoura is not None:
+            cursor.execute(
+                """
+                UPDATE lavouras
+                SET nome_lavoura = %s
+                WHERE id = %s
+                """,
+                (nome_lavoura, lavoura_id)
+            )
+
+        elif coordenadas is not None:
+            if len(coordenadas) < 3:
+                return jsonify({
+                    "mensagem": "O polígono precisa de pelo menos 3 pontos"
+                }), 400
+
+            coordenadas_json = json.dumps(coordenadas)
+
+            cursor.execute(
+                """
+                UPDATE lavouras
+                SET coordenadas = %s
+                WHERE id = %s
+                """,
+                (coordenadas_json, lavoura_id)
+            )
+
+        if cursor.rowcount == 0:
+            cursor.close()
+            return jsonify({
+                "mensagem": "Lavoura não encontrada"
+            }), 404
+
+        mysql.connection.commit()
+        cursor.close()
+
+        return jsonify({
+            "mensagem": "Lavoura atualizada com sucesso"
+        }), 200
+
+    except Exception as erro:
+        return jsonify({
+            "mensagem": "Erro ao atualizar lavoura",
+            "erro": str(erro)
+        }), 500
+
+
+@lavoura_bp.route('/lavoura/<int:lavoura_id>', methods=['DELETE'])
+def remover_lavoura(lavoura_id):
+    try:
+        cursor = mysql.connection.cursor()
+
+        cursor.execute(
+            """
+            DELETE FROM lavouras
+            WHERE id = %s
+            """,
+            (lavoura_id,)
+        )
+
+        if cursor.rowcount == 0:
+            cursor.close()
+            return jsonify({
+                "mensagem": "Lavoura não encontrada"
+            }), 404
+
+        mysql.connection.commit()
+        cursor.close()
+
+        return jsonify({
+            "mensagem": "Lavoura removida com sucesso"
+        }), 200
+
+    except Exception as erro:
+        return jsonify({
+            "mensagem": "Erro ao remover lavoura",
+            "erro": str(erro)
+        }), 500
