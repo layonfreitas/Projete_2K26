@@ -14,6 +14,7 @@ import Observacao from "./pages/observacao";
 import Observacao_Produtor from "./pages/observacao_produtor";
 import NaoEncontrado from "./pages/NaoEncontrado";
 import Laudo from "./pages/laudo";
+import Edicao from "./pages/edicao";
 import EditarSenha from "./pages/Editar_senha";
 import RotaProtegida from "./components/RotaProtegida";
 
@@ -104,7 +105,15 @@ function App() {
           </RotaProtegida>
         }
       />
-      
+      <Route
+        path="/edicao/:id"
+        element={
+          <RotaProtegida>
+            <Edicao />
+          </RotaProtegida>
+        }
+      />
+
       <Route path="/NaoEncontrado" element={<NaoEncontrado />} />
 
       <Route path="/recuperar-senha" element={<RecuperarSenha />} />
@@ -126,7 +135,14 @@ function App() {
           </RotaProtegida>
         }
       />
-
+      <Route
+        path="/Historico"
+        element={
+          <RotaProtegida>
+            <Historico />
+          </RotaProtegida>
+        }
+      />
       <Route path="/" element={<Navigate to="/home" replace />} />
       <Route path="*" element={<NaoEncontrado />} />
 

@@ -71,6 +71,13 @@ function ClimaBanner({ lavouras }) {
     navigate(`/laudo/${lavouraSelecionada.id}`);
   }
 
+  function editarLavoura() {
+    if (!lavouraSelecionada) return;
+
+    localStorage.setItem("lavouraId", lavouraSelecionada.id);
+    navigate(`/edicao/${lavouraSelecionada.id}`);
+  }
+
   // Busca o clima da lavoura selecionada
   useEffect(() => {
     if (!lavouraSelecionada?.coordenadas?.length) return;
@@ -206,6 +213,14 @@ function ClimaBanner({ lavouras }) {
               onClick={laudo}
             >
               emitir laudo
+            </button>
+          )}
+          {usuarioTipo === "produtor" && (
+            <button
+              type="button"
+              onClick={editarLavoura}
+            >
+              editar lavoura
             </button>
           )}
 

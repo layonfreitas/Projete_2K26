@@ -14,6 +14,9 @@ function Perfil() {
     if (partes.length === 1) return partes[0].substring(0, 2).toUpperCase();
     return (partes[0][0] + partes[partes.length - 1][0]).toUpperCase();
   }
+  function editarteste(){
+    navigate("/edicao");
+  }
 
   function handleSair() {
     localStorage.removeItem("autenticado");
@@ -57,6 +60,12 @@ function Perfil() {
             onClick={handleSair}
           >
             Sair da conta
+          </button>
+          <button 
+            className="perfil-btn perfil-btn-secundario" 
+            onClick={editarteste}
+          >
+            Editar perfil
           </button>
         </div>
       </div>
