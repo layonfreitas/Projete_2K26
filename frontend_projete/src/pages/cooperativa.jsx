@@ -154,6 +154,36 @@ function Cooperativa() {
     }
   }
 
+  async function handleDesVincular(event) {
+    event.preventDefault();
+    setMensagem("");
+    if (!produtorId || !agronomoId) {
+      setMensagem("Selecione um produtor e um agrônomo.");
+      return;
+    }
+    try {
+      const resposta = await fetchAutenticado(`${AUTH_API_URL}/desvincular`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ produtorId, agronomoId }),
+      });
+      const dados = await resposta.json();
+
+      if (resposta.ok) {
+        setMensagem("Produtor desvinculado do agrônomo com sucesso!");
+        setProdutorId("");
+        setAgronomoId("");
+        buscarUsuarios();
+        buscarRanking();
+      } else {
+        setMensagem(dados.mensagem || "Erro ao desvincular.");
+      }
+    } catch (erroRequisicao) {
+      setMensagem("Erro ao conectar com o servidor.");
+      console.error(erroRequisicao);
+    }
+  }
+
   // ---------- Editar ----------
 
   function iniciarEdicao(usuario) {
@@ -439,7 +469,8 @@ function Cooperativa() {
               <option key={a.id} value={a.id}>{a.nome}</option>
             ))}
           </select>
-          <button type="submit">Vincular</button>
+          <button type="submit" onClick={handleVincular}>Vincular</button>
+          <button type="submit">Desvicular</button>
         </form>
       </section>
 
