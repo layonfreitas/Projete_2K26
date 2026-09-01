@@ -8,7 +8,14 @@ function Laudo() {
 
     const [observacoes, setObservacoes] = useState("");
     const [recomendacoes, setRecomendacoes] = useState("");
-    const produtorNome = localStorage.getItem("produtorSelecionadoNome") || "Nome do produtor";
+
+    const produtorNome =
+        localStorage.getItem("produtorSelecionadoNome") ||
+        "Nome do produtor";
+
+    const lavouraNome =
+        localStorage.getItem("lavouraNome") ||
+        "Lavoura não selecionada";
 
     const gerarLaudo = () => {
         window.print();
@@ -23,15 +30,22 @@ function Laudo() {
                 <header className="laudo-header">
 
                     <div className="laudo-header-text">
+
                         <h1>Laudo Técnico</h1>
 
                         <p>
                             Relatório técnico de análise da lavoura
                         </p>
+
                     </div>
 
                     <div className="laudo-icon">
-                        <img src={logoCoffeeVision} alt="CoffeeVision" />
+
+                        <img
+                            src={logoCoffeeVision}
+                            alt="CoffeeVision"
+                        />
+
                     </div>
 
                 </header>
@@ -47,46 +61,41 @@ function Laudo() {
                     <div className="laudo-info-grid">
 
                         <div className="laudo-field">
-                            <label>Produtor</label>
 
-                            <input
-                                placeholder={`Nome do produtor: ${produtorNome}`}
-                            />
+                            <label>
+                                Produtor
+                            </label>
+
+                            <span>
+                                {produtorNome}
+                            </span>
+
                         </div>
 
-                        <div className="laudo-field">
-                            <label>Identificação da Lavoura</label>
 
-                            <input
-                                type="text"
-                                placeholder="Nome da lavoura"
-                            />
+                        <div className="laudo-field">
+
+                            <label>
+                                Identificação da Lavoura
+                            </label>
+
+                            <span>
+                                {lavouraNome}
+                            </span>
+
                         </div>
 
-                        <div className="laudo-field">
-                            <label>Área</label>
-
-                            <input
-                                type="text"
-                                placeholder="Ex.: 2,5 hectares"
-                            />
-                        </div>
 
                         <div className="laudo-field">
-                            <label>Data da análise</label>
+
+                            <label>
+                                Data da análise
+                            </label>
 
                             <input
                                 type="date"
                             />
-                        </div>
 
-                        <div className="laudo-field full">
-                            <label>Localização</label>
-
-                            <input
-                                type="text"
-                                placeholder="Coordenadas ou localização da lavoura"
-                            />
                         </div>
 
                     </div>
@@ -116,10 +125,11 @@ function Laudo() {
                         </div>
 
                         <p>
-                            Com base na análise realizada, foram identificados
-                            indícios de alterações na saúde da lavoura.
-                            Recomenda-se a avaliação das condições apresentadas
-                            e o acompanhamento periódico da área.
+                            Com base na análise realizada, foram
+                            identificados indícios de alterações na
+                            saúde da lavoura. Recomenda-se a avaliação
+                            das condições apresentadas e o
+                            acompanhamento periódico da área.
                         </p>
 
                     </div>
@@ -223,37 +233,6 @@ function Laudo() {
                 </section>
 
 
-                {/* ASSINATURAS */}
-                <div className="laudo-assinatura">
-
-                    <div className="laudo-assinatura-box">
-
-                        <strong>
-                            Responsável Técnico
-                        </strong>
-
-                        <span>
-                            Engenheiro(a) Agrônomo(a)
-                        </span>
-
-                    </div>
-
-
-                    <div className="laudo-assinatura-box">
-
-                        <strong>
-                            Produtor
-                        </strong>
-
-                        <span>
-                            Assinatura do produtor
-                        </span>
-
-                    </div>
-
-                </div>
-
-
                 {/* BOTÕES */}
                 <div className="laudo-actions">
 
@@ -263,7 +242,6 @@ function Laudo() {
                     >
                         Voltar
                     </button>
-
 
                     <button
                         className="laudo-btn laudo-btn-primary"

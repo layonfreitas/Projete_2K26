@@ -46,6 +46,7 @@ function Agronomo() {
   function selecionarProdutor(produtor) {
     localStorage.setItem("produtorSelecionadoId", produtor.id);
     localStorage.setItem("produtorSelecionadoNome", produtor.nome);
+    
     navigate("/home");
   }
 
