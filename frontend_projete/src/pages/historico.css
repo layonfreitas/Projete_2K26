@@ -1,31 +1,470 @@
-.historico-container {
+/* =========================================================
+   PÁGINA
+========================================================= */
+
+.historico {
   width: 100%;
-  max-width: 580px;
   min-height: 100svh;
-  margin: 0 auto;
   background: var(--parchment);
-  padding: 30px 18px 110px;
-  box-sizing: border-box;
+  position: relative;
+  padding-bottom: 120px;
+}
+
+
+/* =========================================================
+   CONTEÚDO
+========================================================= */
+
+.historico-conteudo {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 40px 24px 32px;
+}
+
+
+/* =========================================================
+   CABEÇALHO
+========================================================= */
+
+.historico-cabecalho {
+  margin-bottom: 28px;
+}
+
+.historico-cabecalho h1 {
+  margin: 0 0 6px;
+  font-size: 28px;
+}
+
+.historico-cabecalho p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+
+/* =========================================================
+   ABAS
+========================================================= */
+
+.historico-abas {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+
+  border-bottom: 1px solid var(--border-strong);
+
+  margin-bottom: 24px;
+}
+
+.historico-aba {
+  appearance: none;
+  border: none;
+  background: transparent;
+
+  padding: 12px 20px;
+
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+
+  color: inherit;
+
+  cursor: pointer;
+
+  border-bottom: 3px solid transparent;
+
+  margin-bottom: -1px;
+
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    opacity 0.2s ease;
+}
+
+.historico-aba:hover {
+  background: var(--surface);
+}
+
+.historico-aba.ativa {
+  border-bottom-color: var(--border-strong);
+}
+
+
+/* =========================================================
+   PAINEL
+========================================================= */
+
+.historico-painel {
+  width: 100%;
+}
+
+
+/* =========================================================
+   MAPAS
+========================================================= */
+
+.mapas-container {
+  width: 100%;
+}
+
+
+/* =========================================================
+   SELETOR DE LAVOURA
+========================================================= */
+
+.mapas-lavoura {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  margin-bottom: 18px;
+}
+
+.mapas-lavoura label {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.mapas-lavoura select {
+  min-width: 220px;
+
+  padding: 9px 12px;
+
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+
+  background: var(--surface);
+
+  font-family: inherit;
+  font-size: 14px;
+
+  cursor: pointer;
+}
+
+
+/* =========================================================
+   ÁREA PRINCIPAL
+========================================================= */
+
+.mapas-area {
+  display: grid;
+
+  grid-template-columns:
+    280px
+    minmax(0, 1fr);
+
+  gap: 20px;
+
+  min-height: 650px;
+}
+
+
+/* =========================================================
+   COLUNA DE DATAS
+========================================================= */
+
+.mapas-datas {
+  background: var(--surface);
+
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+
+  padding: 16px;
+
+  overflow-y: auto;
+}
+
+.mapas-datas-titulo {
+  font-size: 15px;
+  font-weight: 700;
+
+  padding-bottom: 14px;
+  margin-bottom: 10px;
+
+  border-bottom: 1px solid var(--border-strong);
+}
+
+
+/* =========================================================
+   ITEM DE DATA
+========================================================= */
+
+.mapa-data {
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+
+  padding: 8px;
+
+  margin-bottom: 8px;
+
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.mapa-data:hover {
+  background: var(--parchment);
+}
+
+.mapa-data.ativa {
+  background: var(--parchment);
+  border-color: var(--border-strong);
+}
+
+
+/* =========================================================
+   BOTÃO DA DATA
+========================================================= */
+
+.mapa-data-botao {
+  display: block;
+
+  width: 100%;
+
+  padding: 4px 4px 8px;
+
+  border: none;
+  background: transparent;
+
+  text-align: left;
+
+  font-family: inherit;
+
+  cursor: pointer;
+}
+
+.mapa-data-texto {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+
+/* =========================================================
+   SELECT DO ÍNDICE
+========================================================= */
+
+.mapa-data select {
+  width: 100%;
+
+  padding: 7px 9px;
+
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+
+  background: var(--surface);
+
+  font-family: inherit;
+  font-size: 13px;
+
+  cursor: pointer;
+}
+
+
+/* =========================================================
+   MAPA
+========================================================= */
+
+.mapas-mapa-container {
+  position: relative;
+
+  min-width: 0;
+  min-height: 650px;
+
+  overflow: hidden;
+
+  border-radius: var(--radius-md);
+
+  border: 1px solid var(--border-strong);
+
+  background: var(--surface);
+}
+
+.mapas-mapa {
+  width: 100%;
+  height: 100%;
+  min-height: 650px;
+}
+
+
+/* =========================================================
+   CONTROLE ÍNDICE / Z-SCORE
+========================================================= */
+
+.mapas-controle {
+  position: absolute;
+
+  z-index: 1000;
+
+  top: 14px;
+  left: 14px;
+
+  display: flex;
+
+  background: var(--surface);
+
+  border: 1px solid var(--border-strong);
+
+  border-radius: 8px;
+
+  overflow: hidden;
+
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.mapas-controle button {
+  border: none;
+
+  padding: 9px 14px;
+
+  background: transparent;
+
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+
+  cursor: pointer;
+}
+
+.mapas-controle button:hover {
+  background: var(--parchment);
+}
+
+.mapas-controle button.ativo {
+  background: var(--border-strong);
+  color: var(--surface);
+}
+
+
+/* =========================================================
+   CARREGANDO
+========================================================= */
+
+.mapas-carregando {
+  position: absolute;
+
+  z-index: 1001;
+
+  top: 14px;
+  right: 14px;
+
+  padding: 8px 12px;
+
+  border-radius: 6px;
+
+  background: var(--surface);
+
+  border: 1px solid var(--border-strong);
+
+  font-size: 13px;
+}
+
+
+/* =========================================================
+   ERRO
+========================================================= */
+
+.mapas-erro {
+  position: absolute;
+
+  z-index: 1001;
+
+  left: 50%;
+  top: 50%;
+
+  transform: translate(-50%, -50%);
+
+  padding: 14px 18px;
+
+  background: var(--surface);
+
+  border: 1px solid var(--border-strong);
+
+  border-radius: var(--radius-md);
+
+  font-size: 14px;
+
   text-align: center;
 }
 
-.historico-container h1 {
-  font-family: var(--font-display);
-  font-size: 22px;
-  color: var(--canopy-dark);
-  margin: 40px 0 8px;
+
+/* =========================================================
+   SEM IMAGENS
+========================================================= */
+
+.mapas-sem-imagens {
+  padding: 20px 8px;
+
+  font-size: 13px;
+  line-height: 1.5;
+
+  opacity: 0.7;
 }
 
-.historico-container p {
-  font-size: 14px;
-  color: var(--ink-soft);
-  margin: 0;
-}
 
-/* Tablet e desktop */
-@media (min-width: 540px) {
-  .historico-container {
-    max-width: 760px;
-    padding: 40px 32px 120px;
+/* =========================================================
+   RESPONSIVIDADE
+========================================================= */
+
+@media (min-width: 720px) {
+
+  .historico-conteudo {
+    padding: 48px 40px 40px;
   }
+
+}
+
+
+@media (min-width: 1100px) {
+
+  .historico-conteudo {
+    padding: 56px 56px 48px;
+  }
+
+}
+
+
+@media (max-width: 800px) {
+
+  .mapas-area {
+    grid-template-columns: 1fr;
+  }
+
+  .mapas-datas {
+    max-height: 300px;
+  }
+
+  .mapas-mapa-container {
+    min-height: 500px;
+  }
+
+  .mapas-mapa {
+    min-height: 500px;
+  }
+
+}
+
+
+@media (max-width: 500px) {
+
+  .historico-cabecalho h1 {
+    font-size: 24px;
+  }
+
+  .historico-abas {
+    overflow-x: auto;
+  }
+
+  .historico-aba {
+    white-space: nowrap;
+  }
+
+  .mapas-lavoura {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .mapas-lavoura select {
+    width: 100%;
+  }
+
 }

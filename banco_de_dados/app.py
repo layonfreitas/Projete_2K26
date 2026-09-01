@@ -7,6 +7,7 @@ from routes.lavoura_routes import lavoura_bp, init_mysql as init_lavoura_mysql
 from routes.senha_routes import senha_bp, init_mysql as init_senha_mysql
 from routes.agronomo_routes import agronomo_bp, init_mysql as init_agronomo_mysql
 from routes.imagens_routes import cadastrar_imagens_bp, init_mysql as init_imagens_mysql
+from routes.imagens_routes import listar_imagens_bp, init_mysql as init_imagens_mysql
 from routes.cooperativa_routes import cooperativa_bp, init_mysql as init_cooperativa_mysql
 
 
@@ -28,6 +29,7 @@ app.register_blueprint(lavoura_bp)
 app.register_blueprint(senha_bp)
 app.register_blueprint(cadastrar_imagens_bp)
 app.register_blueprint(cooperativa_bp)
+app.register_blueprint(listar_imagens_bp)
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
