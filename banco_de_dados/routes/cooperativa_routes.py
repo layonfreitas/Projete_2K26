@@ -406,3 +406,23 @@ def listar_avisos():
         return jsonify(avisos), 200
     except Exception as erro:
         return jsonify({"mensagem": "Erro ao listar avisos", "erro": str(erro)}), 500
+
+@cooperativa_bp.route("/usuario/<int:usuario_id>/senha", methods=["PUT"])
+def senha_edit(usuario_id):
+    dados= request.get_json()
+    nova_senha = dados.get("senha")
+
+    if not nova_senha or len(nova_senha)<6:
+        return jsonify({"mensagem":"senha invalida"}), 400
+
+    senha_hash = bcrypt.hashpw(nova_senha.encode("utf-8"), bcrypt.gensalt())
+
+    cursor = mysql.conection.cursor()
+    cursor.execute(
+        "UPDATE usuarios Set senha = % WHERE id=%s",
+        (senha_hash.decode("utf-8"), usuario_id)
+    )
+    mysql.conection.commit()
+    cursor.close()
+
+    return jsonify({"mensagem": "Senha altearada com sucesso."}),200

@@ -14,6 +14,7 @@ const ROTULO_STATUS = {
 };
 
 function Cooperativa() {
+  const navigate = useNavigate();
   const [usuarios, setUsuarios] = useState([]);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState("");
@@ -69,10 +70,10 @@ function Cooperativa() {
     }
   }
 
-  function Editar_senha()
+  function editar_senha(usuario_id)
 {
-  const navigate = useNavigate();
-  navigate("/editar_senha");
+  localStorage.setItem("editarSenhaUsuarioId", usuario_id);
+  navigate("/Editar_senha");
 }
   async function buscarRanking() {
     try {
@@ -469,7 +470,7 @@ function Cooperativa() {
   </div>
 
   <div className="cooperativa-editar-senha">
-    <button type="button" onClick={Editar_senha}>Editar senha</button>
+    <button type="button" onClick={()=> editar_senha(p.id)}>Editar senha</button>
   </div>
 </form>
               ) : (
