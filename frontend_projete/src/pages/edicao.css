@@ -1,0 +1,246 @@
+/* ================================
+   PÁGINA DE EDIÇÃO DA LAVOURA
+================================ */
+
+.editar-lavoura-page {
+    min-height: 100svh;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 40px 18px;
+    background: var(--parchment);
+}
+
+/* ================================
+   CARD PRINCIPAL
+================================ */
+
+.editar-lavoura-card {
+    width: 100%;
+    max-width: 520px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 30px;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+}
+
+/* ================================
+   CABEÇALHO
+================================ */
+
+.editar-lavoura-header {
+    margin-bottom: 28px;
+}
+
+.editar-lavoura-header h1 {
+    margin: 0 0 8px;
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--text);
+}
+
+.editar-lavoura-header p {
+    margin: 0;
+    font-size: 14px;
+    color: var(--text-muted);
+}
+
+/* ================================
+   SEÇÕES
+================================ */
+
+.editar-section {
+    padding: 22px 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.editar-section:first-of-type {
+    padding-top: 0;
+}
+
+.editar-section:last-of-type {
+    border-bottom: none;
+}
+
+.editar-section h2 {
+    margin: 0 0 6px;
+    font-size: 17px;
+    color: var(--text);
+}
+
+.editar-section p {
+    margin: 0 0 16px;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--text-muted);
+}
+
+/* ================================
+   ALTERAR NOME
+================================ */
+
+.nome-lavoura-input {
+    width: 100%;
+    box-sizing: border-box;
+
+    padding: 12px 14px;
+
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+
+    background: var(--background);
+    color: var(--text);
+
+    font-size: 15px;
+    outline: none;
+
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.nome-lavoura-input:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.06);
+}
+
+.nome-lavoura-input::placeholder {
+    color: var(--text-muted);
+}
+
+/* ================================
+   BOTÕES
+================================ */
+
+.editar-btn {
+    width: 100%;
+    padding: 12px 16px;
+
+    border: none;
+    border-radius: var(--radius-md);
+
+    font-size: 14px;
+    font-weight: 600;
+
+    cursor: pointer;
+
+    transition:
+        transform 0.15s ease,
+        opacity 0.15s ease,
+        background 0.2s ease;
+}
+
+.editar-btn:hover {
+    opacity: 0.9;
+}
+
+.editar-btn:active {
+    transform: scale(0.98);
+}
+
+/* Botão principal */
+
+.editar-btn-primary {
+    background: var(--primary);
+    color: white;
+}
+
+/* ================================
+   EDITAR MAPA
+================================ */
+
+.mapa-edicao-container {
+    width: 100%;
+    height: 300px;
+
+    overflow: hidden;
+
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+
+    margin-bottom: 12px;
+
+    background: #eee;
+}
+
+/*
+   Caso o mapa tenha um componente Leaflet
+*/
+
+.mapa-edicao-container .leaflet-container {
+    width: 100%;
+    height: 100%;
+}
+
+.mapa-ajuda {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+}
+
+/* ================================
+   BOTÃO DE EDITAR PONTOS
+================================ */
+
+.editar-pontos-btn {
+    background: var(--primary);
+    color: white;
+}
+
+.salvar-pontos-btn {
+    margin-top: 10px;
+    background: var(--primary);
+    color: white;
+}
+
+/* ================================
+   ÁREA DE EXCLUSÃO
+================================ */
+
+.editar-section-danger {
+    margin-top: 8px;
+    padding-top: 24px;
+
+    border-top: 1px solid var(--border);
+}
+
+.editar-section-danger h2 {
+    color: #b42318;
+}
+
+.editar-section-danger p {
+    color: var(--text-muted);
+}
+
+/* Botão remover */
+
+.remover-lavoura-btn {
+    background: #c62828;
+    color: white;
+}
+
+.remover-lavoura-btn:hover {
+    background: #b71c1c;
+}
+
+/* ================================
+   RESPONSIVIDADE
+================================ */
+
+@media (max-width: 600px) {
+
+    .editar-lavoura-page {
+        padding: 24px 14px;
+    }
+
+    .editar-lavoura-card {
+        padding: 22px;
+    }
+
+    .editar-lavoura-header h1 {
+        font-size: 23px;
+    }
+
+    .mapa-edicao-container {
+        height: 260px;
+    }
+}
