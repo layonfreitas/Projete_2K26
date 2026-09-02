@@ -263,43 +263,6 @@ function Edicao() {
     }
     }
 
-    async function removerLavoura() {
-            const confirmar = window.confirm(
-        "Tem certeza que deseja remover esta lavoura? Essa ação não pode ser desfeita."
-    );
-
-    if (!confirmar) {
-        return;
-    }
-
-    try {
-        const resposta = await fetch(
-            `${AUTH_API_URL}/lavoura/${id}`,
-            {
-                method: "DELETE"
-            }
-        );
-
-        const dados = await resposta.json();
-
-        if (!resposta.ok) {
-            throw new Error(
-                dados.mensagem || "Erro ao remover lavoura."
-            );
-        }
-
-        localStorage.removeItem("lavouraId");
-        localStorage.removeItem("lavouraNome");
-
-        alert("Lavoura removida com sucesso!");
-
-        navigate("/");
-
-    } catch (erro) {
-        console.error("Erro ao remover lavoura:", erro);
-        alert(erro.message);
-    }
-    }
 
     // ==================================================
     // CARREGANDO
