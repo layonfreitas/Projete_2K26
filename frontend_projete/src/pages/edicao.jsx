@@ -148,15 +148,36 @@ function Edicao() {
     // ==================================================
 
     async function salvarPontos() {
-
-        console.log(
-            "Novas coordenadas:",
-            coordenadas
+         try {
+        const resposta = await fetch(
+            `${AUTH_API_URL}/lavoura/${id}`,
+            {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    coordenadas: coordenadas
+                })
+            }
         );
 
-        alert(
-            "As coordenadas foram alteradas apenas na tela. A rota para salvar no banco ainda precisa ser criada."
-        );
+        const dados = await resposta.json();
+
+        if (!resposta.ok) {
+            throw new Error(
+                dados.mensagem || "Erro ao salvar coordenadas."
+            );
+        }
+
+        alert("Coordenadas atualizadas com sucesso!");
+        setModoEdicao(false);
+
+    } catch (erro) {
+        console.error("Erro ao salvar coordenadas:", erro);
+        alert(erro.message);
+    }
+
     }
 
     // ==================================================
@@ -235,6 +256,44 @@ function Edicao() {
         alert("Lavoura removida com sucesso!");
 
         navigate("/home");
+
+    } catch (erro) {
+        console.error("Erro ao remover lavoura:", erro);
+        alert(erro.message);
+    }
+    }
+
+    async function removerLavoura() {
+            const confirmar = window.confirm(
+        "Tem certeza que deseja remover esta lavoura? Essa ação não pode ser desfeita."
+    );
+
+    if (!confirmar) {
+        return;
+    }
+
+    try {
+        const resposta = await fetch(
+            `${AUTH_API_URL}/lavoura/${id}`,
+            {
+                method: "DELETE"
+            }
+        );
+
+        const dados = await resposta.json();
+
+        if (!resposta.ok) {
+            throw new Error(
+                dados.mensagem || "Erro ao remover lavoura."
+            );
+        }
+
+        localStorage.removeItem("lavouraId");
+        localStorage.removeItem("lavouraNome");
+
+        alert("Lavoura removida com sucesso!");
+
+        navigate("/");
 
     } catch (erro) {
         console.error("Erro ao remover lavoura:", erro);
@@ -497,8 +556,8 @@ function Edicao() {
                         e não poderá ser desfeita.
                     </p>
 
-                    <button
-                        className="editar-btn remover-lavoura-btn"
+                    <button 
+                        onClick={removerLavoura}
                     >
                         Remover lavoura
                     </button>
