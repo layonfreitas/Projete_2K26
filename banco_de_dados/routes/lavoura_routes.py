@@ -272,6 +272,7 @@ def remover_lavoura(lavoura_id):
         }), 200
 
     except Exception as erro:
+        print("ERRO AO REMOVER LAVOURA:", repr(erro))
         return jsonify({
             "mensagem": "Erro ao remover lavoura",
             "erro": str(erro)
