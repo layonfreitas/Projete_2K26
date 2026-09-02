@@ -144,28 +144,7 @@ function Edicao() {
 
     }
 
-    function removerPonto(index) {
-    if (coordenadas.length <= 3) {
-        alert(
-            "Uma lavoura precisa ter pelo menos 3 pontos."
-        );
-        return;
-    }
-
-    const confirmar = window.confirm(
-        `Remover o ponto ${index + 1}?`
-    );
-
-    if (!confirmar) {
-        return;
-    }
-
-    setCoordenadas((anteriores) =>
-        anteriores.filter(
-            (_, i) => i !== index
-        )
-    );
-}
+    
 
     // ==================================================
     // SALVAR PONTOS
@@ -468,9 +447,6 @@ function Edicao() {
                                                 index={index}
                                                 atualizarPonto={
                                                     atualizarPonto
-                                                }
-                                                removerPonto={
-                                                    removerPonto
                                                 }
                                             />
 
