@@ -18,14 +18,15 @@ import "./edicao.css";
 // MARCADOR EDITÁVEL
 // ======================================================
 
-function PontoEditavel({ ponto, index, atualizarPonto }) {
+function PontoEditavel({ ponto, index, atualizarPonto, removerPonto }) {
     return (
         <Marker
             position={[ponto.lat, ponto.lng]}
             draggable={true}
             eventHandlers={{
                 dragend: (evento) => {
-                    const novaPosicao = evento.target.getLatLng();
+                    const novaPosicao =
+                        evento.target.getLatLng();
 
                     atualizarPonto(index, {
                         lat: novaPosicao.lat,
@@ -143,20 +144,43 @@ function Edicao() {
 
     }
 
+    
+
     // ==================================================
     // SALVAR PONTOS
     // ==================================================
 
     async function salvarPontos() {
-
-        console.log(
-            "Novas coordenadas:",
-            coordenadas
+         try {
+        const resposta = await fetch(
+            `${AUTH_API_URL}/lavoura/${id}`,
+            {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    coordenadas: coordenadas
+                })
+            }
         );
 
-        alert(
-            "As coordenadas foram alteradas apenas na tela. A rota para salvar no banco ainda precisa ser criada."
-        );
+        const dados = await resposta.json();
+
+        if (!resposta.ok) {
+            throw new Error(
+                dados.mensagem || "Erro ao salvar coordenadas."
+            );
+        }
+
+        alert("Coordenadas atualizadas com sucesso!");
+        setModoEdicao(false);
+
+    } catch (erro) {
+        console.error("Erro ao salvar coordenadas:", erro);
+        alert(erro.message);
+    }
+
     }
 
     // ==================================================
@@ -164,21 +188,84 @@ function Edicao() {
     // ==================================================
 
     async function salvarNome() {
+    if (!nomeLavoura.trim()) {
+        alert("Digite um nome para a lavoura.");
+        return;
+    }
 
-        console.log(
-            "Novo nome:",
-            nomeLavoura
+    try {
+        const resposta = await fetch(
+            `${AUTH_API_URL}/lavoura/${id}`,
+            {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    nomeLavoura: nomeLavoura.trim()
+                })
+            }
         );
+
+        const dados = await resposta.json();
+
+        if (!resposta.ok) {
+            throw new Error(
+                dados.mensagem || "Erro ao salvar nome."
+            );
+        }
 
         localStorage.setItem(
             "lavouraNome",
-            nomeLavoura
+            nomeLavoura.trim()
         );
 
-        alert(
-            "O nome foi alterado apenas localmente. A rota para salvar no banco ainda precisa ser criada."
-        );
+        alert("Nome da lavoura atualizado com sucesso!");
+
+    } catch (erro) {
+        console.error("Erro ao salvar nome:", erro);
+        alert(erro.message);
     }
+    }
+
+    async function removerLavoura() {
+         const confirmar = window.confirm(
+        "Tem certeza que deseja remover esta lavoura? Essa ação não pode ser desfeita."
+    );
+
+    if (!confirmar) {
+        return;
+    }
+
+    try {
+        const resposta = await fetch(
+            `${AUTH_API_URL}/lavoura/${id}`,
+            {
+                method: "DELETE"
+            }
+        );
+
+        const dados = await resposta.json();
+
+        if (!resposta.ok) {
+            throw new Error(
+                dados.mensagem || "Erro ao remover lavoura."
+            );
+        }
+
+        localStorage.removeItem("lavouraId");
+        localStorage.removeItem("lavouraNome");
+
+        alert("Lavoura removida com sucesso!");
+
+        navigate("/home");
+
+    } catch (erro) {
+        console.error("Erro ao remover lavoura:", erro);
+        alert(erro.message);
+    }
+    }
+
 
     // ==================================================
     // CARREGANDO
@@ -326,8 +413,8 @@ function Edicao() {
                             >
 
                                 <TileLayer
-                                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                                    attribution="&copy; OpenStreetMap contributors"
+                                    url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+                                    attribution="Tiles © Esri"
                                 />
 
                                 {/* ==========================
@@ -435,8 +522,8 @@ function Edicao() {
                         e não poderá ser desfeita.
                     </p>
 
-                    <button
-                        className="editar-btn remover-lavoura-btn"
+                    <button 
+                        onClick={removerLavoura}
                     >
                         Remover lavoura
                     </button>

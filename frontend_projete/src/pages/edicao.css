@@ -7,7 +7,9 @@
     display: flex;
     justify-content: center;
     align-items: flex-start;
+
     padding: 40px 18px;
+
     background: var(--parchment);
 }
 
@@ -18,11 +20,15 @@
 .editar-lavoura-card {
     width: 100%;
     max-width: 520px;
+
     background: var(--surface);
+
     border: 1px solid var(--border);
     border-radius: var(--radius-lg);
+
     padding: 30px;
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+
+    box-shadow: var(--shadow-md);
 }
 
 /* ================================
@@ -35,15 +41,19 @@
 
 .editar-lavoura-header h1 {
     margin: 0 0 8px;
+
     font-size: 26px;
     font-weight: 700;
-    color: var(--text);
+
+    color: var(--ink);
 }
 
 .editar-lavoura-header p {
     margin: 0;
+
     font-size: 14px;
-    color: var(--text-muted);
+
+    color: var(--ink-soft);
 }
 
 /* ================================
@@ -52,6 +62,7 @@
 
 .editar-section {
     padding: 22px 0;
+
     border-bottom: 1px solid var(--border);
 }
 
@@ -65,19 +76,23 @@
 
 .editar-section h2 {
     margin: 0 0 6px;
+
     font-size: 17px;
-    color: var(--text);
+
+    color: var(--ink);
 }
 
 .editar-section p {
     margin: 0 0 16px;
+
     font-size: 13px;
     line-height: 1.5;
-    color: var(--text-muted);
+
+    color: var(--ink-soft);
 }
 
 /* ================================
-   ALTERAR NOME
+   CAMPO DO NOME
 ================================ */
 
 .nome-lavoura-input {
@@ -89,22 +104,30 @@
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
 
-    background: var(--background);
-    color: var(--text);
+    background: var(--surface);
+    color: var(--ink);
 
+    font-family: var(--font-body);
     font-size: 15px;
+
     outline: none;
 
-    transition: border-color 0.2s, box-shadow 0.2s;
+    transition:
+        border-color 0.2s ease,
+        box-shadow 0.2s ease;
+
+    margin-bottom: 12px;
 }
 
 .nome-lavoura-input:focus {
-    border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.06);
+    border-color: var(--canopy);
+
+    box-shadow:
+        0 0 0 3px var(--canopy-soft);
 }
 
 .nome-lavoura-input::placeholder {
-    color: var(--text-muted);
+    color: #a49a86;
 }
 
 /* ================================
@@ -112,40 +135,60 @@
 ================================ */
 
 .editar-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
     width: 100%;
+
     padding: 12px 16px;
 
     border: none;
-    border-radius: var(--radius-md);
+    border-radius: var(--radius-sm);
 
-    font-size: 14px;
+    font-family: var(--font-body);
+    font-size: 14.5px;
     font-weight: 600;
 
     cursor: pointer;
 
+    background: var(--canopy);
+    color: #ffffff;
+
+    opacity: 1;
+    visibility: visible;
+
     transition:
-        transform 0.15s ease,
-        opacity 0.15s ease,
-        background 0.2s ease;
+        background 0.18s ease,
+        transform 0.12s ease,
+        box-shadow 0.18s ease;
 }
 
 .editar-btn:hover {
-    opacity: 0.9;
+    background: var(--canopy-dark);
+
+    opacity: 1;
 }
 
 .editar-btn:active {
-    transform: scale(0.98);
-}
-
-/* Botão principal */
-
-.editar-btn-primary {
-    background: var(--primary);
-    color: white;
+    transform: translateY(1px);
 }
 
 /* ================================
-   EDITAR MAPA
+   SALVAR NOME
+================================ */
+
+.editar-btn-primary {
+    background: var(--canopy);
+    color: #ffffff;
+}
+
+.editar-btn-primary:hover {
+    background: var(--canopy-dark);
+}
+
+/* ================================
+   MAPA
 ================================ */
 
 .mapa-edicao-container {
@@ -162,34 +205,64 @@
     background: #eee;
 }
 
-/*
-   Caso o mapa tenha um componente Leaflet
-*/
-
 .mapa-edicao-container .leaflet-container {
     width: 100%;
     height: 100%;
 }
 
+/* ================================
+   TEXTO DE AJUDA
+================================ */
+
 .mapa-ajuda {
     font-size: 12px;
-    color: var(--text-muted);
+
+    color: var(--ink-soft);
+
     margin-bottom: 12px;
 }
 
 /* ================================
-   BOTÃO DE EDITAR PONTOS
+   BOTÃO EDITAR PONTOS
 ================================ */
 
 .editar-pontos-btn {
-    background: var(--primary);
-    color: white;
+    background: var(--canopy);
+    color: #ffffff;
 }
+
+.editar-pontos-btn:hover {
+    background: var(--canopy-dark);
+}
+
+/* ================================
+   BOTÃO SALVAR PONTOS
+================================ */
 
 .salvar-pontos-btn {
     margin-top: 10px;
-    background: var(--primary);
-    color: white;
+
+    background: var(--canopy);
+    color: #ffffff;
+}
+
+.salvar-pontos-btn:hover {
+    background: var(--canopy-dark);
+}
+
+/* ================================
+   BOTÃO PARAR DE EDITAR
+================================ */
+
+.parar-edicao-btn {
+    margin-top: 10px;
+
+    background: var(--canopy);
+    color: #ffffff;
+}
+
+.parar-edicao-btn:hover {
+    background: var(--canopy-dark);
 }
 
 /* ================================
@@ -198,28 +271,64 @@
 
 .editar-section-danger {
     margin-top: 8px;
+
     padding-top: 24px;
 
     border-top: 1px solid var(--border);
 }
 
 .editar-section-danger h2 {
-    color: #b42318;
+    color: var(--cherry);
 }
 
 .editar-section-danger p {
-    color: var(--text-muted);
+    color: var(--ink-soft);
 }
 
-/* Botão remover */
+/* ================================
+   BOTÃO REMOVER
+================================ */
 
 .remover-lavoura-btn {
-    background: #c62828;
-    color: white;
+    width: 100%;
+
+    padding: 12px 16px;
+
+    border: none;
+    border-radius: var(--radius-sm);
+
+    background: var(--cherry);
+    color: #ffffff;
+
+    font-family: var(--font-body);
+    font-size: 14.5px;
+    font-weight: 600;
+
+    cursor: pointer;
+
+    opacity: 1;
+    visibility: visible;
+
+    transition:
+        background 0.18s ease,
+        transform 0.12s ease;
 }
 
 .remover-lavoura-btn:hover {
-    background: #b71c1c;
+    background: #a91f1f;
+}
+
+.remover-lavoura-btn:active {
+    transform: translateY(1px);
+}
+
+/* ================================
+   GARANTIR VISIBILIDADE
+================================ */
+
+.editar-lavoura-card button {
+    opacity: 1;
+    visibility: visible;
 }
 
 /* ================================

@@ -15,7 +15,7 @@ function Perfil() {
     return (partes[0][0] + partes[partes.length - 1][0]).toUpperCase();
   }
   function editarteste(){
-    navigate("/edicao");
+    navigate("/home");
   }
 
   function handleSair() {
@@ -65,7 +65,7 @@ function Perfil() {
             className="perfil-btn perfil-btn-secundario" 
             onClick={editarteste}
           >
-            Editar perfil
+            voltar
           </button>
         </div>
       </div>
