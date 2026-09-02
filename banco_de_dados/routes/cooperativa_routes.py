@@ -426,3 +426,34 @@ def senha_edit(usuario_id):
     cursor.close()
 
     return jsonify({"mensagem": "Senha altearada com sucesso."}),200
+
+
+@cooperativa_bp.route("/desvincular", methods=["POST"])
+def desvincular():
+    dados = request.get_json()
+    produtor_id = dados.get("produtorId")
+    agronomo_id = dados.get("agronomoId")
+
+    if not produtor_id or not agronomo_id:
+        return jsonify({"mensagem": "Produtor e agrônomo são obrigatórios"}), 400
+
+    cursor = mysql.connection.cursor()
+    try:
+        cursor.execute(
+            "SELECT id FROM vinculos_agronomo WHERE produtor_id = %s AND agronomo_id = %s",
+            (produtor_id, agronomo_id)
+        )
+        if cursor.fetchone() is None:
+            return jsonify({"mensagem": "Vínculo não encontrado."}), 404
+
+        cursor.execute(
+            "DELETE FROM vinculos_agronomo WHERE produtor_id = %s AND agronomo_id = %s",
+            (produtor_id, agronomo_id)
+        )
+        mysql.connection.commit()
+        return jsonify({"mensagem": "Produtor desvinculado com sucesso."}), 200
+    except Exception as erro:
+        mysql.connection.rollback()
+        return jsonify({"mensagem": "Erro ao desvincular produtor.", "erro": str(erro)}), 500
+    finally:
+        cursor.close()
