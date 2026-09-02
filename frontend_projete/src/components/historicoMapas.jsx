@@ -713,18 +713,13 @@ export default function Mapas() {
                   }
                 >
 
-                  {imagem.indicesDisponiveis.map(
-                    (indice) => (
-
-                      <option
-                        key={indice}
-                        value={indice}
-                      >
-                        {indice}
-                      </option>
-
-                    )
-                  )}
+                 {imagem.indicesDisponiveis
+                  .filter((indice) => !indice.startsWith("z-score-"))
+                  .map((indice) => (
+                    <option key={indice} value={indice}>
+                      {indice}
+                    </option>
+                  ))}
 
                 </select>
 
