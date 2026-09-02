@@ -93,6 +93,8 @@ def get_indices_image(geometria, data_alvo, janela, nuvem_maxima):
         .sort("CLOUDY_PIXEL_PERCENTAGE")
     )
 
+    if colecao.size().getInfo()==0:
+        return None
     imagem = ee.Image(colecao.first())
     scl = imagem.select("SCL")
     mascara = (

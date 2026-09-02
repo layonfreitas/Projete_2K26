@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
-import { AUTH_API_URL } from "../../config/api";
+import { AUTH_API_URL } from "../config/api";
 
 
 export default function Mapas() {

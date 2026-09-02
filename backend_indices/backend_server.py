@@ -1,10 +1,8 @@
-import os
-
 import ee
 import google.auth
 from get_indices import get_indices_image, save_indice_map
 from pydantic import BaseModel
-from fastapi import FastAPI, status
+from fastapi import FastAPI, status, HTTPException
 from datetime import date
 from z_score import salvar_mapa_z_score
 from serie_temporal import Imagem_para_zona_de_manejo, create_zonas_de_manejo
@@ -48,11 +46,11 @@ async def create_day_maps(day_req: Day_req):
     lavoura_id = day_req.lavoura_id
     imagemHoje = get_indices_image(geometria,date.today().isoformat(), 5, 30)
      # será necessário implementar a lógica para verificar se já foram obtido os dados da data da imagem
-    if len(imagemHoje.bandNames().getInfo())==0:
-        return {
-            "status": "sem_imagem",
-            "mensagem": "nehuma imagem válida foi encontrada."
-        }
+    if imagemHoje==None:
+         raise HTTPException(
+            status_code=status.HTTP_200_OK,
+            detail="Nenhuma imagem válida encontrada"
+        )
     for indice in indices:
         print(f"Salvando mapa do índice {indice} para a geometria")
         save_indice_map(imagemHoje, indice, geometria, usuario_id, lavoura_id)

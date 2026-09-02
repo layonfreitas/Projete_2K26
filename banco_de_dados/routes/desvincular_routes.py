@@ -10,7 +10,7 @@ def init_mysql(mysql_instance):
     mysql = mysql_instance
 
 
-@desvicular_bp.route("/desvincular", methods=[POST])
+@desvincular_bp.route("/desvincular", methods=[POST])
 def desvincular():
     dados= request.get_json()
     produtor_id = dados.get("produtor")
