@@ -18,14 +18,15 @@ import "./edicao.css";
 // MARCADOR EDITÁVEL
 // ======================================================
 
-function PontoEditavel({ ponto, index, atualizarPonto }) {
+function PontoEditavel({ ponto, index, atualizarPonto, removerPonto }) {
     return (
         <Marker
             position={[ponto.lat, ponto.lng]}
             draggable={true}
             eventHandlers={{
                 dragend: (evento) => {
-                    const novaPosicao = evento.target.getLatLng();
+                    const novaPosicao =
+                        evento.target.getLatLng();
 
                     atualizarPonto(index, {
                         lat: novaPosicao.lat,
@@ -142,6 +143,29 @@ function Edicao() {
         );
 
     }
+
+    function removerPonto(index) {
+    if (coordenadas.length <= 3) {
+        alert(
+            "Uma lavoura precisa ter pelo menos 3 pontos."
+        );
+        return;
+    }
+
+    const confirmar = window.confirm(
+        `Remover o ponto ${index + 1}?`
+    );
+
+    if (!confirmar) {
+        return;
+    }
+
+    setCoordenadas((anteriores) =>
+        anteriores.filter(
+            (_, i) => i !== index
+        )
+    );
+}
 
     // ==================================================
     // SALVAR PONTOS
@@ -444,6 +468,9 @@ function Edicao() {
                                                 index={index}
                                                 atualizarPonto={
                                                     atualizarPonto
+                                                }
+                                                removerPonto={
+                                                    removerPonto
                                                 }
                                             />
 
