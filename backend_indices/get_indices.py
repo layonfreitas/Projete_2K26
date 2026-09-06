@@ -19,6 +19,9 @@ cloudinary.config(
     secure=True
 )
 
+from gee_auth import configurar_credenciais_google
+configurar_credenciais_google()
+
 credentials, project_id = google.auth.default()
 ee.Initialize(credentials, project="projete2k26")
 
@@ -156,13 +159,3 @@ def save_indice_map(imagem, indice,geometria, usuario_id: int, lavoura_id: int, 
     })
 
     save_image_indatabase(url_indice, nome_arquivo, pasta_id, usuario_id, lavoura_id, data)
-
-
-
-    
-    
-
-    
-
-    
- 

@@ -4,7 +4,7 @@ import tempfile
 
 
 def configurar_credenciais_google():
-  
+
     b64 = os.environ.get("GOOGLE_CREDENTIALS_JSON_B64")
 
     if not b64:

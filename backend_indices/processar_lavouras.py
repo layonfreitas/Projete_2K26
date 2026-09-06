@@ -8,8 +8,10 @@ from dotenv import load_dotenv
 
 from get_indices import get_indices_image, save_indice_map
 from z_score import salvar_mapa_z_score
+from gee_auth import configurar_credenciais_google
 
 load_dotenv()
+configurar_credenciais_google()
 
 credentials, project_id = google.auth.default()
 ee.Initialize(credentials, project="projete2k26")
@@ -18,7 +20,7 @@ indices = ["NDVI", "NDRE", "NDWI"]
 
 
 def buscar_todas_lavouras():
-    """Busca no banco_de_dados a lista de todas as lavouras de todos os produtores."""
+ 
     url = os.environ.get("DATABASE_URL") + "/lavouras"
     resposta = requests.get(url, timeout=30)
     resposta.raise_for_status()
@@ -26,7 +28,7 @@ def buscar_todas_lavouras():
 
 
 def processar_lavoura(lavoura):
-    """Processa NDVI, NDRE, NDWI e z-score para uma única lavoura."""
+
     usuario_id = lavoura["usuarioId"]
     lavoura_id = lavoura["id"]
     geometria = ee.Geometry.Polygon(lavoura["coordenadas"])
@@ -45,11 +47,7 @@ def processar_lavoura(lavoura):
 
 
 def processar_todas_lavouras():
-    """Percorre todas as lavouras cadastradas e processa cada uma.
 
-    Um erro em uma lavoura específica é registrado e ignorado,
-    para não interromper o processamento das demais.
-    """
     lavouras = buscar_todas_lavouras()
     print(f"[{date.today().isoformat()}] {len(lavouras)} lavoura(s) encontrada(s) para processar")
 
