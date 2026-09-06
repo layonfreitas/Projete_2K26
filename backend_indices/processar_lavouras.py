@@ -26,11 +26,29 @@ def buscar_todas_lavouras():
     return resposta.json()
 
 
+def normalizar_coordenadas(coordenadas):
+    """
+    O restante do sistema (tela de cadastro, edição, banco de dados) guarda
+    cada ponto como {"lat": ..., "lng": ...}. O Earth Engine, por outro lado,
+    exige uma lista de pares [longitude, latitude] (nessa ordem). Sem essa
+    conversão, ee.Geometry.Polygon recebe uma lista de dicts e quebra com
+    "KeyError: 0" ao tentar indexar cada ponto como se fosse uma lista.
+    """
+    pontos = []
+    for ponto in coordenadas:
+        if isinstance(ponto, dict):
+            lat, lng = ponto["lat"], ponto["lng"]
+        else:
+            lat, lng = ponto[0], ponto[1]
+        pontos.append([lng, lat])
+    return pontos
+
+
 def processar_lavoura(lavoura):
     """Processa NDVI, NDRE, NDWI e z-score para uma única lavoura."""
     usuario_id = lavoura["usuarioId"]
     lavoura_id = lavoura["id"]
-    geometria = ee.Geometry.Polygon(lavoura["coordenadas"])
+    geometria = ee.Geometry.Polygon(normalizar_coordenadas(lavoura["coordenadas"]))
 
     imagem_hoje = get_indices_image(geometria, date.today().isoformat(), 5, 30)
 
