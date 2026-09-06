@@ -14,7 +14,9 @@ cloudinary.config(
     secure=True
 )
 
-credentials, project_id = google.auth.default()
+from gee_auth import obter_credenciais
+
+credentials, project_id = obter_credenciais()
 ee.Initialize(credentials, project="projete2k26")
 
 def salvar_mapa_z_score(imagem, nome_indice,  usuario_id, lavoura__id,  geometria, pasta_id = os.environ.get("MAPAS_INDICES_FOLDER")):
@@ -99,7 +101,3 @@ def salvar_mapa_z_score(imagem, nome_indice,  usuario_id, lavoura__id,  geometri
     })
 
     save_image_indatabase(url, nome_arquivo, pasta_id, usuario_id, lavoura__id, data_imagem, )
-
-    
-
-    
