@@ -7,13 +7,12 @@ from datetime import date
 from z_score import salvar_mapa_z_score
 from serie_temporal import Imagem_para_zona_de_manejo, create_zonas_de_manejo
 from processar_lavouras import processar_todas_lavouras
-from gee_auth import configurar_credenciais_google
+from gee_auth import obter_credenciais
 from dotenv import load_dotenv
 
 load_dotenv()
-configurar_credenciais_google()
 
-credentials, project_id = google.auth.default()
+credentials, project_id = obter_credenciais()
 ee.Initialize(credentials, project="projete2k26")
 
 class Day_req(BaseModel):
@@ -33,8 +32,6 @@ class Zona_de_manejo_req(BaseModel):
 indices = ["NDVI", "NDRE", "NDWI"]
 
 app = FastAPI()
-
-
 
 @app.post("/day_maps/", status_code=status.HTTP_201_CREATED)
 async def create_day_maps(day_req: Day_req):

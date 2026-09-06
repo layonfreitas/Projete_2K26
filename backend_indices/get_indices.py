@@ -19,10 +19,9 @@ cloudinary.config(
     secure=True
 )
 
-from gee_auth import configurar_credenciais_google
-configurar_credenciais_google()
+from gee_auth import obter_credenciais
 
-credentials, project_id = google.auth.default()
+credentials, project_id = obter_credenciais()
 ee.Initialize(credentials, project="projete2k26")
 
 
