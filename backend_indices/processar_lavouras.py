@@ -1,4 +1,5 @@
 import os
+import traceback
 from datetime import date
 
 import requests
@@ -53,7 +54,8 @@ def processar_todas_lavouras():
         try:
             processar_lavoura(lavoura)
         except Exception as erro:
-            print(f"  -> ERRO na lavoura {lavoura.get('id')}: {erro}")
+            print(f"  -> ERRO na lavoura {lavoura.get('id')}: [{type(erro).__name__}] {erro!r}")
+            traceback.print_exc()
 
 
 if __name__ == "__main__":
