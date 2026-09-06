@@ -2,10 +2,11 @@ import ee
 import google.auth
 from get_indices import get_indices_image, save_indice_map
 from pydantic import BaseModel
-from fastapi import FastAPI, status, HTTPException
+from fastapi import FastAPI, status, HTTPException, BackgroundTasks
 from datetime import date
 from z_score import salvar_mapa_z_score
 from serie_temporal import Imagem_para_zona_de_manejo, create_zonas_de_manejo
+from processar_lavouras import processar_todas_lavouras
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -31,13 +32,6 @@ indices = ["NDVI", "NDRE", "NDWI"]
 
 app = FastAPI()
 
-
-    
-
-
-
-
-
 @app.post("/day_maps/", status_code=status.HTTP_201_CREATED)
 async def create_day_maps(day_req: Day_req):
     print("Iniciando processamento de imagens para a geometria")
@@ -61,6 +55,16 @@ async def create_day_maps(day_req: Day_req):
         "mensagem": "Uma nova imagem foi processada."
     }
    
+@app.post("/processar_todas_lavouras/", status_code=status.HTTP_202_ACCEPTED)
+async def processar_todas(background_tasks: BackgroundTasks):
+ 
+    background_tasks.add_task(processar_todas_lavouras)
+    return {
+        "status": "aceito",
+        "mensagem": "Processamento de todas as lavouras iniciado em segundo plano."
+    }
+
+
 @app.post("/get_zona_de_manejo/", status_code=status.HTTP_201_CREATED)
 async def zonas_de_manejo(zona_de_manejo_req: Zona_de_manejo_req):
     geometria = ee.Geometry.Polygon(zona_de_manejo_req.coordenadas)

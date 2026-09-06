@@ -1,0 +1,18 @@
+name: Processar índices diários
+
+on:
+  schedule:
+    - cron: "0 6 * * *"   
+  workflow_dispatch:        
+
+jobs:
+  disparar-processamento:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Acordar e chamar o backend_indices
+        run: |
+          curl -X POST "${{ secrets.BACKEND_INDICES_URL }}/processar_todas_lavouras/" \
+            --max-time 120 \
+            --retry 3 \
+            --retry-delay 15 \
+            --fail
