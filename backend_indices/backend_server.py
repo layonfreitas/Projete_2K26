@@ -33,6 +33,18 @@ indices = ["NDVI", "NDRE", "NDWI"]
 
 app = FastAPI()
 
+@app.get("/health", status_code=status.HTTP_200_OK)
+async def health():
+
+    return {"status": "ok"}
+
+
+    
+
+
+
+
+
 @app.post("/day_maps/", status_code=status.HTTP_201_CREATED)
 async def create_day_maps(day_req: Day_req):
     print("Iniciando processamento de imagens para a geometria")
@@ -58,7 +70,12 @@ async def create_day_maps(day_req: Day_req):
    
 @app.post("/processar_todas_lavouras/", status_code=status.HTTP_202_ACCEPTED)
 async def processar_todas(background_tasks: BackgroundTasks):
-
+    """
+    Dispara o processamento de índices para todas as lavouras cadastradas.
+    Roda em segundo plano para responder rápido (evita timeout de proxy
+    em plataformas como Render/Railway) e é pensado para ser chamado por
+    um agendador externo (ex: GitHub Actions com 'schedule').
+    """
     background_tasks.add_task(processar_todas_lavouras)
     return {
         "status": "aceito",
