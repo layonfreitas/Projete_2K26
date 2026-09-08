@@ -37,7 +37,7 @@ def save_image_indatabase(    imagem,
             public_id=nome_arquivo,
             folder=pasta_id,
             overwrite=True,
-            resorce_type="image"
+            resource_type="image"
         )
 
     print(f"Imagem {nome_arquivo} salva no Cloudinary com sucesso. URL: {response['secure_url']}")

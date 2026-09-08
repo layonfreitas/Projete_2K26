@@ -100,4 +100,4 @@ def salvar_mapa_z_score(imagem, nome_indice,  usuario_id, lavoura__id,  geometri
         "format": "png"
     })
 
-    save_image_indatabase(url, nome_arquivo, pasta_id, usuario_id, lavoura__id, data_imagem, )
+    save_image_indatabase(url, nome_arquivo, pasta_id, usuario_id, lavoura__id, data_imagem, None )
