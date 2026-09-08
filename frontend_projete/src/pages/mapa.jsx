@@ -37,6 +37,42 @@ export default function Mapa() {
 
   const [cidade, setCidade] = useState("");
   const [contornoCriado, setContornoCriado] = useState(false);
+  const [municipios, setMunicipios] = useState([]);
+  const [mostrarSugestoes, setMostrarSugestoes] = useState(false);
+  const [statusMunicipios, setStatusMunicipios] = useState("Carregando cidades...");
+
+  const normalizar = (texto) => texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  const termo = normalizar(cidade.trim());
+  const sugestoes = termo.length >= 2
+    ? municipios.filter((item) => item.busca.includes(termo)).slice(0, 8)
+    : [];
+
+  useEffect(() => {
+    const controller = new AbortController();
+    async function carregarMunicipios() {
+      try {
+        const resposta = await fetch(
+          "https://servicodados.ibge.gov.br/api/v1/localidades/municipios?orderBy=nome",
+          { signal: controller.signal }
+        );
+        if (!resposta.ok) throw new Error("Falha ao carregar municípios");
+        const dados = await resposta.json();
+        setMunicipios(dados.map((item) => {
+          const uf = item.microrregiao?.mesorregiao?.UF?.sigla
+            ?? item["regiao-imediata"]?.["regiao-intermediaria"]?.UF?.sigla;
+          const nome = uf ? `${item.nome}, ${uf}` : item.nome;
+          return { id: item.id, nome, busca: nome.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() };
+        }));
+        setStatusMunicipios("");
+      } catch (erro) {
+        if (erro.name !== "AbortError") {
+          setStatusMunicipios("Sugestões indisponíveis. Digite a cidade e clique em Buscar.");
+        }
+      }
+    }
+    carregarMunicipios();
+    return () => controller.abort();
+  }, []);
 
   // =========================================================
   // INICIALIZAÇÃO DO MAPA
@@ -83,7 +119,7 @@ export default function Mapa() {
       const lat = e.latlng.lat;
       const lng = e.latlng.lng;
 
-      const marcador = L.marker([lat, lng]).addTo(map.current);
+      const marcador = L.marker([lat, lng], { draggable: true, autoPan: true }).addTo(map.current);
 
       const id = contadorPostos.current;
 
@@ -109,7 +145,34 @@ export default function Mapa() {
         lng,
       });
 
-      atualizarPreview();
+      marcador.on("dragstart", () => marcador.closePopup());
+      marcador.on("drag", () => {
+        const ponto = postos.current.find((p) => p.id === id);
+        if (!ponto) return;
+        const posicao = marcador.getLatLng();
+        ponto.lat = posicao.lat;
+        ponto.lng = posicao.lng;
+        if (contornoLavoura.current) {
+          contornoLavoura.current.setLatLngs(postos.current.map((p) => [p.lat, p.lng]));
+        } else {
+          atualizarPreview();
+        }
+      });
+      marcador.on("dragend", () => {
+        const posicao = marcador.getLatLng();
+        marcador.setPopupContent(`
+          <b>Posto ${id}</b><br>
+          Lat: ${posicao.lat.toFixed(6)}<br>
+          Lng: ${posicao.lng.toFixed(6)}<br>
+          <button id="remover-${id}">Remover</button>
+        `);
+      });
+
+      if (contornoLavoura.current) {
+        contornoLavoura.current.setLatLngs(postos.current.map((p) => [p.lat, p.lng]));
+      } else {
+        atualizarPreview();
+      }
     });
 
     return () => {
@@ -416,14 +479,50 @@ export default function Mapa() {
 
       <div className="barra-superior">
 
-        <input
-          type="text"
-          placeholder="Digite uma cidade..."
-          value={cidade}
-          onChange={(e) =>
-            setCidade(e.target.value)
-          }
-        />
+        <div className="busca-cidade" onBlur={(e) => {
+          if (!e.currentTarget.contains(e.relatedTarget)) setMostrarSugestoes(false);
+        }}>
+          <input
+            type="text"
+            aria-label="Pesquisar cidade"
+            aria-describedby="status-cidades"
+            placeholder="Digite uma cidade..."
+            autoComplete="off"
+            value={cidade}
+            onFocus={() => setMostrarSugestoes(true)}
+            onChange={(e) => {
+              setCidade(e.target.value);
+              setMostrarSugestoes(true);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") setMostrarSugestoes(false);
+              if (e.key === "ArrowDown") {
+                const primeira = e.currentTarget.parentElement.querySelector(".sugestoes-cidades button");
+                if (primeira) { e.preventDefault(); primeira.focus(); }
+              }
+              if (e.key === "Enter") {
+                setMostrarSugestoes(false);
+                buscarCidade();
+              }
+            }}
+          />
+          {mostrarSugestoes && termo.length >= 2 && (
+            <ul className="sugestoes-cidades" aria-label="Sugestões de cidades">
+              {sugestoes.map((item) => (
+                <li key={item.id}>
+                  <button type="button" onClick={() => {
+                    setCidade(item.nome);
+                    setMostrarSugestoes(false);
+                  }}>{item.nome}</button>
+                </li>
+              ))}
+              {sugestoes.length === 0 && <li className="aviso-cidades">
+                {statusMunicipios || "Nenhuma cidade encontrada."}
+              </li>}
+            </ul>
+          )}
+          <span id="status-cidades" className="status-cidades" role="status">{statusMunicipios}</span>
+        </div>
 
         <button onClick={buscarCidade}>
           Buscar

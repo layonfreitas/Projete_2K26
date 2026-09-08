@@ -74,3 +74,41 @@
     width: 100%;
   }
 }
+
+.busca-cidade {
+  position: relative;
+  flex: 1 1 200px;
+  min-width: 0;
+}
+.busca-cidade input { width: 100%; box-sizing: border-box; }
+.sugestoes-cidades {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin: 4px 0 0;
+  padding: 4px;
+  list-style: none;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px #0003;
+  max-height: 240px;
+  overflow-y: auto;
+  z-index: 1;
+}
+.sugestoes-cidades button {
+  width: 100%;
+  text-align: left;
+  white-space: normal;
+  color: #203526;
+  background: transparent;
+  border: none;
+}
+.sugestoes-cidades button:hover,
+.sugestoes-cidades button:focus-visible { background: #e6efe8; }
+.aviso-cidades { padding: 10px; color: #445; font-size: 13px; }
+.status-cidades { display: block; color: #fff; font-size: 12px; }
+.status-cidades:empty { display: none; }
+@media (max-width: 600px) {
+  .busca-cidade { flex: 0 0 auto; width: 100%; }
+}
