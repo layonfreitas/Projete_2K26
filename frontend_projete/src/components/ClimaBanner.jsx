@@ -220,7 +220,7 @@ function ClimaBanner({ lavouras }) {
               type="button"
               onClick={editarLavoura}
             >
-              editar lavoura
+              Editar Lavoura
             </button>
           )}
 

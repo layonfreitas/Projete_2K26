@@ -57,7 +57,7 @@ function receberObservacao() {
 
             {usuarioTipo === "produtor" && (
               <button type="button" onClick={receberObservacao}>
-                receber observação
+                Receber Observação
               </button>
             )}
         </div>
