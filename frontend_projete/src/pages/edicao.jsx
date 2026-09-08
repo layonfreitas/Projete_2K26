@@ -18,7 +18,7 @@ import "./edicao.css";
 // MARCADOR EDITÁVEL
 // ======================================================
 
-function PontoEditavel({ ponto, index, atualizarPonto, removerPonto }) {
+function PontoEditavel({ ponto, index, atualizarPonto }) {
     return (
         <Marker
             position={[ponto.lat, ponto.lng]}
@@ -144,42 +144,54 @@ function Edicao() {
 
     }
 
-    
-
     // ==================================================
     // SALVAR PONTOS
     // ==================================================
 
     async function salvarPontos() {
-         try {
-        const resposta = await fetch(
-            `${AUTH_API_URL}/lavoura/${id}`,
-            {
-                method: "PUT",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                    coordenadas: coordenadas
-                })
-            }
-        );
 
-        const dados = await resposta.json();
+        try {
 
-        if (!resposta.ok) {
-            throw new Error(
-                dados.mensagem || "Erro ao salvar coordenadas."
+            const resposta = await fetch(
+                `${AUTH_API_URL}/lavoura/${id}`,
+                {
+                    method: "PUT",
+
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+
+                    body: JSON.stringify({
+                        coordenadas: coordenadas
+                    })
+                }
             );
+
+            const dados = await resposta.json();
+
+            if (!resposta.ok) {
+                throw new Error(
+                    dados.mensagem ||
+                    "Erro ao salvar coordenadas."
+                );
+            }
+
+            alert(
+                "Coordenadas atualizadas com sucesso!"
+            );
+
+            setModoEdicao(false);
+
+        } catch (erro) {
+
+            console.error(
+                "Erro ao salvar coordenadas:",
+                erro
+            );
+
+            alert(erro.message);
+
         }
-
-        alert("Coordenadas atualizadas com sucesso!");
-        setModoEdicao(false);
-
-    } catch (erro) {
-        console.error("Erro ao salvar coordenadas:", erro);
-        alert(erro.message);
-    }
 
     }
 
@@ -188,84 +200,123 @@ function Edicao() {
     // ==================================================
 
     async function salvarNome() {
-    if (!nomeLavoura.trim()) {
-        alert("Digite um nome para a lavoura.");
-        return;
-    }
 
-    try {
-        const resposta = await fetch(
-            `${AUTH_API_URL}/lavoura/${id}`,
-            {
-                method: "PUT",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                    nomeLavoura: nomeLavoura.trim()
-                })
-            }
-        );
+        if (!nomeLavoura.trim()) {
 
-        const dados = await resposta.json();
-
-        if (!resposta.ok) {
-            throw new Error(
-                dados.mensagem || "Erro ao salvar nome."
+            alert(
+                "Digite um nome para a lavoura."
             );
+
+            return;
         }
 
-        localStorage.setItem(
-            "lavouraNome",
-            nomeLavoura.trim()
-        );
+        try {
 
-        alert("Nome da lavoura atualizado com sucesso!");
+            const resposta = await fetch(
+                `${AUTH_API_URL}/lavoura/${id}`,
+                {
+                    method: "PUT",
 
-    } catch (erro) {
-        console.error("Erro ao salvar nome:", erro);
-        alert(erro.message);
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+
+                    body: JSON.stringify({
+                        nomeLavoura:
+                            nomeLavoura.trim()
+                    })
+                }
+            );
+
+            const dados = await resposta.json();
+
+            if (!resposta.ok) {
+                throw new Error(
+                    dados.mensagem ||
+                    "Erro ao salvar nome."
+                );
+            }
+
+            localStorage.setItem(
+                "lavouraNome",
+                nomeLavoura.trim()
+            );
+
+            alert(
+                "Nome da lavoura atualizado com sucesso!"
+            );
+
+        } catch (erro) {
+
+            console.error(
+                "Erro ao salvar nome:",
+                erro
+            );
+
+            alert(erro.message);
+
+        }
+
     }
-    }
+
+    // ==================================================
+    // REMOVER LAVOURA
+    // ==================================================
 
     async function removerLavoura() {
-         const confirmar = window.confirm(
-        "Tem certeza que deseja remover esta lavoura? Essa ação não pode ser desfeita."
-    );
 
-    if (!confirmar) {
-        return;
-    }
-
-    try {
-        const resposta = await fetch(
-            `${AUTH_API_URL}/lavoura/${id}`,
-            {
-                method: "DELETE"
-            }
+        const confirmar = window.confirm(
+            "Tem certeza que deseja remover esta lavoura? Essa ação não pode ser desfeita."
         );
 
-        const dados = await resposta.json();
-
-        if (!resposta.ok) {
-            throw new Error(
-                dados.mensagem || "Erro ao remover lavoura."
-            );
+        if (!confirmar) {
+            return;
         }
 
-        localStorage.removeItem("lavouraId");
-        localStorage.removeItem("lavouraNome");
+        try {
 
-        alert("Lavoura removida com sucesso!");
+            const resposta = await fetch(
+                `${AUTH_API_URL}/lavoura/${id}`,
+                {
+                    method: "DELETE"
+                }
+            );
 
-        navigate("/home");
+            const dados = await resposta.json();
 
-    } catch (erro) {
-        console.error("Erro ao remover lavoura:", erro);
-        alert(erro.message);
+            if (!resposta.ok) {
+                throw new Error(
+                    dados.mensagem ||
+                    "Erro ao remover lavoura."
+                );
+            }
+
+            localStorage.removeItem(
+                "lavouraId"
+            );
+
+            localStorage.removeItem(
+                "lavouraNome"
+            );
+
+            alert(
+                "Lavoura removida com sucesso!"
+            );
+
+            navigate("/home");
+
+        } catch (erro) {
+
+            console.error(
+                "Erro ao remover lavoura:",
+                erro
+            );
+
+            alert(erro.message);
+
+        }
+
     }
-    }
-
 
     // ==================================================
     // CARREGANDO
@@ -286,6 +337,7 @@ function Edicao() {
 
             </div>
         );
+
     }
 
     // ==================================================
@@ -314,6 +366,7 @@ function Edicao() {
 
             </div>
         );
+
     }
 
     // ==================================================
@@ -522,13 +575,28 @@ function Edicao() {
                         e não poderá ser desfeita.
                     </p>
 
-                    <button 
+                    <button
                         onClick={removerLavoura}
                     >
                         Remover lavoura
                     </button>
 
                 </section>
+
+                {/* ======================================
+                    VOLTAR
+                ====================================== */}
+
+                <div className="editar-voltar-container">
+
+                    <button
+                        className="editar-btn editar-btn-voltar"
+                        onClick={() => navigate(-1)}
+                    >
+                        ← Voltar
+                    </button>
+
+                </div>
 
             </div>
 
@@ -538,3 +606,4 @@ function Edicao() {
 }
 
 export default Edicao;
+

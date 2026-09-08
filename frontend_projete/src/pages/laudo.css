@@ -371,20 +371,30 @@
 .laudo-actions {
     display: flex;
     justify-content: flex-end;
+    align-items: center;
+    gap: 14px;
 
-    gap: 12px;
-
+    width: 100%;
     margin-top: 30px;
     padding-top: 22px;
 
     border-top: 1px solid var(--border);
+    box-sizing: border-box;
 }
 
 .laudo-btn {
-    border: none;
-    border-radius: 9px;
+    display: inline-flex;
 
-    padding: 12px 20px;
+    align-items: center;
+    justify-content: center;
+
+    min-width: 140px;
+    height: 44px;
+
+    padding: 0 20px;
+
+    border-radius: 9px;
+    border: none;
 
     font-family: inherit;
     font-size: 14px;
@@ -392,39 +402,54 @@
 
     cursor: pointer;
 
-    transition:
-        transform 0.15s ease,
-        opacity 0.15s ease,
-        box-shadow 0.15s ease;
+    box-sizing: border-box;
+
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
 .laudo-btn:hover {
     transform: translateY(-1px);
 }
 
-.laudo-btn:active {
-    transform: translateY(0);
-}
-
 .laudo-btn-secondary {
-    background: transparent;
+    background: #ffffff;
+    color: #222222;
 
-    color: var(--text);
+    border: 1px solid #999999;
 
-    border: 1px solid var(--border);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
 }
 
 .laudo-btn-primary {
     background: var(--primary);
+    color: #ffffff;
 
-    color: white;
+    border: 1px solid var(--primary);
 
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
 }
 
-.laudo-btn-primary:hover {
-    opacity: 0.9;
+/* ================================
+   CELULAR
+================================ */
+
+@media (max-width: 700px) {
+
+    .laudo-actions {
+        flex-direction: column-reverse;
+        align-items: stretch;
+
+        gap: 12px;
+    }
+
+    .laudo-actions .laudo-btn {
+        width: 100%;
+    }
 }
+
+
+
+
 
 /* ================================
    RESPONSIVIDADE
