@@ -141,8 +141,9 @@ def obter_valores_indices(imagem, geometria):
     valores = imagem.select(["NDVI", "NDRE", "NDWI"]).reduceRegion(
         reducer=ee.Reducer.mean(),
         geometry=geometria,
-        scale=10,
-        maxPixels=1e9
+        scale=30,
+        maxPixels=1e10,
+        bestEffort=True
     )
 
     return valores.getInfo()

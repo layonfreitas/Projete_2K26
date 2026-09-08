@@ -69,7 +69,7 @@ def processar_lavoura(lavoura):
         geometria,
         usuario_id,
         lavoura_id,
-        valores_indice)
+        valores_indices)
         salvar_mapa_z_score(imagem_hoje, indice, usuario_id, lavoura_id, geometria)
 
     print(f"  -> lavoura {lavoura_id}: processada com sucesso")
