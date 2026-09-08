@@ -237,15 +237,15 @@ function Laudo() {
                 <div className="laudo-actions">
 
                     <button
-                        className="laudo-btn laudo-btn-secondary"
+                        className="laudo-btn"
                         onClick={() => navigate(-1)}
                     >
                         Voltar
                     </button>
 
                     <button
-                        className="laudo-btn laudo-btn-primary"
-                        onClick={gerarLaudo}
+                        className="laudo-btn"
+                        type="button" onClick={gerarLaudo}
                     >
                         Gerar Laudo
                     </button>

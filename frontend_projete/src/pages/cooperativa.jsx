@@ -467,8 +467,8 @@ function Cooperativa() {
               <option key={a.id} value={a.id}>{a.nome}</option>
             ))}
           </select>
-          <button type="submit" onClick={handleVincular}>Vincular</button>
-          <button type="submit">Desvicular</button>
+          <button type="button" onClick={handleVincular}>Vincular</button>
+          <button type="button" onClick={handleDesVincular}>Desvicular</button>
         </form>
       </section>
 

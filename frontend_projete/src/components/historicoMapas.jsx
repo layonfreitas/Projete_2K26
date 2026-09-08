@@ -648,7 +648,7 @@ export default function Mapas() {
 
         <aside className="mapas-datas">
 
-          <div className="mapas-datas-titulo">
+          <div className="mapa-data-titulo">
             Imagens disponíveis
           </div>
 
