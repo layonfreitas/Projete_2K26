@@ -9,7 +9,9 @@ from serie_temporal import Imagem_para_zona_de_manejo, create_zonas_de_manejo
 from processar_lavouras import processar_todas_lavouras
 from gee_auth import obter_credenciais
 from dotenv import load_dotenv
-
+import requests
+import json
+import os
 load_dotenv()
 
 credentials, project_id = obter_credenciais()
@@ -52,6 +54,23 @@ async def create_day_maps(day_req: Day_req):
     usuario_id = day_req.usuario_id
     lavoura_id = day_req.lavoura_id
     imagemHoje = get_indices_image(geometria,date.today().isoformat(), 5, 30)
+    data_imagem = imagemHoje.date().format("YYYY-MM-dd").getInfo()
+
+    dados= {
+        'id': lavoura_id,
+        'usuario_id': usuario_id,
+        'data_imagem': data_imagem,
+        'indice': indices[0]
+    }
+    json_dados = json.dumps(dados)
+    resposta = requests.get(url = os.environ.get("DATABASE_URL") + "/acessar_imagem", params=dados)
+    if(resposta.status_code == 200):
+        print("Imagem já processada para a data disponivel.")
+        return {
+            "status": "sucesso",
+            "mensagem": "A imagem já foi processada para a data disponivel."
+        }
+    
      # será necessário implementar a lógica para verificar se já foram obtido os dados da data da imagem
     if imagemHoje==None:
          raise HTTPException(

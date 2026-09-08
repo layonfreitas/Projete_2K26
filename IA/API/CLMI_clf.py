@@ -1,4 +1,4 @@
-from weka.core.dataset import Instance 
+from weka.core.dataset import Instance
 import weka.core.jvm as jvm
 from weka.classifiers import Classifier
 from fastapi import FastAPI
@@ -29,11 +29,11 @@ app = FastAPI(lifespan = lifespan)
 
 @app.post("/clmi_clf/")
 async def classificar(dados: Dados):
-    nova_instancia = create_instance([dados.clmi, dados.temperatura, dados.precipitacao, None])
+    nova_instancia = Instance.create_instance([dados.clmi, dados.temperatura, dados.precipitacao, None])
     nova_instancia.dataset = cabecalho
 
     index_classificacao = modelo.classify_instance(nova_instancia)
-    classificacao = nova_instancia.value(int(index_classificacao))
+    classificacao = cabecalho.class_attribute.value(int(index_classificacao))
     print(classificacao)
     return {"classificacao": classificacao}
 
