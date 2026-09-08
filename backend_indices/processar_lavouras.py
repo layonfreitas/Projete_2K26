@@ -7,7 +7,7 @@ import ee
 import google.auth
 from dotenv import load_dotenv
 
-from get_indices import get_indices_image, save_indice_map
+from get_indices import get_indices_image, save_indice_map, obter_valores_indices
 from z_score import salvar_mapa_z_score
 from gee_auth import obter_credenciais
 
@@ -56,8 +56,20 @@ def processar_lavoura(lavoura):
         print(f"  -> lavoura {lavoura_id}: nenhuma imagem válida encontrada hoje")
         return
 
+    valores_indices = obter_valores_indices(imagem_hoje, geometria)
+    print(f"  -> lavoura {lavoura_id}: índices reais:")
+    print(f"     NDVI: {valores_indices.get('NDVI')}")
+    print(f"     NDRE: {valores_indices.get('NDRE')}")
+    print(f"     NDWI: {valores_indices.get('NDWI')}")
+
+
     for indice in indices:
-        save_indice_map(imagem_hoje, indice, geometria, usuario_id, lavoura_id)
+        save_indice_map(        imagem_hoje,
+        indice,
+        geometria,
+        usuario_id,
+        lavoura_id,
+        valores_indice)
         salvar_mapa_z_score(imagem_hoje, indice, usuario_id, lavoura_id, geometria)
 
     print(f"  -> lavoura {lavoura_id}: processada com sucesso")

@@ -25,7 +25,13 @@ credentials, project_id = obter_credenciais()
 ee.Initialize(credentials, project="projete2k26")
 
 
-def save_image_indatabase(imagem, nome_arquivo:str,pasta_id: str, usuario_id: int, lavoura_id: int, data_imagem: str):
+def save_image_indatabase(    imagem,
+    nome_arquivo: str,
+    pasta_id: str,
+    usuario_id: int,
+    lavoura_id: int,
+    data_imagem: str,
+    valor_indice):
     response = cloudinary.uploader.upload(
             imagem,
             public_id=nome_arquivo,
@@ -41,7 +47,8 @@ def save_image_indatabase(imagem, nome_arquivo:str,pasta_id: str, usuario_id: in
         "lavouraId": lavoura_id,
         "dataImagem": data_imagem,
         "urlImagem": response['secure_url'],
-        "indice" : nome_arquivo.split('_')[0]  # Extrai o índice do nome do arquivo
+        "indice" : nome_arquivo.split('_')[0],  # Extrai o índice do nome do arquivo
+        "valorIndice": valor_indice
         
 
     }  
@@ -130,8 +137,24 @@ def get_indices_image(geometria, data_alvo, janela, nuvem_maxima):
         .set("data_imagem", imagem.date().format("YYYY-MM-dd"))
     )
 
+def obter_valores_indices(imagem, geometria):
+    valores = imagem.select(["NDVI", "NDRE", "NDWI"]).reduceRegion(
+        reducer=ee.Reducer.mean(),
+        geometry=geometria,
+        scale=10,
+        maxPixels=1e9
+    )
 
-def save_indice_map(imagem, indice,geometria, usuario_id: int, lavoura_id: int, pasta_id = os.environ.get("MAPAS_INDICES_FOLDER")):
+    return valores.getInfo()
+
+
+def save_indice_map(    imagem,
+    indice,
+    geometria,
+    usuario_id: int,
+    lavoura_id: int,
+    valores_indices,
+    pasta_id=os.environ.get("MAPAS_INDICES_FOLDER")):
 
     data = imagem.date().format('YYYY-MM-dd').getInfo()
     nome_arquivo = indice + '_' + data
@@ -157,4 +180,10 @@ def save_indice_map(imagem, indice,geometria, usuario_id: int, lavoura_id: int, 
         "format": "png"
     })
 
-    save_image_indatabase(url_indice, nome_arquivo, pasta_id, usuario_id, lavoura_id, data)
+    save_image_indatabase(    url_indice,
+    nome_arquivo,
+    pasta_id,
+    usuario_id,
+    lavoura_id,
+    data,
+    valores_indices.get(indice))
