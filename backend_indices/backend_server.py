@@ -2,15 +2,17 @@ import ee
 import google.auth
 from get_indices import get_indices_image, save_indice_map
 from pydantic import BaseModel
-from fastapi import FastAPI, status, HTTPException
+from fastapi import FastAPI, status, HTTPException, BackgroundTasks
 from datetime import date
 from z_score import salvar_mapa_z_score
 from serie_temporal import Imagem_para_zona_de_manejo, create_zonas_de_manejo
+from processar_lavouras import processar_todas_lavouras
+from gee_auth import obter_credenciais
 from dotenv import load_dotenv
 
 load_dotenv()
 
-credentials, project_id = google.auth.default()
+credentials, project_id = obter_credenciais()
 ee.Initialize(credentials, project="projete2k26")
 
 class Day_req(BaseModel):
@@ -30,6 +32,11 @@ class Zona_de_manejo_req(BaseModel):
 indices = ["NDVI", "NDRE", "NDWI"]
 
 app = FastAPI()
+
+@app.get("/health", status_code=status.HTTP_200_OK)
+async def health():
+
+    return {"status": "ok"}
 
 
     
@@ -61,6 +68,21 @@ async def create_day_maps(day_req: Day_req):
         "mensagem": "Uma nova imagem foi processada."
     }
    
+@app.post("/processar_todas_lavouras/", status_code=status.HTTP_202_ACCEPTED)
+async def processar_todas(background_tasks: BackgroundTasks):
+    """
+    Dispara o processamento de índices para todas as lavouras cadastradas.
+    Roda em segundo plano para responder rápido (evita timeout de proxy
+    em plataformas como Render/Railway) e é pensado para ser chamado por
+    um agendador externo (ex: GitHub Actions com 'schedule').
+    """
+    background_tasks.add_task(processar_todas_lavouras)
+    return {
+        "status": "aceito",
+        "mensagem": "Processamento de todas as lavouras iniciado em segundo plano."
+    }
+
+
 @app.post("/get_zona_de_manejo/", status_code=status.HTTP_201_CREATED)
 async def zonas_de_manejo(zona_de_manejo_req: Zona_de_manejo_req):
     geometria = ee.Geometry.Polygon(zona_de_manejo_req.coordenadas)

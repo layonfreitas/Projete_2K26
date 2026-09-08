@@ -10,11 +10,7 @@ def init_mysql(mysql_instance):
     global mysql
     mysql = mysql_instance
 
-
-# ==========================================
 # CADASTRAR LAVOURA
-# ==========================================
-
 @lavoura_bp.route('/lavoura', methods=['POST'])
 def cadastrar_lavoura():
 
@@ -67,11 +63,51 @@ def cadastrar_lavoura():
             "erro": str(erro)
         }), 500
 
+# LISTAR TODAS AS LAVOURAS (TODOS OS PRODUTORES)
+# Usado pelo backend_indices para processar automaticamente
+@lavoura_bp.route('/lavouras', methods=['GET'])
+def listar_todas_lavouras():
 
-# ==========================================
+    try:
+
+        cursor = mysql.connection.cursor()
+
+        cursor.execute(
+            """
+            SELECT
+                id,
+                usuario_id,
+                nome_lavoura,
+                coordenadas
+            FROM lavouras
+            """
+        )
+
+        resultados = cursor.fetchall()
+
+        cursor.close()
+
+        lavouras = []
+
+        for linha in resultados:
+
+            lavouras.append({
+                "id": linha[0],
+                "usuarioId": linha[1],
+                "nomeLavoura": linha[2],
+                "coordenadas": json.loads(linha[3])
+            })
+
+        return jsonify(lavouras), 200
+
+    except Exception as erro:
+
+        return jsonify({
+            "mensagem": "Erro ao buscar lavouras",
+            "erro": str(erro)
+        }), 500
+
 # LISTAR LAVOURAS DO USUÁRIO
-# ==========================================
-
 @lavoura_bp.route('/lavouras/<int:usuario_id>', methods=['GET'])
 def listar_lavouras(usuario_id):
 
@@ -116,11 +152,7 @@ def listar_lavouras(usuario_id):
             "erro": str(erro)
         }), 500
 
-
-# ==========================================
 # BUSCAR UMA LAVOURA PELO ID
-# ==========================================
-
 @lavoura_bp.route('/lavoura/<int:lavoura_id>', methods=['GET'])
 def buscar_lavoura(lavoura_id):
 

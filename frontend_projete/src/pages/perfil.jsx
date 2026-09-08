@@ -61,12 +61,6 @@ function Perfil() {
           >
             Sair da conta
           </button>
-          <button 
-            className="perfil-btn perfil-btn-secundario" 
-            onClick={editarteste}
-          >
-            voltar
-          </button>
         </div>
       </div>
       
