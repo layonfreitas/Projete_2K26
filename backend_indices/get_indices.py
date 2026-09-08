@@ -19,7 +19,9 @@ cloudinary.config(
     secure=True
 )
 
-credentials, project_id = google.auth.default()
+from gee_auth import obter_credenciais
+
+credentials, project_id = obter_credenciais()
 ee.Initialize(credentials, project="projete2k26")
 
 
@@ -93,6 +95,8 @@ def get_indices_image(geometria, data_alvo, janela, nuvem_maxima):
         .sort("CLOUDY_PIXEL_PERCENTAGE")
     )
 
+    if colecao.size().getInfo()==0:
+        return None
     imagem = ee.Image(colecao.first())
     scl = imagem.select("SCL")
     mascara = (
@@ -154,13 +158,3 @@ def save_indice_map(imagem, indice,geometria, usuario_id: int, lavoura_id: int, 
     })
 
     save_image_indatabase(url_indice, nome_arquivo, pasta_id, usuario_id, lavoura_id, data)
-
-
-
-    
-    
-
-    
-
-    
- 

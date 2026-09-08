@@ -155,17 +155,13 @@ export default function Mapas() {
         const selecoes = {};
 
         dados.forEach((imagem) => {
+          const indices = imagem.indicesDisponiveis.filter(
+            (indice) => !indice.startsWith("z-score-")
+          );
 
-          if (
-            imagem.indicesDisponiveis &&
-            imagem.indicesDisponiveis.length > 0
-          ) {
-
-            selecoes[imagem.data] =
-              imagem.indicesDisponiveis[0];
-
+          if (indices.length > 0) {
+            selecoes[imagem.data] = indices[0];
           }
-
         });
 
 
@@ -717,18 +713,13 @@ export default function Mapas() {
                   }
                 >
 
-                  {imagem.indicesDisponiveis.map(
-                    (indice) => (
-
-                      <option
-                        key={indice}
-                        value={indice}
-                      >
-                        {indice}
-                      </option>
-
-                    )
-                  )}
+                 {imagem.indicesDisponiveis
+                  .filter((indice) => !indice.startsWith("z-score-"))
+                  .map((indice) => (
+                    <option key={indice} value={indice}>
+                      {indice}
+                    </option>
+                  ))}
 
                 </select>
 

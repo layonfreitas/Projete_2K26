@@ -1,0 +1,80 @@
+import os
+import traceback
+from datetime import date
+
+import requests
+import ee
+import google.auth
+from dotenv import load_dotenv
+
+from get_indices import get_indices_image, save_indice_map
+from z_score import salvar_mapa_z_score
+from gee_auth import obter_credenciais
+
+load_dotenv()
+
+credentials, project_id = obter_credenciais()
+ee.Initialize(credentials, project="projete2k26")
+
+indices = ["NDVI", "NDRE", "NDWI"]
+
+
+def buscar_todas_lavouras():
+    url = os.environ.get("DATABASE_URL") + "/lavouras"
+    resposta = requests.get(url, timeout=30)
+    resposta.raise_for_status()
+    return resposta.json()
+
+
+def normalizar_coordenadas(coordenadas):
+    """
+    O restante do sistema (tela de cadastro, edição, banco de dados) guarda
+    cada ponto como {"lat": ..., "lng": ...}. O Earth Engine, por outro lado,
+    exige uma lista de pares [longitude, latitude] (nessa ordem). Sem essa
+    conversão, ee.Geometry.Polygon recebe uma lista de dicts e quebra com
+    "KeyError: 0" ao tentar indexar cada ponto como se fosse uma lista.
+    """
+    pontos = []
+    for ponto in coordenadas:
+        if isinstance(ponto, dict):
+            lat, lng = ponto["lat"], ponto["lng"]
+        else:
+            lat, lng = ponto[0], ponto[1]
+        pontos.append([lng, lat])
+    return pontos
+
+
+def processar_lavoura(lavoura):
+    """Processa NDVI, NDRE, NDWI e z-score para uma única lavoura."""
+    usuario_id = lavoura["usuarioId"]
+    lavoura_id = lavoura["id"]
+    geometria = ee.Geometry.Polygon(normalizar_coordenadas(lavoura["coordenadas"]))
+
+    imagem_hoje = get_indices_image(geometria, date.today().isoformat(), 5, 30)
+
+    if imagem_hoje is None:
+        print(f"  -> lavoura {lavoura_id}: nenhuma imagem válida encontrada hoje")
+        return
+
+    for indice in indices:
+        save_indice_map(imagem_hoje, indice, geometria, usuario_id, lavoura_id)
+        salvar_mapa_z_score(imagem_hoje, indice, usuario_id, lavoura_id, geometria)
+
+    print(f"  -> lavoura {lavoura_id}: processada com sucesso")
+
+
+def processar_todas_lavouras():
+
+    lavouras = buscar_todas_lavouras()
+    print(f"[{date.today().isoformat()}] {len(lavouras)} lavoura(s) encontrada(s) para processar")
+
+    for lavoura in lavouras:
+        try:
+            processar_lavoura(lavoura)
+        except Exception as erro:
+            print(f"  -> ERRO na lavoura {lavoura.get('id')}: [{type(erro).__name__}] {erro!r}")
+            traceback.print_exc()
+
+
+if __name__ == "__main__":
+    processar_todas_lavouras()
