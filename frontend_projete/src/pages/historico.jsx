@@ -1,7 +1,7 @@
 import { useState } from "react";
 import "./historico.css";
 
-import historicoMapas from "../components/historicoMapas";
+import historicoMapas from "../components/historicoMapas.jsx";
 import BottomNav from "../components/BottomNav";
 import Header from "../components/Header";
 
