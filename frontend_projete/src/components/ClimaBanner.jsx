@@ -26,8 +26,6 @@ function ClimaBanner({ lavouras }) {
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState("");
 
-  const produtorSelecionadoNome =
-    localStorage.getItem("produtorSelecionadoNome");
 
   const usuarioTipo = localStorage.getItem("usuarioTipo");
 
@@ -192,12 +190,11 @@ function ClimaBanner({ lavouras }) {
             ☁️ {clima.condicao}
           </span>
 
-          {produtorSelecionadoNome && (
+          {lavouraSelecionada?.produtorNome && (
             <span>
-              👨‍🌾 Produtor: {produtorSelecionadoNome}
+              👨‍🌾 Produtor: {lavouraSelecionada.produtorNome}
             </span>
           )}
-
           {usuarioTipo === "agronomo" && (
             <button
               type="button"
