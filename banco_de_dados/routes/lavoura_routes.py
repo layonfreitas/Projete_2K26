@@ -288,6 +288,50 @@ def remover_lavoura(lavoura_id):
     try:
         cursor = mysql.connection.cursor()
 
+        # Verifica se a lavoura existe
+        cursor.execute(
+            """
+            SELECT id
+            FROM lavouras
+            WHERE id = %s
+            """,
+            (lavoura_id,)
+        )
+
+        lavoura = cursor.fetchone()
+
+        if not lavoura:
+            cursor.close()
+            return jsonify({
+                "mensagem": "Lavoura não encontrada"
+            }), 404
+
+        # Remove os registros relacionados à lavoura
+        cursor.execute(
+            """
+            DELETE FROM observacoes
+            WHERE lavoura_id = %s
+            """,
+            (lavoura_id,)
+        )
+
+        cursor.execute(
+            """
+            DELETE FROM imagens
+            WHERE lavoura_id = %s
+            """,
+            (lavoura_id,)
+        )
+
+        cursor.execute(
+            """
+            DELETE FROM log_auditoria
+            WHERE lavoura_id = %s
+            """,
+            (lavoura_id,)
+        )
+
+        # Remove a lavoura
         cursor.execute(
             """
             DELETE FROM lavouras
@@ -295,12 +339,6 @@ def remover_lavoura(lavoura_id):
             """,
             (lavoura_id,)
         )
-
-        if cursor.rowcount == 0:
-            cursor.close()
-            return jsonify({
-                "mensagem": "Lavoura não encontrada"
-            }), 404
 
         mysql.connection.commit()
         cursor.close()
@@ -311,6 +349,12 @@ def remover_lavoura(lavoura_id):
 
     except Exception as erro:
         print("ERRO AO REMOVER LAVOURA:", repr(erro))
+
+        try:
+            mysql.connection.rollback()
+        except:
+            pass
+
         return jsonify({
             "mensagem": "Erro ao remover lavoura",
             "erro": str(erro)
