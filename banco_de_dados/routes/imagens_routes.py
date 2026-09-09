@@ -49,11 +49,15 @@ def acessar_imagem():
         cursor.execute("SELECT coordenadas FROM lavouras WHERE id = %s AND usuario_id = %s", (id, usuario_id))
         linha_coordenadas = cursor.fetchone()
         coordenadas = linha_coordenadas[0]
-        cursor.execute("SELECT url_imagem FROM imagens WHERE lavoura_id = %s AND usuario_id = %s AND data_imagem= %s AND indice = %s", (id, usuario_id, data, indice))
+        cursor.execute(
+    "SELECT url_imagem, valor_indice FROM imagens WHERE lavoura_id = %s AND usuario_id = %s AND data_imagem = %s AND indice = %s",
+    (id, usuario_id, data, indice)
+)
         linha_url = cursor.fetchone()
         url = linha_url[0]
+        valor_indice = linha_url[1]
 
-        return jsonify({"coordenadas":coordenadas, "url": url}), 200
+        return jsonify({"coordenadas":coordenadas, "url": url, "valor_indice": valor_indice}), 200
 
 
     except Exception as erro:
