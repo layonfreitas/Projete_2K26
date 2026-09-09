@@ -118,12 +118,16 @@ def listar_lavouras(usuario_id):
         cursor.execute(
             """
             SELECT
-                id,
-                nome_lavoura,
-                coordenadas,
-                criado_em
-            FROM lavouras
-            WHERE usuario_id = %s
+            l.id,
+            l.nome_lavoura,
+            l.coordenadas,
+            l.criado_em,
+            l.usuario_id,
+            u.nome
+        FROM lavouras l
+        JOIN usuarios u ON l.usuario_id = u.id
+        WHERE l.usuario_id = %s
+   
             """,
             (usuario_id,)
         )
@@ -137,11 +141,13 @@ def listar_lavouras(usuario_id):
         for linha in resultados:
 
             lavouras.append({
-                "id": linha[0],
-                "nomeLavoura": linha[1],
-                "coordenadas": json.loads(linha[2]),
-                "criadoEm": linha[3].isoformat()
-            })
+            "id": linha[0],
+            "nomeLavoura": linha[1],
+            "coordenadas": json.loads(linha[2]),
+            "criadoEm": linha[3].isoformat(),
+            "usuarioId": linha[4],
+            "produtorNome": linha[5]
+        })
 
         return jsonify(lavouras), 200
 
