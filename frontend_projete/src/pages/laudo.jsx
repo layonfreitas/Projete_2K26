@@ -151,10 +151,9 @@ function Laudo() {
                             <span className="laudo-result-label">
                                 NDVI
                             </span>
-
-                            <span className="laudo-result-value">
-                                0.72
-                            </span>
+<span className="laudo-result-value">
+    {indices.NDVI ?? "--"}
+</span>
 
                         </div>
 
