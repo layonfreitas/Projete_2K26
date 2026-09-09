@@ -21,13 +21,15 @@ async function getWeatherData(lat, lon) {
         temperature_2m_mean = daily.variables(0).valuesArray()
         precipitation_sum = daily.variables(1).valuesArray()
         precipitation_sum = precipitation_sum.map(value => value === null ? 0 : value)
-        temeperatura_media = temperature_2m_mean.reduce((acc, val) => acc + val, 0) / temperature_2m_mean.length
-
+        temperatura_media = temperature_2m_mean.reduce((acc, val) => acc + val, 0) / temperature_2m_mean.length
         
-        
-        
+        resposta = {
+            "mensagem": "Dados climaticos obtidos.",
+            "temperatura_media": temperatura_media,
+            "precipitacao ": precipitation_sum
+        }
 
-
+        return resposta
     }
     catch(error){
 
