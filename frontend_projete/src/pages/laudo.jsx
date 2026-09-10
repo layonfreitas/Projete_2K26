@@ -21,12 +21,11 @@ function Laudo() {
     const [observacoes, setObservacoes] = useState("");
     const [recomendacoes, setRecomendacoes] = useState("");
 
-    const [indices, setIndices] = useState({});
+    const [indicesPorData, setIndicesPorData] = useState({});
+    const [erroIndices, setErroIndices] = useState(null);
     const [carregandoIndices, setCarregandoIndices] = useState(true);
 
-    // Todas as datas com análises disponíveis para a lavoura,
-    // já vêm ordenadas da mais recente pra mais antiga (backend
-    // faz ORDER BY data_imagem DESC).
+    // Datas únicas do JSON, ordenadas da mais recente para a mais antiga.
     const [datasDisponiveis, setDatasDisponiveis] = useState([]);
     const [dataSelecionada, setDataSelecionada] = useState(null);
 
@@ -50,91 +49,92 @@ function Laudo() {
         return { lavouraId, usuarioId };
     }
 
-    // =========================================================
-    // 1) BUSCAR AS DATAS DISPONÍVEIS E SELECIONAR A MAIS RECENTE
-    // =========================================================
-    useEffect(() => {
-        const { lavouraId, usuarioId } = obterIds();
+    const lavouraIdConsulta = id || localStorage.getItem("lavouraId");
 
-        if (!lavouraId || !usuarioId) {
+    // A API deve retornar uma lista de { dataReferencia, tipoIndice, valor }.
+    // Uma única consulta traz os valores; a seleção de data filtra localmente.
+    useEffect(() => {
+        const controller = new AbortController();
+        setIndicesPorData({});
+        setDatasDisponiveis([]);
+        setDataSelecionada(null);
+        setErroIndices(null);
+        setCarregandoIndices(true);
+
+        if (!lavouraIdConsulta) {
+            setErroIndices("Não foi possível identificar a lavoura.");
             setCarregandoIndices(false);
-            return;
+            return () => controller.abort();
         }
-
-        async function carregarDatas() {
-            try {
-                const resp = await fetch(
-                    `${AUTH_API_URL}/indices_vegetacao/${lavouraId}`
-                );
-                const imagens = await resp.json();
-
-                if (!resp.ok || !imagens.length) {
-                    setCarregandoIndices(false);
-                    return;
-                }
-
-                // backend já retorna ordenado da data mais recente
-                // pra mais antiga
-                const datas = imagens.map((img) => img.data);
-
-                setDatasDisponiveis(datas);
-                setDataSelecionada(datas[0]);
-            } catch (erro) {
-                console.error("Erro ao carregar datas disponíveis:", erro);
-                setCarregandoIndices(false);
-            }
-        }
-
-        carregarDatas();
-    }, [id]);
-
-    // =========================================================
-    // 2) BUSCAR OS VALORES DOS ÍNDICES PARA A DATA SELECIONADA
-    // =========================================================
-    useEffect(() => {
-        if (!dataSelecionada) return;
-
-        const { lavouraId, usuarioId } = obterIds();
-        if (!lavouraId || !usuarioId) return;
 
         async function carregarIndices() {
-            setCarregandoIndices(true);
             try {
-                const nomesIndices = ["NDVI", "NDRE", "NDWI"];
-
-                const resultados = await Promise.all(
-                    nomesIndices.map(async (nome) => {
-                        try {
-                            const resp = await fetch(
-                                `${AUTH_API_URL}/acessar_imagem?id=${lavouraId}` +
-                                `&usuario_id=${usuarioId}` +
-                                `&data=${dataSelecionada}` +
-                                `&indice=${nome}`
-                            );
-                            const dados = await resp.json();
-                            return [nome, resp.ok ? dados.valor_indice : null];
-                        } catch {
-                            return [nome, null];
-                        }
-                    })
+                // Se o JSON vier de outra rota, altere somente esta URL.
+                const resp = await fetch(
+                    `${AUTH_API_URL}/indices_vegetacao/${encodeURIComponent(lavouraIdConsulta)}`,
+                    { signal: controller.signal }
                 );
 
-                setIndices(Object.fromEntries(resultados));
+                if (!resp.ok) {
+                    throw new Error(`Erro ao consultar índices (HTTP ${resp.status}).`);
+                }
+
+                const dados = await resp.json();
+                if (!Array.isArray(dados)) {
+                    throw new Error("A API deve retornar uma lista de índices.");
+                }
+
+                const agrupados = {};
+                const tiposAceitos = ["NDVI", "NDRE", "NDWI"];
+
+                for (const item of dados) {
+                    if (!item || typeof item !== "object") continue;
+
+                    const data = item.dataReferencia;
+                    const tipo = typeof item.tipoIndice === "string"
+                        ? item.tipoIndice.trim().toUpperCase()
+                        : "";
+
+                    if (
+                        typeof data !== "string" ||
+                        !/^\d{4}-\d{2}-\d{2}$/.test(data) ||
+                        !tiposAceitos.includes(tipo)
+                    ) continue;
+
+                    // Mantém zero e números negativos; não converte null em zero.
+                    const valor = typeof item.valor === "number" && Number.isFinite(item.valor)
+                        ? item.valor
+                        : null;
+
+                    if (!agrupados[data]) agrupados[data] = {};
+                    agrupados[data][tipo] = valor;
+                }
+
+                const datas = Object.keys(agrupados).sort().reverse();
+                if (controller.signal.aborted) return;
+
+                setIndicesPorData(agrupados);
+                setDatasDisponiveis(datas);
+                setDataSelecionada(datas[0] || null);
             } catch (erro) {
+                if (controller.signal.aborted) return;
                 console.error("Erro ao carregar índices:", erro);
+                setErroIndices(erro.message || "Não foi possível carregar os índices.");
             } finally {
-                setCarregandoIndices(false);
+                if (!controller.signal.aborted) setCarregandoIndices(false);
             }
         }
 
         carregarIndices();
-    }, [dataSelecionada]);
+        return () => controller.abort();
+    }, [lavouraIdConsulta]);
+
+    const indices = indicesPorData[dataSelecionada] || {};
 
     const formatarIndice = (valor) => {
-        if (valor === null || valor === undefined) {
-            return carregandoIndices ? "..." : "--";
-        }
-        return Number(valor).toFixed(2);
+        if (carregandoIndices) return "...";
+        if (!Number.isFinite(valor)) return "--";
+        return valor.toFixed(6);
     };
 
     const formatarDataExibicao = (dataIso) => {
@@ -349,7 +349,11 @@ function Laudo() {
                                 <span>
                                     {dataSelecionada
                                         ? formatarDataExibicao(dataSelecionada)
-                                        : "Nenhuma análise encontrada"}
+                                        : carregandoIndices
+                                            ? "Carregando análises..."
+                                            : erroIndices
+                                                ? "Análises indisponíveis"
+                                                : "Nenhuma análise encontrada"}
                                 </span>
                             )}
 
@@ -376,17 +380,21 @@ function Laudo() {
                             </span>
 
                             <span className="laudo-status">
-                                Análise concluída
+                                {carregandoIndices
+                                    ? "Carregando análise..."
+                                    : erroIndices
+                                        ? "Erro ao carregar análise"
+                                        : dataSelecionada
+                                            ? "Índices carregados"
+                                            : "Sem análise disponível"}
                             </span>
 
                         </div>
 
                         <p>
-                            Com base na análise realizada, foram
-                            identificados indícios de alterações na
-                            saúde da lavoura. Recomenda-se a avaliação
-                            das condições apresentadas e o
-                            acompanhamento periódico da área.
+                            Os índices disponíveis são apresentados abaixo.
+                            Registre a interpretação da análise nas observações
+                            técnicas e as orientações nas recomendações.
                         </p>
 
                     </div>
@@ -400,6 +408,8 @@ function Laudo() {
                     <h2 className="laudo-section-title">
                         Indicadores da Lavoura
                     </h2>
+
+                    {erroIndices && <p role="alert">{erroIndices}</p>}
 
                     <div className="laudo-resultados">
 
