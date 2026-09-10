@@ -192,6 +192,22 @@
         box-shadow 0.15s ease;
 }
 
+.mapa-data-titulo {
+  display: block;
+
+  margin: 0 0 14px;
+
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+
+  color: var(--ink-soft, inherit);
+
+  border-bottom: 1px solid var(--border-strong);
+  padding-bottom: 10px;
+}
+
 
 /* =========================================================
    ITEM DE DATA
