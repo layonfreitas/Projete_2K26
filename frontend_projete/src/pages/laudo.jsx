@@ -64,7 +64,7 @@ function Laudo() {
         async function carregarDatas() {
             try {
                 const resp = await fetch(
-                    `${AUTH_API_URL}/imagens/${lavouraId}?usuario_id=${usuarioId}`
+                    `${AUTH_API_URL}/indices_vegetacao/${lavouraId}`
                 );
                 const imagens = await resp.json();
 
