@@ -69,6 +69,23 @@ function ClimaBanner({ lavouras }) {
     navigate(`/laudo/${lavouraSelecionada.id}`);
   }
 
+  function visualizarLavoura(){
+    if (!lavouraSelecionada) return;
+
+    // Salva os dados da lavoura selecionada
+    localStorage.setItem("lavouraId", lavouraSelecionada.id);
+    localStorage.setItem(
+      "lavouraNome",
+      lavouraSelecionada.nomeLavoura
+    );
+    
+    // Salva as coordenadas
+    localStorage.setItem("lavouraLatitude", lavouraSelecionada.latitude);
+    localStorage.setItem("lavouraLongitude", lavouraSelecionada.longitude);
+
+    navigate("/mapa");
+  }
+
   function editarLavoura() {
     if (!lavouraSelecionada) return;
 
@@ -218,6 +235,15 @@ function ClimaBanner({ lavouras }) {
               onClick={editarLavoura}
             >
               Editar Lavoura
+            </button>
+          )}
+
+          {usuarioTipo === "agronomo" && (
+            <button
+              type="button"
+              onClick={visualizarLavoura}
+            >
+              Visualizar Lavoura
             </button>
           )}
 
