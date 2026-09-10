@@ -1,13 +1,18 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import logoCoffeeVision from "../assets/logo-coffeevision.png";
+import { AUTH_API_URL } from "../config/api";
 import "./laudo.css";
 
 function Laudo() {
     const navigate = useNavigate();
+    const { id } = useParams();
 
     const [observacoes, setObservacoes] = useState("");
     const [recomendacoes, setRecomendacoes] = useState("");
+
+    const [indices, setIndices] = useState({});
+    const [carregandoIndices, setCarregandoIndices] = useState(true);
 
     const produtorNome =
         localStorage.getItem("produtorSelecionadoNome") ||
@@ -16,6 +21,76 @@ function Laudo() {
     const lavouraNome =
         localStorage.getItem("lavouraNome") ||
         "Lavoura não selecionada";
+
+    // =========================================================
+    // BUSCAR OS VALORES REAIS DOS ÍNDICES (NDVI, NDRE, NDWI)
+    // =========================================================
+    useEffect(() => {
+        const lavouraId = id || localStorage.getItem("lavouraId");
+
+        const usuarioTipo = localStorage.getItem("usuarioTipo");
+        const usuarioId =
+            usuarioTipo === "agronomo"
+                ? localStorage.getItem("produtorSelecionadoId")
+                : localStorage.getItem("usuarioId");
+
+        if (!lavouraId || !usuarioId) {
+            setCarregandoIndices(false);
+            return;
+        }
+
+        async function carregarIndices() {
+            try {
+                // 1) descobre a data mais recente com imagens processadas
+                const respImagens = await fetch(
+                    `${AUTH_API_URL}/imagens/${lavouraId}?usuario_id=${usuarioId}`
+                );
+                const imagens = await respImagens.json();
+
+                if (!respImagens.ok || !imagens.length) {
+                    setCarregandoIndices(false);
+                    return;
+                }
+
+                const dataMaisRecente = imagens[0].data;
+
+                // 2) busca o valor de cada índice para essa data
+                const nomesIndices = ["NDVI", "NDRE", "NDWI"];
+
+                const resultados = await Promise.all(
+                    nomesIndices.map(async (nome) => {
+                        try {
+                            const resp = await fetch(
+                                `${AUTH_API_URL}/acessar_imagem?id=${lavouraId}` +
+                                `&usuario_id=${usuarioId}` +
+                                `&data=${dataMaisRecente}` +
+                                `&indice=${nome}`
+                            );
+                            const dados = await resp.json();
+                            return [nome, resp.ok ? dados.valor_indice : null];
+                        } catch {
+                            return [nome, null];
+                        }
+                    })
+                );
+
+                setIndices(Object.fromEntries(resultados));
+            } catch (erro) {
+                console.error("Erro ao carregar índices:", erro);
+            } finally {
+                setCarregandoIndices(false);
+            }
+        }
+
+        carregarIndices();
+    }, [id]);
+
+    const formatarIndice = (valor) => {
+        if (valor === null || valor === undefined) {
+            return carregandoIndices ? "..." : "--";
+        }
+        return Number(valor).toFixed(2);
+    };
 
     const gerarLaudo = () => {
         window.print();
@@ -151,9 +226,9 @@ function Laudo() {
                             <span className="laudo-result-label">
                                 NDVI
                             </span>
-<span className="laudo-result-value">
-    {indices.NDVI ?? "--"}
-</span>
+                            <span className="laudo-result-value">
+                                {formatarIndice(indices.NDVI)}
+                            </span>
 
                         </div>
 
@@ -165,7 +240,7 @@ function Laudo() {
                             </span>
 
                             <span className="laudo-result-value">
-                                0.54
+                                {formatarIndice(indices.NDRE)}
                             </span>
 
                         </div>
@@ -178,7 +253,7 @@ function Laudo() {
                             </span>
 
                             <span className="laudo-result-value">
-                                0.61
+                                {formatarIndice(indices.NDWI)}
                             </span>
 
                         </div>
