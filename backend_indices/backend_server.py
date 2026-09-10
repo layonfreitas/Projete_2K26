@@ -71,7 +71,6 @@ async def create_day_maps(day_req: Day_req):
             "mensagem": "A imagem já foi processada para a data disponivel."
         }
     
-     # será necessário implementar a lógica para verificar se já foram obtido os dados da data da imagem
     if imagemHoje==None:
          raise HTTPException(
             status_code=status.HTTP_200_OK,

@@ -3,6 +3,7 @@ from flask import Blueprint, request, jsonify
 cadastrar_imagens_bp = Blueprint('cadastrar_imagens', __name__)
 acessar_imagem_bp = Blueprint('acessar_imagem', __name__)
 listar_imagens_bp = Blueprint('listar_imagens', __name__)
+get_indices_valores_bp = Blueprint('get_indices_valores', __name__)
 mysql = None  # vai ser injetado pelo app.py
 
 def init_mysql(mysql_instance):
@@ -98,3 +99,10 @@ def listar_imagens(lavoura_id):
         return jsonify(resultado), 200
     except Exception as erro:
         return jsonify({"mensagem": "Erro ao buscar imagens", "erro": str(erro)}), 500
+
+
+@get_indices_valores_bp.route('/get_i_valor', methods =["GET"])
+def get_indice_valor():
+    id = request.args.get('id')
+    usuario_id = request.args.get('usuario_id')
+    indice = request.args.get('indice')
