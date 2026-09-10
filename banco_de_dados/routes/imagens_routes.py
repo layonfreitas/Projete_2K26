@@ -3,6 +3,7 @@ from flask import Blueprint, request, jsonify
 cadastrar_imagens_bp = Blueprint('cadastrar_imagens', __name__)
 acessar_imagem_bp = Blueprint('acessar_imagem', __name__)
 listar_imagens_bp = Blueprint('listar_imagens', __name__)
+get_indices_valores_bp = Blueprint('get_indices_valores', __name__)
 mysql = None  # vai ser injetado pelo app.py
 
 def init_mysql(mysql_instance):
@@ -49,11 +50,15 @@ def acessar_imagem():
         cursor.execute("SELECT coordenadas FROM lavouras WHERE id = %s AND usuario_id = %s", (id, usuario_id))
         linha_coordenadas = cursor.fetchone()
         coordenadas = linha_coordenadas[0]
-        cursor.execute("SELECT url_imagem FROM imagens WHERE lavoura_id = %s AND usuario_id = %s AND data_imagem= %s AND indice = %s", (id, usuario_id, data, indice))
+        cursor.execute(
+    "SELECT url_imagem, valor_indice FROM imagens WHERE lavoura_id = %s AND usuario_id = %s AND data_imagem = %s AND indice = %s",
+    (id, usuario_id, data, indice)
+)
         linha_url = cursor.fetchone()
         url = linha_url[0]
+        valor_indice = linha_url[1]
 
-        return jsonify({"coordenadas":coordenadas, "url": url}), 200
+        return jsonify({"coordenadas":coordenadas, "url": url, "valor_indice": valor_indice}), 200
 
 
     except Exception as erro:
@@ -94,3 +99,10 @@ def listar_imagens(lavoura_id):
         return jsonify(resultado), 200
     except Exception as erro:
         return jsonify({"mensagem": "Erro ao buscar imagens", "erro": str(erro)}), 500
+
+
+@get_indices_valores_bp.route('/get_i_valor', methods =["GET"])
+def get_indice_valor():
+    id = request.args.get('id')
+    usuario_id = request.args.get('usuario_id')
+    indice = request.args.get('indice')
