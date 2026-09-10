@@ -5,6 +5,7 @@ USE coffeeVision;
 -- tabela), senão o MySQL recusa apagar por causa da dependência.
 DROP TABLE IF EXISTS log_auditoria;
 DROP TABLE IF EXISTS avisos;
+DROP TABLE IF EXISTS indices_vegetacao;
 DROP TABLE IF EXISTS imagens;
 DROP TABLE IF EXISTS observacoes;
 DROP TABLE IF EXISTS vinculos_agronomo;
@@ -76,7 +77,24 @@ CREATE TABLE imagens (
     url_imagem TEXT NOT NULL,
     data_imagem DATE NOT NULL,
     indice VARCHAR(100) DEFAULT NULL,
+    valor_indice DECIMAL(10,6) DEFAULT NULL,
     FOREIGN KEY (lavoura_id) REFERENCES lavouras(id)
+);
+
+-- ================================================================
+-- INDICES_VEGETACAO (histórico dos valores: NDVI, NDRE, NDWI)
+-- ================================================================
+CREATE TABLE indices_vegetacao (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    lavoura_id INT NOT NULL,
+    imagem_id INT DEFAULT NULL,
+    tipo_indice ENUM('NDVI', 'NDRE', 'NDWI') NOT NULL,
+    valor DECIMAL(10,6) NOT NULL,
+    data_referencia DATE NOT NULL,
+    criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (lavoura_id) REFERENCES lavouras(id),
+    FOREIGN KEY (imagem_id) REFERENCES imagens(id),
+    UNIQUE KEY uq_lavoura_indice_data (lavoura_id, tipo_indice, data_referencia)
 );
 
 -- ================================================================

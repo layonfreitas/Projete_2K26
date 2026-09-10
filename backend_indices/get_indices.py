@@ -90,6 +90,33 @@ circulo = ee.Geometry.Polygon(
     [[-47.128682747679925,-20.913375590806897],[-47.12973417361376,-20.914959063640662],[-47.13003458102343,-20.9162218211294],[-47.129905834990716,-20.917564742026084],[-47.12891825400964,-20.91936408666854],[-47.127104967282946,-20.920566387514505],[-47.12584969346398,-20.92077683996215],[-47.12351080720299,-20.92036595633726],[-47.1228456193673,-20.919925006803858],[-47.121901481794055,-20.91915334199897],[-47.12108650037666,-20.917511951253836],[-47.121037658584136,-20.916210642921254],[-47.121590800193694,-20.914155188299873],[-47.123092837242034,-20.91278217064744],[-47.12523662204091,-20.91220411947541],[-47.12716781253163,-20.912524826690298],[-47.127854458039444,-20.913166239062257]]
 )
 
+def save_indice_valor(
+    lavoura_id: int,
+    tipo_indice: str,
+    valor,
+    data_referencia: str,
+    imagem_id=None,
+):
+    """Grava o valor numérico de um índice (NDVI/NDRE/NDWI) em
+    indices_vegetacao. Separado de save_image_indatabase porque um
+    valor pode existir sem imagem, e vice-versa."""
+    dados = {
+        "lavouraId": lavoura_id,
+        "imagemId": imagem_id,
+        "tipoIndice": tipo_indice,
+        "valor": valor,
+        "dataReferencia": data_referencia,
+    }
+
+    json_string = json.dumps(dados)
+    resposta = requests.post(
+        url=os.environ.get("DATABASE_URL") + "/indices_vegetacao",
+        data=json_string,
+        headers={"Content-Type": "application/json"},
+    )
+    print(f"Índice {tipo_indice} ({data_referencia}) salvo: {resposta.status_code} - {resposta.text}")
+
+
 def get_indices_image(geometria, data_alvo, janela, nuvem_maxima):
     data_inicio = ee.Date(data_alvo).advance(-janela, "day")
     data_fim = ee.Date(data_alvo).advance(janela, "day")
@@ -190,3 +217,10 @@ def save_indice_map(    imagem,
     lavoura_id,
     data,
     valores_indices.get(indice))
+
+    save_indice_valor(
+        lavoura_id=lavoura_id,
+        tipo_indice=indice,
+        valor=valores_indices.get(indice),
+        data_referencia=data,
+    )

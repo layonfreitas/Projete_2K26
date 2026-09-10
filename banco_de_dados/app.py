@@ -10,6 +10,7 @@ from routes.imagens_routes import cadastrar_imagens_bp, init_mysql as init_image
 from routes.imagens_routes import listar_imagens_bp, init_mysql as init_imagens_mysql
 from routes.imagens_routes import acessar_imagem_bp, init_mysql as init_imagens_mysql
 from routes.cooperativa_routes import cooperativa_bp, init_mysql as init_cooperativa_mysql
+from routes.indices_routes import indices_bp, init_mysql as init_indices_mysql
 
 
 app = Flask(__name__)
@@ -23,6 +24,7 @@ init_senha_mysql(mysql)
 init_agronomo_mysql(mysql)
 init_imagens_mysql(mysql)
 init_cooperativa_mysql(mysql)  # também inicializa auth_utils internamente
+init_indices_mysql(mysql)
 
 app.register_blueprint(agronomo_bp)
 app.register_blueprint(auth_bp)
@@ -32,5 +34,6 @@ app.register_blueprint(cadastrar_imagens_bp)
 app.register_blueprint(cooperativa_bp)
 app.register_blueprint(listar_imagens_bp)
 app.register_blueprint(acessar_imagem_bp)
+app.register_blueprint(indices_bp)
 if __name__ == '__main__':
     app.run(debug=True, port=5000)

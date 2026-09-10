@@ -19,6 +19,13 @@
   --border: #e4dcc9;
   --border-strong: #d3c7ab;
 
+  /* aliases usados na página de laudo (laudo.css espera esses nomes
+     genéricos, mas o projeto usa os nomes temáticos acima) */
+  --primary: var(--canopy);
+  --text: var(--ink);
+  --text-muted: var(--ink-soft);
+  --background: var(--parchment);
+
   /* tipografia */
   --font-display: "Poppins", var(--font-body);
   --font-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
