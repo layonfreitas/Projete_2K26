@@ -123,6 +123,8 @@ def get_indices_image(geometria, data_alvo, janela, nuvem_maxima):
     ndvi = imagem.normalizedDifference(["B8", "B4"]).rename("NDVI")
     ndre = imagem.normalizedDifference(["B8", "B5"]).rename("NDRE")
     ndwi = imagem.normalizedDifference(["B8", "B11"]).rename("NDWI")
+    clmi = imagem.select('B4').subtract(imagem.select('B2')).multiply(352).subtract(imagem.select('B8').subtract(imagem.select('B2')).multiply(175)).divide(2).rename('CLMI')
+
 #     ndre = (
 #     imagem.select("B8")
 #     .subtract(b5_10m)
@@ -131,14 +133,14 @@ def get_indices_image(geometria, data_alvo, janela, nuvem_maxima):
 # )
 
     return (
-        imagem.addBands([ndvi, ndre,ndwi])
+        imagem.addBands([ndvi, ndre,ndwi, clmi])
         .updateMask(mascara)
         .clip(geometria)
         .set("data_imagem", imagem.date().format("YYYY-MM-dd"))
     )
 
 def obter_valores_indices(imagem, geometria):
-    valores = imagem.select(["NDVI", "NDRE", "NDWI"]).reduceRegion(
+    valores = imagem.select(["NDVI", "NDRE", "NDWI", "CLMI"]).reduceRegion(
         reducer=ee.Reducer.mean(),
         geometry=geometria,
         scale=30,
