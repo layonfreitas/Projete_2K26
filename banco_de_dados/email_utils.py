@@ -1,19 +1,22 @@
-"""
-Envio de e-mail genérico via Brevo, reaproveitável por qualquer rota
-(avisos da cooperativa, notificação de observação do agrônomo, etc).
 
-A lógica é a mesma que já existia em routes/senha_routes.py
-(enviar_email_codigo) — só generalizada pra aceitar assunto/conteúdo
-customizados, ao invés de ficar presa ao fluxo de recuperação de senha.
-"""
 
 import requests
 from flask import current_app
 
 
-def enviar_email(destinatario, assunto, html, texto):
-    """Envia um e-mail via Brevo. Lança exceção se a Brevo recusar
-    (quem chamar decide se quer capturar isso ou deixar propagar)."""
+def enviar_email(destinatario, assunto, html, texto, anexos=None):
+
+    payload = {
+        "sender": {"email": current_app.config['BREVO_EMAIL_REMETENTE'], "name": "CoffeeVision"},
+        "to": [{"email": destinatario}],
+        "subject": assunto,
+        "htmlContent": html,
+        "textContent": texto,
+    }
+
+    if anexos:
+        payload["attachment"] = anexos
+
     resposta = requests.post(
         "https://api.brevo.com/v3/smtp/email",
         headers={
@@ -21,13 +24,7 @@ def enviar_email(destinatario, assunto, html, texto):
             "Content-Type": "application/json",
             "Accept": "application/json",
         },
-        json={
-            "sender": {"email": current_app.config['BREVO_EMAIL_REMETENTE'], "name": "CoffeeVision"},
-            "to": [{"email": destinatario}],
-            "subject": assunto,
-            "htmlContent": html,
-            "textContent": texto,
-        },
+        json=payload,
     )
 
     if resposta.status_code >= 300:
@@ -35,8 +32,7 @@ def enviar_email(destinatario, assunto, html, texto):
 
 
 def _moldura_html(titulo, corpo_html):
-    """Mesma moldura visual do e-mail de recuperação de senha
-    (cabeçalho marrom com ☕ CoffeeVision), reaproveitada aqui."""
+
     return f"""\
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -94,5 +90,26 @@ def montar_email_observacao(nome_agronomo, nome_lavoura, texto_observacao):
     texto = (
         f"O agrônomo {nome_agronomo} registrou uma observação na lavoura {nome_lavoura}:\n\n"
         f"{texto_observacao}"
+    )
+    return html, texto
+
+
+def montar_email_laudo(nome_produtor, nome_lavoura, nome_remetente):
+    """E-mail que acompanha o laudo técnico em PDF anexado."""
+    html = _moldura_html(
+        "Laudo técnico da sua lavoura",
+        f'<p style="margin:0 0 16px 0; font-size:15px; line-height:1.6; color:#5C4A3A;">'
+        f'Olá, {nome_produtor}! Segue em anexo o laudo técnico da lavoura '
+        f'<strong>{nome_lavoura}</strong>, gerado por {nome_remetente} no CoffeeVision.</p>'
+        f'<p style="margin:0; font-size:14px; line-height:1.6; color:#5C4A3A;">'
+        f'Abra o arquivo PDF anexado a este e-mail para ver os indicadores, '
+        f'observações e recomendações técnicas registradas na análise.</p>'
+    )
+    texto = (
+        f"Olá, {nome_produtor}!\n\n"
+        f"Segue em anexo o laudo técnico da lavoura {nome_lavoura}, "
+        f"gerado por {nome_remetente} no CoffeeVision.\n\n"
+        f"Abra o arquivo PDF anexado para ver os indicadores, observações "
+        f"e recomendações técnicas registradas na análise."
     )
     return html, texto
