@@ -411,6 +411,22 @@
     transform: translateY(-1px);
 }
 
+.laudo-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.laudo-mensagem-envio {
+    margin: 18px 0 0 0;
+    padding: 12px 16px;
+    border-radius: 9px;
+    background: #F3ECE3;
+    color: #3A2A1A;
+    font-size: 14px;
+    text-align: right;
+}
+
 .laudo-btn-secondary {
     background: #ffffff;
     color: #222222;
