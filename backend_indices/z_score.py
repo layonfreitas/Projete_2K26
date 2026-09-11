@@ -4,6 +4,7 @@ import os
 import cloudinary
 from dotenv import load_dotenv
 from get_indices import save_image_indatabase
+from georreferencia import preparar_exportacao
 
 load_dotenv()
 
@@ -86,6 +87,7 @@ def salvar_mapa_z_score(imagem, nome_indice,  usuario_id, lavoura__id,  geometri
 
     imagem_visualizacao = (
         z_score_classificado
+        .updateMask(indice.mask())
         .clip(geometria)
         .visualize(**parametros_visualizacao)
     )
@@ -94,10 +96,7 @@ def salvar_mapa_z_score(imagem, nome_indice,  usuario_id, lavoura__id,  geometri
 
     nome_arquivo = f"z-score-{nome_indice}_{data_imagem}"
 
-    url = imagem_visualizacao.getThumbURL({
-        "region": geometria,
-        "dimensions": 1024,
-        "format": "png"
-    })
+    parametros, metadados = preparar_exportacao(geometria, usuario_id, lavoura__id)
+    url = imagem_visualizacao.getThumbURL(parametros)
 
-    save_image_indatabase(url, nome_arquivo, pasta_id, usuario_id, lavoura__id, data_imagem, None )
+    save_image_indatabase(url, nome_arquivo, pasta_id, usuario_id, lavoura__id, data_imagem, None, georreferencia=metadados)

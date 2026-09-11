@@ -6,6 +6,7 @@ import requests
 import cloudinary
 import cloudinary.uploader
 from dotenv import load_dotenv
+from georreferencia import preparar_exportacao
 
 
 
@@ -31,10 +32,11 @@ def save_image_indatabase(    imagem,
     usuario_id: int,
     lavoura_id: int,
     data_imagem: str,
-    valor_indice):
+    valor_indice,
+    georreferencia=None):
     response = cloudinary.uploader.upload(
             imagem,
-            public_id=nome_arquivo,
+            public_id=f"usuario_{usuario_id}_lavoura_{lavoura_id}_{nome_arquivo}",
             folder=pasta_id,
             overwrite=True,
             resource_type="image"
@@ -48,13 +50,15 @@ def save_image_indatabase(    imagem,
         "dataImagem": data_imagem,
         "urlImagem": response['secure_url'],
         "indice" : nome_arquivo.split('_')[0],  # Extrai o índice do nome do arquivo
-        "valorIndice": valor_indice
+        "valorIndice": valor_indice,
+        "georreferencia": georreferencia
         
 
     }  
 
     json_string = json.dumps(dados)
     resposta = requests.post(url = os.environ.get("DATABASE_URL") + "/imagens", data=json_string, headers={"Content-Type": "application/json"})
+    resposta.raise_for_status()
     print(f"Resposta do banco de dados: {resposta.status_code} - {resposta.text}")
 
 
@@ -119,7 +123,7 @@ def save_indice_valor(
 
 def get_indices_image(geometria, data_alvo, janela, nuvem_maxima):
     data_inicio = ee.Date(data_alvo).advance(-janela, "day")
-    data_fim = ee.Date(data_alvo).advance(janela, "day")
+    data_fim = ee.Date(data_alvo).advance(janela if janela > 0 else 1, "day")
 
     colecao = (
         ee.ImageCollection("COPERNICUS/S2_SR_HARMONIZED")
@@ -183,7 +187,7 @@ def save_indice_map(    imagem,
     geometria,
     usuario_id: int,
     lavoura_id: int,
-    valores_indices,
+    valores_indices=None,
     pasta_id=os.environ.get("MAPAS_INDICES_FOLDER")):
 
     data = imagem.date().format('YYYY-MM-dd').getInfo()
@@ -204,11 +208,10 @@ def save_indice_map(    imagem,
     
     indiceColorido = imagem_indice.visualize(**VisParams)
 
-    url_indice = indiceColorido.getThumbURL({
-        "region": geometria,
-        "dimensions": 1024,
-        "format": "png"
-    })
+    parametros, metadados = preparar_exportacao(geometria, usuario_id, lavoura_id)
+    url_indice = indiceColorido.clip(geometria).getThumbURL(parametros)
+    if valores_indices is None:
+        valores_indices = obter_valores_indices(imagem, geometria)
 
     save_image_indatabase(    url_indice,
     nome_arquivo,
@@ -216,7 +219,8 @@ def save_indice_map(    imagem,
     usuario_id,
     lavoura_id,
     data,
-    valores_indices.get(indice))
+    valores_indices.get(indice),
+    georreferencia=metadados)
 
     save_indice_valor(
         lavoura_id=lavoura_id,

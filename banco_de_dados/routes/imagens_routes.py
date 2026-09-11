@@ -1,68 +1,120 @@
+import json
+import math
 from flask import Blueprint, request, jsonify
 
 cadastrar_imagens_bp = Blueprint('cadastrar_imagens', __name__)
 acessar_imagem_bp = Blueprint('acessar_imagem', __name__)
 listar_imagens_bp = Blueprint('listar_imagens', __name__)
 get_indices_valores_bp = Blueprint('get_indices_valores', __name__)
-mysql = None  # vai ser injetado pelo app.py
+mysql = None
+
 
 def init_mysql(mysql_instance):
     global mysql
     mysql = mysql_instance
 
 
+def validar_georreferencia(meta, usuario_id, lavoura_id):
+    if not isinstance(meta, dict) or meta.get('versao') != 1 or meta.get('crs') != 'EPSG:3857':
+        raise ValueError('Georreferência inválida.')
+    if int(meta['usuarioId']) != int(usuario_id) or int(meta['lavouraId']) != int(lavoura_id):
+        raise ValueError('A imagem pertence a outra lavoura ou usuário.')
+    (sul, oeste), (norte, leste) = meta['bounds']
+    if not all(isinstance(v, (int, float)) and math.isfinite(v) for v in [sul, oeste, norte, leste]):
+        raise ValueError('Limites inválidos.')
+    if not (-85 < sul < norte < 85 and -180 <= oeste < leste <= 180):
+        raise ValueError('Limites inválidos.')
+    geometria = meta.get('geometria')
+    if not isinstance(geometria, dict) or geometria.get('type') != 'Polygon' or not geometria.get('coordinates'):
+        raise ValueError('Geometria da imagem ausente.')
+
+
 @cadastrar_imagens_bp.route('/imagens', methods=['POST'])
 def cadastrar_imagem():
-    dados = request.get_json()
+    dados = request.get_json(silent=True) or {}
     usuario_id = dados.get('usuarioId')
     lavoura_id = dados.get('lavouraId')
     data_imagem = dados.get('dataImagem')
     url_imagem = dados.get('urlImagem')
-    indice = dados.get('indice')  # Novo campo para o índice
-    valor_indice = dados.get('valorIndice')  # Novo campo para o valor do índice
-
-    # validação básica
-    if not usuario_id or not data_imagem or not url_imagem or not lavoura_id:
-        return jsonify({"mensagem": "Todos os campos são obrigatórios"}), 400
-
+    indice = dados.get('indice')
+    valor_indice = dados.get('valorIndice')
+    meta = dados.get('georreferencia')
+    if not all([usuario_id, lavoura_id, data_imagem, url_imagem, indice]):
+        return jsonify({'mensagem': 'Todos os campos são obrigatórios.'}), 400
+    if meta is not None:
+        try:
+            validar_georreferencia(meta, usuario_id, lavoura_id)
+        except (ValueError, TypeError, KeyError):
+            return jsonify({'mensagem': 'Georreferência inválida.'}), 400
+    cursor = None
     try:
         cursor = mysql.connection.cursor()
+        cursor.execute('SELECT id FROM lavouras WHERE id = %s AND usuario_id = %s', (lavoura_id, usuario_id))
+        if not cursor.fetchone():
+            return jsonify({'mensagem': 'Lavoura não encontrada.'}), 404
+        chave = (lavoura_id, usuario_id, data_imagem, indice)
         cursor.execute(
-            "INSERT INTO imagens (usuario_id, lavoura_id, data_imagem, url_imagem, indice, valor_indice) VALUES (%s, %s, %s, %s, %s, %s)",
-            (usuario_id, lavoura_id, data_imagem, url_imagem, indice, valor_indice)
+            'SELECT id FROM imagens WHERE lavoura_id = %s AND usuario_id = %s AND data_imagem = %s AND indice = %s LIMIT 1', chave
         )
+        existente = cursor.fetchone()
+        meta_json = json.dumps(meta) if meta is not None else None
+        if existente and meta is not None:
+            # Preserva IDs e referências. Corrige duplicatas antigas da mesma chave.
+            cursor.execute(
+                'UPDATE imagens SET url_imagem = %s, valor_indice = %s, georreferencia = %s '
+                'WHERE lavoura_id = %s AND usuario_id = %s AND data_imagem = %s AND indice = %s',
+                (url_imagem, valor_indice, meta_json, *chave)
+            )
+        else:
+            cursor.execute(
+                'INSERT INTO imagens (usuario_id, lavoura_id, data_imagem, url_imagem, indice, valor_indice, georreferencia) '
+                'VALUES (%s, %s, %s, %s, %s, %s, %s)',
+                (usuario_id, lavoura_id, data_imagem, url_imagem, indice, valor_indice, meta_json)
+            )
         mysql.connection.commit()
-        cursor.close()
-        return jsonify({"mensagem": "Imagem cadastrada com sucesso"}), 201
+        return jsonify({'mensagem': 'Imagem salva com sucesso.'}), 200 if existente else 201
     except Exception as erro:
-        return jsonify({"mensagem": "Erro ao cadastrar imagem", "erro": str(erro)}), 500
-    
+        mysql.connection.rollback()
+        return jsonify({'mensagem': 'Erro ao salvar imagem.', 'erro': str(erro)}), 500
+    finally:
+        if cursor is not None:
+            cursor.close()
+
 
 @acessar_imagem_bp.route('/acessar_imagem', methods=['GET'])
 def acessar_imagem():
-    id = request.args.get('id')
+    lavoura_id = request.args.get('id')
     usuario_id = request.args.get('usuario_id')
     data = request.args.get('data')
     indice = request.args.get('indice')
-
+    if not all([lavoura_id, usuario_id, data, indice]):
+        return jsonify({'mensagem': 'Informe id, usuario_id, data e indice.'}), 400
+    cursor = None
     try:
         cursor = mysql.connection.cursor()
-        cursor.execute("SELECT coordenadas FROM lavouras WHERE id = %s AND usuario_id = %s", (id, usuario_id))
-        linha_coordenadas = cursor.fetchone()
-        coordenadas = linha_coordenadas[0]
+        cursor.execute('SELECT coordenadas FROM lavouras WHERE id = %s AND usuario_id = %s', (lavoura_id, usuario_id))
+        lavoura = cursor.fetchone()
+        if not lavoura:
+            return jsonify({'mensagem': 'Lavoura não encontrada.'}), 404
         cursor.execute(
-    "SELECT url_imagem, valor_indice FROM imagens WHERE lavoura_id = %s AND usuario_id = %s AND data_imagem = %s AND indice = %s",
-    (id, usuario_id, data, indice)
-)
-        linha_url = cursor.fetchone()
-        url = linha_url[0]
-        valor_indice = linha_url[1]
-
-        return jsonify({"coordenadas":coordenadas, "url": url, "valor_indice": valor_indice}), 200
-
-
+            'SELECT url_imagem, valor_indice, georreferencia FROM imagens '
+            'WHERE lavoura_id = %s AND usuario_id = %s AND data_imagem = %s AND indice = %s '
+            'ORDER BY (georreferencia IS NOT NULL) DESC, id DESC LIMIT 1',
+            (lavoura_id, usuario_id, data, indice)
+        )
+        linha = cursor.fetchone()
+        if not linha:
+            return jsonify({'mensagem': 'Imagem não encontrada.'}), 404
+        meta = json.loads(linha[2]) if isinstance(linha[2], (str, bytes)) else linha[2]
+        return jsonify({
+            'coordenadas': lavoura[0], 'url': linha[0], 'valor_indice': linha[1],
+            'georreferencia': meta,
+        }), 200
     except Exception as erro:
-        return jsonify({"mensagem": "Não foi possível encontrar dos dados.", "erro": str(erro)}),500
+        return jsonify({'mensagem': 'Não foi possível encontrar os dados.', 'erro': str(erro)}), 500
+    finally:
+        if cursor is not None:
+            cursor.close()
 
 
 @listar_imagens_bp.route('/imagens/<int:lavoura_id>', methods=['GET'])
