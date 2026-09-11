@@ -50,11 +50,54 @@ def processar_lavoura(lavoura):
     lavoura_id = lavoura["id"]
     geometria = ee.Geometry.Polygon(normalizar_coordenadas(lavoura["coordenadas"]))
 
-    imagem_hoje = get_indices_image(geometria, date.today().isoformat(), 5, 30)
+    print(f"  -> iniciando lavoura {lavoura_id} - usuário {usuario_id}")
+
+    imagem_hoje = get_indices_image(
+        geometria,
+        date.today().isoformat(),
+        5,
+        30
+    )
 
     if imagem_hoje is None:
-        print(f"  -> lavoura {lavoura_id}: nenhuma imagem válida encontrada hoje")
+        print(
+            f"  -> lavoura {lavoura_id}: "
+            "nenhuma cena abaixo de 30% de nuvens. Tentando até 60%..."
+        )
+
+        imagem_hoje = get_indices_image(
+            geometria,
+            date.today().isoformat(),
+            5,
+            60
+        )
+
+    if imagem_hoje is None:
+        print(
+            f"  -> lavoura {lavoura_id}: "
+            "nenhuma cena abaixo de 60%. Tentando qualquer cena disponível..."
+        )
+
+        imagem_hoje = get_indices_image(
+            geometria,
+            date.today().isoformat(),
+            5,
+            100
+        )
+
+    if imagem_hoje is None:
+        print(
+            f"  -> LAVOURA {lavoura_id}: "
+            "nenhuma imagem Sentinel-2 encontrada na janela de datas."
+        )
         return
+
+    data_encontrada = imagem_hoje.date().format("YYYY-MM-dd").getInfo()
+
+    print(
+        f"  -> lavoura {lavoura_id}: "
+        f"imagem encontrada em {data_encontrada}"
+    ) 
 
     valores_indices = obter_valores_indices(imagem_hoje, geometria)
     print(f"  -> lavoura {lavoura_id}: índices reais:")
