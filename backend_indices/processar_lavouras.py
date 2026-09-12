@@ -17,7 +17,7 @@ def buscar_todas_lavouras():
     return resposta.json()
 
 
-def processar_lavoura(lavoura, data_alvo=None, janela=5, indices=None, geometria=None):
+def processar_lavoura(lavoura, data_alvo=None, janela=30, indices=None, geometria=None):
     inicializar_ee()
     if geometria is None: geometria = criar_geometria(lavoura['coordenadas'])
     alvo = data_alvo or date.today().isoformat()
