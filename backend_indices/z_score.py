@@ -1,102 +1,37 @@
+"""Z-score robusto dentro da lavoura; máscara e grade herdadas do índice."""
+import math
 import ee
-import google.auth
-import os
-import cloudinary
-from dotenv import load_dotenv
-from get_indices import save_image_indatabase
-from georreferencia import preparar_exportacao
+from get_indices import SemDadosValidos, exportar_png, save_image_indatabase
 
-load_dotenv()
+PALETA = ['93c5fd','fbbf24','dc2626','86efac','166534']
+ROTULOS = ['Faixa central (−2 a 2)','Baixo (−3,5 a −2)','Muito baixo (< −3,5)',
+           'Alto (2 a 3,5)','Muito alto (> 3,5)']
 
-cloudinary.config(
-    cloud_name=os.environ.get("CLOUDINARY_CLOUD_NAME"),
-    api_key=os.environ.get("CLOUDINARY_API_KEY"),
-    api_secret=os.environ.get("CLOUDINARY_API_SECRET"),
-    secure=True
-)
 
-from gee_auth import obter_credenciais
+def calcular_z_score(indice,geometria):
+    banda = indice.bandNames().getInfo()[0]
+    parametros = dict(geometry=geometria,crs=indice.projection(),scale=10,maxPixels=1e8)
+    mediana = indice.reduceRegion(reducer=ee.Reducer.median(),**parametros).getInfo().get(banda)
+    if mediana is None or not math.isfinite(float(mediana)):
+        raise SemDadosValidos('Z-score: não há pixels válidos nesta data.')
+    diferenca = indice.subtract(mediana)
+    mad = diferenca.abs().reduceRegion(reducer=ee.Reducer.median(),**parametros).getInfo().get(banda)
+    if mad is None or not math.isfinite(float(mad)) or mad <= 1e-9:
+        raise SemDadosValidos('Z-score indisponível: variação insuficiente (MAD zero). Use o índice original.')
+    z = diferenca.multiply(0.6745).divide(mad)
+    # Não inicia com ee.Image(0), que tem grade e footprint próprios.
+    classes = (indice.multiply(0).add(1)
+        .where(z.lt(-2).And(z.gte(-3.5)),2).where(z.lt(-3.5),3)
+        .where(z.gt(2).And(z.lte(3.5)),4).where(z.gt(3.5),5)
+        .updateMask(z.mask()).clip(geometria))
+    return classes, {'mediana':mediana,'mad':mad}
 
-credentials, project_id = obter_credenciais()
-ee.Initialize(credentials, project="projete2k26")
 
-def salvar_mapa_z_score(imagem, nome_indice,  usuario_id, lavoura__id,  geometria, pasta_id = os.environ.get("MAPAS_INDICES_FOLDER")):
-
-    indice = imagem.select(nome_indice)
-
-    mediana = indice.reduceRegion(
-        reducer=ee.Reducer.median(),
-        geometry=geometria,
-        scale=10,
-        maxPixels=1e9
-    )
-
-    imagem_mediana = mediana.toImage(indice.bandNames())
-
-    desvio_absoluto = indice.subtract(imagem_mediana).abs()
-
-    mad = desvio_absoluto.reduceRegion(
-        reducer=ee.Reducer.median(),
-        geometry=geometria,
-        scale=10,
-        maxPixels=1e9
-    )
-
-    imagem_mad = mad.toImage(indice.bandNames())
-
-    z_score = indice.subtract(imagem_mediana).multiply(0.6745).divide(imagem_mad)
-
-    z_score_classificado = ee.Image(0)
-
-    z_score_classificado = z_score_classificado.where(
-        z_score.gte(-2).And(z_score.lte(2)),
-        1
-    )
-
-    z_score_classificado = z_score_classificado.where(
-        z_score.lt(-2).And(z_score.gte(-3.5)),
-        2
-    )
-
-    z_score_classificado = z_score_classificado.where(
-        z_score.lt(-3.5),
-        3
-    )
-
-    z_score_classificado = z_score_classificado.where(
-        z_score.gt(2).And(z_score.lte(3.5)),
-        4
-    )
-
-    z_score_classificado = z_score_classificado.where(
-        z_score.gt(3.5),
-        5
-    )
-
-    parametros_visualizacao = {
-        "min": 1,
-        "max": 5,
-        "palette": [
-            "ffffff",
-            "fff176",
-            "d50000",
-            "81c784",
-            "1b5e20"
-        ]
-    }
-
-    imagem_visualizacao = (
-        z_score_classificado
-        .updateMask(indice.mask())
-        .clip(geometria)
-        .visualize(**parametros_visualizacao)
-    )
-
-    data_imagem = ee.Date(imagem.get("system:time_start")).format("yyyy-MM-dd").getInfo()
-
-    nome_arquivo = f"z-score-{nome_indice}_{data_imagem}"
-
-    parametros, metadados = preparar_exportacao(geometria, usuario_id, lavoura__id)
-    url = imagem_visualizacao.getThumbURL(parametros)
-
-    save_image_indatabase(url, nome_arquivo, pasta_id, usuario_id, lavoura__id, data_imagem, None, georreferencia=metadados)
+def salvar_mapa_z_score(imagem,nome_indice,usuario_id,lavoura__id,geometria,pasta_id=None):
+    classes,estatisticas = calcular_z_score(imagem.select(nome_indice),geometria)
+    conteudo,meta = exportar_png(classes.visualize(min=1,max=5,palette=PALETA),
+        geometria,usuario_id,lavoura__id,imagem)
+    meta['visualizacao'] = {'tipo':'zscore','palette':PALETA,'rotulos':ROTULOS,**estatisticas}
+    data = imagem.date().format('YYYY-MM-dd').getInfo()
+    return save_image_indatabase(conteudo,f'z-score-{nome_indice}_{data}',pasta_id,
+        usuario_id,lavoura__id,data,None,meta)

@@ -506,3 +506,29 @@
   }
 
 }
+/* Histórico: controles e legenda fora do mapa para funcionar também no celular. */
+.historico-aba.ativa { border-bottom-color: var(--canopy); font-weight: 700; }
+.historico-visualizacao { min-width: 0; }
+.historico-filtros { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+.historico-filtros select, .historico-filtros button, .historico-atualizar, .mapas-erro button { padding: 9px 12px; border-radius: 6px; border: 1px solid var(--border-strong); font: inherit; background: var(--surface, #fff); color: var(--ink, #163025); cursor: pointer; }
+.historico-filtros button[aria-pressed="true"] { background: var(--canopy, #28533c); color: white; }
+.historico-filtros button:disabled { opacity: .45; cursor: default; }
+.historico-status { position: absolute; z-index: 800; top: 15px; right: 15px; background: white; color: #163025; padding: 12px; border-radius: 8px; }
+.mapas-erro { width: min(85%, 400px); }
+.mapas-erro button { display: block; margin: 12px auto 0; }
+.mapa-data small { display: block; margin-top: 8px; color: var(--ink-soft, #496554); }
+.historico-legenda { display: flex; flex-direction: column; gap: 10px; background: var(--surface, #fff); border: 1px solid var(--border-strong, #cad6ce); padding: 16px; border-radius: 10px; margin-top: 12px; font-size: 13px; }
+.historico-legenda label { display: flex; align-items: center; gap: 12px; }
+.historico-cores { display: flex; flex-wrap: wrap; gap: 10px 18px; }
+.historico-cores span { display: inline-flex; align-items: center; gap: 6px; }
+.historico-cores i { display: inline-block; width: 14px; height: 14px; border: 1px solid #0002; border-radius: 3px; }
+.historico-escala { display: flex; align-items: center; gap: 10px; max-width: 300px; }
+.historico-escala div { height: 12px; border-radius: 4px; flex: 1; }
+@media (max-width: 800px) {
+  .historico-conteudo { padding-left: 16px; padding-right: 16px; }
+  .mapas-mapa, .mapas-mapa-container { min-height: 420px; height: 420px; }
+  .mapas-datas { max-height: 200px; }
+}
+
+.historico-atualizar { white-space: nowrap; flex-shrink: 0; }
+.historico-legenda input[type="range"] { max-width: 300px; }

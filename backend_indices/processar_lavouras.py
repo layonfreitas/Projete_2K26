@@ -1,135 +1,68 @@
-import os
-import traceback
+"""Processamento por lavoura; falhas de um índice não interrompem os demais."""
 from datetime import date
-
+import logging
 import requests
-import ee
-import google.auth
-from dotenv import load_dotenv
-
-from get_indices import get_indices_image, save_indice_map, obter_valores_indices
+from get_indices import (get_indices_image,save_indice_map,obter_valores_indices,
+                         api_url,SemDadosValidos,INDICES)
 from z_score import salvar_mapa_z_score
-from gee_auth import obter_credenciais
+from georreferencia import normalizar_coordenadas,criar_geometria
+from gee_auth import inicializar_ee
 
-load_dotenv()
-
-credentials, project_id = obter_credenciais()
-ee.Initialize(credentials, project="projete2k26")
-
-indices = ["NDVI", "NDRE", "NDWI"]
+log = logging.getLogger(__name__)
 
 
 def buscar_todas_lavouras():
-    url = os.environ.get("DATABASE_URL") + "/lavouras"
-    resposta = requests.get(url, timeout=30)
+    resposta = requests.get(api_url('/lavouras'),timeout=(15,60))
     resposta.raise_for_status()
     return resposta.json()
 
 
-def normalizar_coordenadas(coordenadas):
-    """
-    O restante do sistema (tela de cadastro, edição, banco de dados) guarda
-    cada ponto como {"lat": ..., "lng": ...}. O Earth Engine, por outro lado,
-    exige uma lista de pares [longitude, latitude] (nessa ordem). Sem essa
-    conversão, ee.Geometry.Polygon recebe uma lista de dicts e quebra com
-    "KeyError: 0" ao tentar indexar cada ponto como se fosse uma lista.
-    """
-    pontos = []
-    for ponto in coordenadas:
-        if isinstance(ponto, dict):
-            lat, lng = ponto["lat"], ponto["lng"]
-        else:
-            lat, lng = ponto[0], ponto[1]
-        pontos.append([lng, lat])
-    return pontos
-
-
-def processar_lavoura(lavoura):
-    """Processa NDVI, NDRE, NDWI e z-score para uma única lavoura."""
-    usuario_id = lavoura["usuarioId"]
-    lavoura_id = lavoura["id"]
-    geometria = ee.Geometry.Polygon(normalizar_coordenadas(lavoura["coordenadas"]))
-
-    print(f"  -> iniciando lavoura {lavoura_id} - usuário {usuario_id}")
-
-    imagem_hoje = get_indices_image(
-        geometria,
-        date.today().isoformat(),
-        5,
-        30
-    )
-
-    if imagem_hoje is None:
-        print(
-            f"  -> lavoura {lavoura_id}: "
-            "nenhuma cena abaixo de 30% de nuvens. Tentando até 60%..."
-        )
-
-        imagem_hoje = get_indices_image(
-            geometria,
-            date.today().isoformat(),
-            5,
-            60
-        )
-
-    if imagem_hoje is None:
-        print(
-            f"  -> lavoura {lavoura_id}: "
-            "nenhuma cena abaixo de 60%. Tentando qualquer cena disponível..."
-        )
-
-        imagem_hoje = get_indices_image(
-            geometria,
-            date.today().isoformat(),
-            5,
-            100
-        )
-
-    if imagem_hoje is None:
-        print(
-            f"  -> LAVOURA {lavoura_id}: "
-            "nenhuma imagem Sentinel-2 encontrada na janela de datas."
-        )
-        return
-
-    data_encontrada = imagem_hoje.date().format("YYYY-MM-dd").getInfo()
-
-    print(
-        f"  -> lavoura {lavoura_id}: "
-        f"imagem encontrada em {data_encontrada}"
-    ) 
-
-    valores_indices = obter_valores_indices(imagem_hoje, geometria)
-    print(f"  -> lavoura {lavoura_id}: índices reais:")
-    print(f"     NDVI: {valores_indices.get('NDVI')}")
-    print(f"     NDRE: {valores_indices.get('NDRE')}")
-    print(f"     NDWI: {valores_indices.get('NDWI')}")
-
-
-    for indice in indices:
-        save_indice_map(        imagem_hoje,
-        indice,
-        geometria,
-        usuario_id,
-        lavoura_id,
-        valores_indices)
-        salvar_mapa_z_score(imagem_hoje, indice, usuario_id, lavoura_id, geometria)
-
-    print(f"  -> lavoura {lavoura_id}: processada com sucesso")
+def processar_lavoura(lavoura, data_alvo=None, janela=5, indices=None, geometria=None):
+    inicializar_ee()
+    if geometria is None: geometria = criar_geometria(lavoura['coordenadas'])
+    alvo = data_alvo or date.today().isoformat()
+    indice_nomes = indices if indices is not None else [n for i in INDICES for n in (i,f'z-score-{i}')]
+    resultado = {'lavouraId':lavoura['id'],'dataAlvo':alvo,'salvos':[], 'avisos':[], 'erros':[]}
+    imagem = get_indices_image(geometria,alvo,janela,100)
+    if imagem is None:
+        resultado['status'] = 'sem_dados'
+        resultado['avisos'].append('Nenhuma cena com cobertura válida suficiente nesta janela de datas.')
+        log.warning('Lavoura %s: %s',lavoura['id'],resultado['avisos'][0])
+        return resultado
+    resultado['dataImagem'] = imagem.date().format('YYYY-MM-dd').getInfo()
+    valores = obter_valores_indices(imagem,geometria)
+    for nome in indice_nomes:
+        try:
+            if nome.startswith('z-score-') and nome.removeprefix('z-score-') in INDICES:
+                salvar_mapa_z_score(imagem,nome.removeprefix('z-score-'),lavoura['usuarioId'],lavoura['id'],geometria)
+            elif nome in INDICES:
+                save_indice_map(imagem,nome,geometria,lavoura['usuarioId'],lavoura['id'],valores)
+            else:
+                raise ValueError(f'Índice não suportado: {nome}')
+            resultado['salvos'].append(nome)
+        except SemDadosValidos as erro:
+            resultado['avisos'].append(f'{nome}: {erro}')
+            log.warning('Lavoura %s / %s: %s',lavoura['id'],nome,erro)
+        except Exception as erro:
+            resultado['erros'].append(f'{nome}: {erro}')
+            log.exception('Falha na lavoura %s / %s',lavoura['id'],nome)
+    resultado['status'] = ('parcial' if resultado['salvos'] else 'erro') if resultado['erros'] else ('concluido' if resultado['salvos'] else 'sem_dados')
+    log.info('Lavoura %s: %s; %s mapas salvos.',lavoura['id'],resultado['status'],len(resultado['salvos']))
+    return resultado
 
 
 def processar_todas_lavouras():
-
-    lavouras = buscar_todas_lavouras()
-    print(f"[{date.today().isoformat()}] {len(lavouras)} lavoura(s) encontrada(s) para processar")
-
-    for lavoura in lavouras:
+    resultados=[]
+    for lavoura in buscar_todas_lavouras():
         try:
-            processar_lavoura(lavoura)
+            resultados.append(processar_lavoura(lavoura))
         except Exception as erro:
-            print(f"  -> ERRO na lavoura {lavoura.get('id')}: [{type(erro).__name__}] {erro!r}")
-            traceback.print_exc()
+            log.exception('Falha na lavoura %s',lavoura.get('id'))
+            resultados.append({'lavouraId':lavoura.get('id'),'status':'erro','erros':[str(erro)]})
+    log.info('Processamento concluído: %s',[(r['lavouraId'],r['status']) for r in resultados])
+    return resultados
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
+    logging.basicConfig(level=logging.INFO,format='%(levelname)s %(message)s')
     processar_todas_lavouras()

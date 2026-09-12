@@ -1,815 +1,193 @@
-import { useEffect, useRef, useState } from "react";
-import L from "leaflet";
-import "leaflet/dist/leaflet.css";
-import { AUTH_API_URL } from "../config/api";
+import { useEffect, useRef, useState } from 'react';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+import { AUTH_API_URL } from '../config/api';
+import { buscarJson, validarMapa, indicesDaData, selecionarRegistro } from '../services/historicoAPI';
 
-export default function Mapas() {
+const estilo = { color: '#2f4a33', weight: 2, fill: false };
+const formatarData = data => data ? data.slice(0, 10).split('-').reverse().join('/') : '';
 
-  const mapaRef = useRef(null);
-  const map = useRef(null);
-  const overlayAtual = useRef(null);
-  const contornoAtual = useRef(null);
-
-
+export default function HistoricoMapas() {
+  const container = useRef(null);
+  const mapa = useRef(null);
+  const camada = useRef(null);
+  const contorno = useRef(null);
+  const limitesAtuais = useRef(null);
+  const usuarioId = localStorage.getItem('usuarioTipo') === 'agronomo'
+    ? localStorage.getItem('produtorSelecionadoId') : localStorage.getItem('usuarioId');
   const [lavouras, setLavouras] = useState([]);
-
-  const [lavouraSelecionada, setLavouraSelecionada] =
-    useState(null);
-
-  const [imagens, setImagens] = useState([]);
-
-  const [dataSelecionada, setDataSelecionada] =
-    useState(null);
-
-  const [indicesSelecionados, setIndicesSelecionados] =
-    useState({});
-
-  const [indiceVisualizacao, setIndiceVisualizacao] =
-    useState("indice");
-
-  const [carregando, setCarregando] =
-    useState(false);
-
-  const [erro, setErro] =
-    useState(null);
-
-
-  // =========================================================
-  // USUÁRIO
-  // =========================================================
-
-  function obterUsuarioId() {
-
-    const usuarioTipo =
-      localStorage.getItem("usuarioTipo");
-
-    const usuarioId =
-      localStorage.getItem("usuarioId");
-
-    const produtorSelecionadoId =
-      localStorage.getItem("produtorSelecionadoId");
-
-
-    return usuarioTipo === "agronomo"
-      ? produtorSelecionadoId
-      : usuarioId;
-  }
-
-
-  // =========================================================
-  // BUSCAR LAVOURAS
-  // =========================================================
+  const [lavouraId, setLavouraId] = useState('');
+  const [consultaLavouras, setConsultaLavouras] = useState({ chave: '', erro: '' });
+  const [historico, setHistorico] = useState({ id: '', itens: [], carregando: false, erro: '' });
+  const [selecao, setSelecao] = useState({ data: '', indice: '', modo: 'indice' });
+  const [estadoMapa, setEstadoMapa] = useState({ chave: '', carregando: false, erro: '', dados: null });
+  const [opacidade, setOpacidade] = useState(0.8);
+  const [atualizacao, setAtualizacao] = useState(0);
+  const lavoura = lavouras.find(l => String(l.id) === lavouraId);
+  const chaveLavouras = `${usuarioId}/${atualizacao}`;
+  const historicoAtual = historico.id === lavouraId && historico.atualizacao === atualizacao;
+  const itens = historicoAtual ? historico.itens : [];
+  const registro = itens.find(item => item.data === selecao.data);
+  const indiceBanco = selecao.modo === 'zscore' ? `z-score-${selecao.indice}` : selecao.indice;
+  const disponivel = registro?.indicesDisponiveis.includes(indiceBanco);
+  const chave = disponivel ? `${usuarioId}/${lavouraId}/${selecao.data}/${indiceBanco}` : '';
+  const exibicao = estadoMapa.chave === chave && estadoMapa.atualizacao === atualizacao ? estadoMapa : { carregando: Boolean(chave), erro: '', dados: null };
 
   useEffect(() => {
-
-    async function carregarLavouras() {
-
-      const usuarioId = obterUsuarioId();
-
-      if (!usuarioId) {
-        setErro("Usuário não identificado.");
-        return;
-      }
-
-      try {
-
-        const resposta = await fetch(
-          `${AUTH_API_URL}/lavouras/${usuarioId}`
-        );
-
-        const dados = await resposta.json();
-
-        if (!resposta.ok) {
-          throw new Error(
-            dados.mensagem ||
-            "Erro ao buscar lavouras."
-          );
-        }
-
-        setLavouras(dados);
-
-        if (dados.length > 0) {
-          setLavouraSelecionada(dados[0]);
-        }
-
-      } catch (erro) {
-
-        console.error(
-          "Erro ao carregar lavouras:",
-          erro
-        );
-
-        setErro(
-          "Não foi possível carregar as lavouras."
-        );
-      }
-    }
-
-
-    carregarLavouras();
-
+    const map = L.map(container.current, { center: [-14.235, -51.925], zoom: 4, maxZoom: 22, trackResize: false });
+    mapa.current = map;
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+      { attribution: 'Tiles © Esri', maxNativeZoom: 19, maxZoom: 22 }).addTo(map);
+    const observer = new ResizeObserver(() => {
+      map.stop();
+      map.invalidateSize({ pan: false });
+      if (limitesAtuais.current) map.fitBounds(limitesAtuais.current, { padding: [40, 40], animate: false });
+    });
+    observer.observe(container.current);
+    return () => { observer.disconnect(); map.remove(); mapa.current = null; camada.current = null; contorno.current = null; limitesAtuais.current = null; };
   }, []);
 
-
-  // =========================================================
-  // BUSCAR IMAGENS DA LAVOURA
-  // =========================================================
+  useEffect(() => {
+    const controller = new AbortController();
+    if (!usuarioId) return () => controller.abort();
+    buscarJson(`${AUTH_API_URL}/lavouras/${usuarioId}`, controller.signal).then(dados => {
+      if (controller.signal.aborted) return;
+      if (!Array.isArray(dados)) throw new Error('Resposta inválida ao consultar as lavouras.');
+      setLavouras(dados);
+      setLavouraId(anterior => dados.some(l => String(l.id) === anterior) ? anterior : String(dados[0]?.id || ''));
+      setConsultaLavouras({ chave: chaveLavouras, erro: '' });
+    }).catch(e => {
+      if (!controller.signal.aborted) setConsultaLavouras({ chave: chaveLavouras, erro: e.message });
+    });
+    return () => controller.abort();
+  }, [usuarioId, chaveLavouras]);
 
   useEffect(() => {
-
-    if (!lavouraSelecionada) {
-      return;
-    }
-
-
-    async function carregarImagens() {
-
-      const usuarioId = obterUsuarioId();
-
-      try {
-
-        const resposta = await fetch(
-          `${AUTH_API_URL}/imagens/${lavouraSelecionada.id}` +
-          `?usuario_id=${usuarioId}`
-        );
-
-        const dados = await resposta.json();
-
-        if (!resposta.ok) {
-          throw new Error(
-            dados.mensagem ||
-            "Erro ao buscar imagens."
-          );
-        }
-
-
-        setImagens(dados);
-
-
-        // Seleciona automaticamente o primeiro índice
-        // disponível de cada data.
-
-        const selecoes = {};
-
-        dados.forEach((imagem) => {
-          const indices = imagem.indicesDisponiveis.filter(
-            (indice) => !indice.startsWith("z-score-")
-          );
-
-          if (indices.length > 0) {
-            selecoes[imagem.data] = indices[0];
-          }
-        });
-
-
-        setIndicesSelecionados(selecoes);
-
-
-        // Seleciona a primeira data
-
-        if (dados.length > 0) {
-          setDataSelecionada(dados[0].data);
-        } else {
-          setDataSelecionada(null);
-        }
-
-      } catch (erro) {
-
-        console.error(
-          "Erro ao carregar imagens:",
-          erro
-        );
-
-        setErro(
-          "Não foi possível carregar o histórico."
-        );
-      }
-
-    }
-
-
-    carregarImagens();
-
-  }, [lavouraSelecionada]);
-
-
-  // =========================================================
-  // INICIALIZAÇÃO DO LEAFLET
-  // =========================================================
+    const map = mapa.current;
+    if (camada.current) return;
+    if (contorno.current) { map.removeLayer(contorno.current); contorno.current = null; }
+    if (!lavoura) return;
+    try {
+      const pontos = typeof lavoura.coordenadas === 'string' ? JSON.parse(lavoura.coordenadas) : lavoura.coordenadas;
+      const layer = pontos?.type === 'Polygon' ? L.geoJSON(pontos, { style: estilo })
+        : L.polygon(pontos.map(p => [Number(p.lat ?? p[0]), Number(p.lng ?? p[1])]), estilo);
+      if (layer.getBounds().isValid()) { contorno.current = layer.addTo(map); limitesAtuais.current = layer.getBounds(); map.fitBounds(layer.getBounds(), { padding: [40, 40], animate: false }); }
+    } catch { /* A imagem, quando existir, tem seu próprio contorno validado. */ }
+  }, [lavoura]);
 
   useEffect(() => {
+    const controller = new AbortController();
+    if (!lavouraId || !usuarioId) return () => controller.abort();
+    buscarJson(`${AUTH_API_URL}/imagens/${lavouraId}?usuario_id=${usuarioId}`, controller.signal).then(dados => {
+      if (controller.signal.aborted) return;
+      if (!Array.isArray(dados)) throw new Error('Resposta inválida ao consultar as datas.');
+      const itens = dados.filter(item => indicesDaData(item).length).sort((a, b) => b.data.localeCompare(a.data));
+      setHistorico({ id: lavouraId, atualizacao, itens, erro: '' });
+      setSelecao(anterior => selecionarRegistro(itens.find(i => i.data === anterior.data) || itens[0], anterior));
+    }).catch(e => {
+      if (!controller.signal.aborted) setHistorico({ id: lavouraId, atualizacao, itens: [], erro: e.message });
+    });
+    return () => controller.abort();
+  }, [lavouraId, usuarioId, atualizacao]);
 
-    if (map.current || !mapaRef.current) {
-      return;
-    }
-
-
-    map.current = L.map(
-      mapaRef.current,
-      {
-        center: [-14.2350, -51.9253],
-        zoom: 4,
-
-        minZoom: 4,
-
-        maxBounds: L.latLngBounds(
-          [-35.0, -75.0],
-          [6.0, -32.0]
-        ),
-
-        maxBoundsViscosity: 1.0,
-      }
-    );
-
-
-    // =====================================================
-    // MAPA BASE ARCGIS
-    // =====================================================
-
-    L.tileLayer(
-      "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-      {
-        attribution: "Tiles © Esri",
-      }
-    ).addTo(map.current);
-
-
-    return () => {
-
-      if (map.current) {
-
-        map.current.remove();
-
-        map.current = null;
-
-      }
-
+  useEffect(() => {
+    const controller = new AbortController();
+    const map = mapa.current;
+    let layer;
+    let timer;
+    if (!chave || !map) return () => controller.abort();
+    const [usuario, id, data, indice] = chave.split('/');
+    const params = new URLSearchParams({ usuario_id: usuario, id, data, indice });
+    const falhou = mensagem => {
+      if (controller.signal.aborted) return;
+      clearTimeout(timer);
+      if (layer) map.removeLayer(layer);
+      if (camada.current === layer) camada.current = null;
+      setEstadoMapa({ chave, atualizacao, carregando: false, erro: mensagem, dados: null });
     };
-
-  }, []);
-
-
-  // =========================================================
-  // MUDAR ÍNDICE DE UMA DATA
-  // =========================================================
-
-  function alterarIndice(data, indice) {
-
-    setIndicesSelecionados((anterior) => ({
-      ...anterior,
-      [data]: indice,
-    }));
-
-
-    // Se essa for a data atualmente selecionada,
-    // atualiza imediatamente o mapa.
-
-    if (data === dataSelecionada) {
-      carregarMapa(data, indice);
-    }
-  }
-
-
-  // =========================================================
-  // SELECIONAR DATA
-  // =========================================================
-
-  function selecionarData(data) {
-
-    setDataSelecionada(data);
-
-    const indice =
-      indicesSelecionados[data];
-
-
-    if (indice) {
-      carregarMapa(data, indice);
-    }
-  }
-
-
-  // =========================================================
-  // OBTER NOME DO ÍNDICE
-  // =========================================================
-
-  function obterIndiceBanco() {
-
-    if (!dataSelecionada) {
-      return null;
-    }
-
-
-    const indice =
-      indicesSelecionados[dataSelecionada];
-
-
-    if (!indice) {
-      return null;
-    }
-
-
-    if (indiceVisualizacao === "indice") {
-      return indice;
-    }
-
-
-    return `z-score-${indice}`;
-  }
-
-
-  // =========================================================
-  // CARREGAR MAPA
-  // =========================================================
-
-  async function carregarMapa(
-    data,
-    indice
-  ) {
-
-    if (!lavouraSelecionada || !map.current) {
-      return;
-    }
-
-
-    const usuarioId =
-      obterUsuarioId();
-
-
-    const indiceBanco =
-      indiceVisualizacao === "indice"
-        ? indice
-        : `z-score-${indice}`;
-
-
-    setCarregando(true);
-    setErro(null);
-
-
-    try {
-
-      const parametros = new URLSearchParams({
-
-        id: lavouraSelecionada.id,
-
-        usuario_id: usuarioId,
-
-        data: data,
-
-        indice: indiceBanco,
-
+    buscarJson(`${AUTH_API_URL}/acessar_imagem?${params}`, controller.signal).then(dados => {
+      if (controller.signal.aborted) return;
+      const meta = validarMapa(dados, id, usuario);
+      const bounds = L.latLngBounds(meta.bounds);
+      limitesAtuais.current = bounds;
+      if (contorno.current) map.removeLayer(contorno.current);
+      contorno.current = L.geoJSON(meta.geometria, { style: estilo }).addTo(map);
+      layer = L.imageOverlay(dados.url, bounds, { opacity: 0, interactive: false });
+      camada.current = layer;
+      timer = setTimeout(() => falhou('A imagem demorou para carregar. Tente novamente.'), 60000);
+      layer.once('load', () => {
+        if (controller.signal.aborted || camada.current !== layer) return;
+        clearTimeout(timer);
+        setEstadoMapa({ chave, atualizacao, carregando: false, erro: '', dados: { ...dados, georreferencia: meta } });
       });
-
-
-      const resposta = await fetch(
-        `${AUTH_API_URL}/acessar_imagem?${parametros}`
-      );
-
-
-      const dados = await resposta.json();
-
-
-      if (!resposta.ok) {
-
-        throw new Error(
-          dados.mensagem ||
-          "Imagem não encontrada."
-        );
-
+      layer.once('error', () => falhou('Não foi possível baixar a imagem. Tente novamente.'));
+      layer.addTo(map);
+      map.fitBounds(bounds, { padding: [45, 45], animate: false });
+    }).catch(e => falhou(e.message));
+    return () => {
+      controller.abort(); clearTimeout(timer);
+      if (layer) {
+        // O evento remove libera os listeners internos do Leaflet antes do off.
+        if (mapa.current === map) map.removeLayer(layer);
+        layer.off();
       }
-
-
-      mostrarImagem(
-        dados.url,
-        dados.coordenadas
-      );
-
-
-    } catch (erro) {
-
-      console.error(
-        "Erro ao carregar mapa:",
-        erro
-      );
-
-      setErro(
-        "Não foi possível carregar o mapa."
-      );
-
-    } finally {
-
-      setCarregando(false);
-
-    }
-
-  }
-
-
-  // =========================================================
-  // QUANDO MUDAR ENTRE ÍNDICE E Z-SCORE
-  // =========================================================
-
-  useEffect(() => {
-
-    if (
-      !dataSelecionada ||
-      !indicesSelecionados[dataSelecionada]
-    ) {
-      return;
-    }
-
-
-    carregarMapa(
-      dataSelecionada,
-      indicesSelecionados[dataSelecionada]
-    );
-
-  }, [indiceVisualizacao]);
-
-
-  // =========================================================
-  // MOSTRAR IMAGEM
-  // =========================================================
-
-  function mostrarImagem(
-    url,
-    coordenadas
-  ) {
-
-    if (!map.current) {
-      return;
-    }
-
-
-    // Remove overlay anterior
-
-    if (overlayAtual.current) {
-
-      map.current.removeLayer(
-        overlayAtual.current
-      );
-
-      overlayAtual.current = null;
-
-    }
-
-
-    // Remove contorno anterior
-
-    if (contornoAtual.current) {
-
-      map.current.removeLayer(
-        contornoAtual.current
-      );
-
-      contornoAtual.current = null;
-
-    }
-
-
-    // =====================================================
-    // COORDENADAS DA LAVOURA
-    // =====================================================
-
-    let pontos;
-
-
-    try {
-
-      pontos =
-        typeof coordenadas === "string"
-          ? JSON.parse(coordenadas)
-          : coordenadas;
-
-    } catch (erro) {
-
-      console.error(
-        "Erro ao interpretar coordenadas:",
-        erro
-      );
-
-      return;
-    }
-
-
-    if (
-      !pontos ||
-      pontos.length < 3
-    ) {
-      return;
-    }
-
-
-    const latLngs = pontos.map(
-      (ponto) => [
-        Number(ponto.lat),
-        Number(ponto.lng),
-      ]
-    );
-
-
-    // =====================================================
-    // LIMITES DA LAVOURA
-    // =====================================================
-
-    const bounds =
-      L.latLngBounds(latLngs);
-
-
-    // =====================================================
-    // OVERLAY DO ÍNDICE
-    // =====================================================
-
-    overlayAtual.current =
-      L.imageOverlay(
-        url,
-        bounds,
-        {
-          opacity: 0.75,
-          interactive: false,
-        }
-      ).addTo(map.current);
-
-
-    // =====================================================
-    // CONTORNO DA LAVOURA
-    // =====================================================
-
-    contornoAtual.current =
-      L.polygon(
-        latLngs,
-        {
-          color: "#2f4a33",
-          weight: 2,
-          fill: false,
-        }
-      ).addTo(map.current);
-
-
-    // =====================================================
-    // ENQUADRAR LAVOURA
-    // =====================================================
-
-    map.current.fitBounds(
-      bounds,
-      {
-        padding: [30, 30],
-      }
-    );
-
-  }
-
-
-  // =========================================================
-  // FORMATAR DATA
-  // =========================================================
-
-  function formatarData(data) {
-
-    if (!data) {
-      return "";
-    }
-
-
-    const [ano, mes, dia] =
-      data.substring(0, 10).split("-");
-
-
-    return `${dia}/${mes}/${ano}`;
-  }
-
-
-  // =========================================================
-  // RENDER
-  // =========================================================
-
+      if (camada.current === layer) camada.current = null;
+    };
+  }, [chave, atualizacao]);
+
+  useEffect(() => { camada.current?.setOpacity(opacidade); }, [opacidade, estadoMapa]);
+
+  const meta = exibicao.dados?.georreferencia;
+  const vis = meta?.visualizacao;
+  const erro = !usuarioId ? 'Selecione um produtor ou entre novamente na sua conta.' : (consultaLavouras.chave === chaveLavouras ? consultaLavouras.erro : '') || (historicoAtual ? historico.erro : '') || exibicao.erro;
+  const carregando = Boolean(usuarioId) && (consultaLavouras.chave !== chaveLavouras || (Boolean(lavouraId) && !historicoAtual) || exibicao.carregando);
   return (
-
     <div className="mapas-container">
-
-
-      {/* =====================================================
-          SELETOR DE LAVOURA
-      ====================================================== */}
-
-      {lavouras.length > 1 && (
-
-        <div className="mapas-lavoura">
-
-          <label>
-            Lavoura
-          </label>
-
-          <select
-            value={lavouraSelecionada?.id || ""}
-            onChange={(e) => {
-
-              const lavoura =
-                lavouras.find(
-                  (item) =>
-                    item.id === Number(e.target.value)
-                );
-
-              setLavouraSelecionada(lavoura);
-
-            }}
-          >
-
-            {lavouras.map((lavoura) => (
-
-              <option
-                key={lavoura.id}
-                value={lavoura.id}
-              >
-                {lavoura.nomeLavoura}
-              </option>
-
-            ))}
-
-          </select>
-
-        </div>
-
-      )}
-
-
-      {/* =====================================================
-          ÁREA DO HISTÓRICO
-      ====================================================== */}
-
-      <div className="mapas-area">
-
-
-        {/* ===================================================
-            COLUNA DE DATAS
-        ==================================================== */}
-
-        <aside className="mapas-datas">
-
-          <div className="mapa-data-titulo">
-            Imagens disponíveis
-          </div>
-
-
-          {imagens.length === 0 && (
-
-            <div className="mapas-sem-imagens">
-              Nenhuma imagem disponível.
-            </div>
-
-          )}
-
-
-          {imagens.map((imagem) => {
-
-            const data =
-              imagem.data;
-
-            const indiceSelecionado =
-              indicesSelecionados[data];
-
-
-            return (
-
-              <div
-                key={data}
-                className={
-                  data === dataSelecionada
-                    ? "mapa-data ativa"
-                    : "mapa-data"
-                }
-              >
-
-                <button
-                  className="mapa-data-botao"
-                  onClick={() =>
-                    selecionarData(data)
-                  }
-                >
-
-                  <span className="mapa-data-texto">
-                    {formatarData(data)}
-                  </span>
-
-                </button>
-
-
-                <select
-                  value={
-                    indiceSelecionado || ""
-                  }
-
-                  onChange={(e) =>
-                    alterarIndice(
-                      data,
-                      e.target.value
-                    )
-                  }
-
-                  onClick={(e) =>
-                    e.stopPropagation()
-                  }
-                >
-
-                 {imagem.indicesDisponiveis
-                  .filter((indice) => !indice.startsWith("z-score-"))
-                  .map((indice) => (
-                    <option key={indice} value={indice}>
-                      {indice}
-                    </option>
-                  ))}
-
-                </select>
-
-              </div>
-
-            );
-
-          })}
-
-        </aside>
-
-
-        {/* ===================================================
-            MAPA
-        ==================================================== */}
-
-        <div className="mapas-mapa-container">
-
-
-          {/* =================================================
-              SELETOR ÍNDICE / Z-SCORE
-          ================================================== */}
-
-          <div className="mapas-controle">
-
-            <button
-              className={
-                indiceVisualizacao === "indice"
-                  ? "ativo"
-                  : ""
-              }
-
-              onClick={() =>
-                setIndiceVisualizacao("indice")
-              }
-            >
-              Índice
-            </button>
-
-
-            <button
-              className={
-                indiceVisualizacao === "zscore"
-                  ? "ativo"
-                  : ""
-              }
-
-              onClick={() =>
-                setIndiceVisualizacao("zscore")
-              }
-            >
-              Z-score
-            </button>
-
-          </div>
-
-
-          {/* =================================================
-              ESTADO DE CARREGAMENTO
-          ================================================== */}
-
-          {carregando && (
-
-            <div className="mapas-carregando">
-              Carregando mapa...
-            </div>
-
-          )}
-
-
-          {/* =================================================
-              ERRO
-          ================================================== */}
-
-          {erro && (
-
-            <div className="mapas-erro">
-              {erro}
-            </div>
-
-          )}
-
-
-          <div
-            ref={mapaRef}
-            className="mapas-mapa"
-          />
-
-        </div>
-
+      <div className="mapas-lavoura">
+        <label htmlFor="historico-lavoura">Lavoura</label>
+        <select id="historico-lavoura" value={lavouraId} onChange={e => { setLavouraId(e.target.value); setSelecao({ data: '', indice: '', modo: 'indice' }); }} disabled={!lavouras.length}>
+          {!lavouras.length && <option value="">Nenhuma lavoura cadastrada</option>}
+          {lavouras.map(l => <option key={l.id} value={l.id}>{l.nomeLavoura}</option>)}
+        </select>
+        <button className="historico-atualizar" onClick={() => setAtualizacao(n => n + 1)}>Atualizar histórico</button>
       </div>
-
+      <div className="mapas-area">
+        <aside className="mapas-datas" aria-label="Datas disponíveis">
+          <div className="mapa-data-titulo">Imagens disponíveis</div>
+          {!itens.length && !carregando && <p className="mapas-sem-imagens">Nenhuma imagem disponível para esta lavoura.</p>}
+          {itens.map(item => <div key={item.data} className={`mapa-data ${item.data === selecao.data ? 'ativa' : ''}`}>
+            <button className="mapa-data-botao" aria-pressed={item.data === selecao.data} onClick={() => setSelecao(a => selecionarRegistro(item, a))}>
+              {formatarData(item.data)}
+            </button>
+            <small>{indicesDaData(item).join(' · ')}</small>
+          </div>)}
+        </aside>
+        <div className="historico-visualizacao">
+          <div className="historico-filtros">
+            <label htmlFor="historico-indice">Índice</label>
+            <select id="historico-indice" value={selecao.indice} disabled={!registro} onChange={e => setSelecao(a => selecionarRegistro(registro, { ...a, indice: e.target.value }))}>
+              {!registro && <option value="">Selecione uma data</option>}
+              {indicesDaData(registro).map(i => <option key={i}>{i}</option>)}
+            </select>
+            <button aria-pressed={selecao.modo === 'indice'} disabled={!registro?.indicesDisponiveis.includes(selecao.indice)} onClick={() => setSelecao(a => ({ ...a, modo: 'indice' }))}>Índice</button>
+            <button aria-pressed={selecao.modo === 'zscore'} disabled={!registro?.indicesDisponiveis.includes(`z-score-${selecao.indice}`)} onClick={() => setSelecao(a => ({ ...a, modo: 'zscore' }))}>Z-score</button>
+          </div>
+          <div className="mapas-mapa-container">
+            <div ref={container} className="mapas-mapa" aria-label="Mapa da lavoura" />
+            {carregando && <div className="historico-status" role="status">Carregando histórico...</div>}
+            {erro && <div className="mapas-erro" role="alert">{erro}<button onClick={() => setAtualizacao(n => n + 1)}>Tentar novamente</button></div>}
+          </div>
+          {meta && <div className="historico-legenda" aria-label="Legenda do mapa">
+            <strong>{selecao.indice}{selecao.modo === 'zscore' ? ' · Z-score robusto' : ''} · {formatarData(selecao.data)}</strong>
+            {Number.isFinite(meta.coberturaValida) && <span>Cobertura válida: {(meta.coberturaValida * 100).toFixed(0)}% da lavoura</span>}
+            {vis?.tipo === 'zscore' ? <div className="historico-cores">{vis.palette.map((cor, i) => <span key={cor}><i style={{ background: `#${cor}` }} />{vis.rotulos[i]}</span>)}</div>
+              : vis?.palette && <div className="historico-escala"><span>{vis.min}</span><div style={{ background: `linear-gradient(to right, ${vis.palette.map(c => `#${c}`).join(',')})` }} /><span>{vis.max}</span></div>}
+            {selecao.modo === 'indice' && exibicao.dados.valor_indice != null && <span>Média na área válida: {Number(exibicao.dados.valor_indice).toFixed(3)}</span>}
+            <label>Opacidade <input aria-label="Opacidade da imagem" type="range" min="0" max="1" step="0.05" value={opacidade} onChange={e => setOpacidade(Number(e.target.value))} /></label>
+            <small>Áreas sem dados ficam transparentes. O contorno corresponde à área usada na geração da imagem.</small>
+          </div>}
+        </div>
+      </div>
     </div>
-
   );
 }
