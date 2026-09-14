@@ -47,6 +47,11 @@ function ClimaBanner({ lavouras }) {
     (lavoura) => lavoura.id === lavouraId
   );
 
+function metros()
+{
+ 
+}
+
   // Ir para observações
   function observacao() {
     if (!lavouraSelecionada) return;
@@ -120,7 +125,7 @@ function ClimaBanner({ lavouras }) {
             "Erro ao conectar com o serviço de clima."
         );
 
-        console.error(erroRequisicao);
+      console.error(erroRequisicao);
       } finally {
         setCarregando(false);
       }

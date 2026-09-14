@@ -1,11 +1,38 @@
 from flask import Blueprint, request, jsonify
 import json
+import math
 
 from email_utils import enviar_email, montar_email_laudo
 
 lavoura_bp = Blueprint('lavoura', __name__)
 
 mysql = None
+
+def calcular_area_m2(coordenadas):
+    if len(coordenadas) < 3:
+        return 0
+
+    R = 6371000  # raio médio da Terra em metros
+
+    lat_media = sum(ponto["lat"] for ponto in coordenadas) / len(coordenadas)
+    lat_media_rad = math.radians(lat_media)
+
+    pontos = []
+
+    for ponto in coordenadas:
+        x = math.radians(ponto["lng"]) * R * math.cos(lat_media_rad)
+        y = math.radians(ponto["lat"]) * R
+        pontos.append((x, y))
+
+    area = 0
+
+    for i in range(len(pontos)):
+        x1, y1 = pontos[i]
+        x2, y2 = pontos[(i + 1) % len(pontos)]
+
+        area += (x1 * y2) - (x2 * y1)
+
+    return abs(area) / 2
 
 
 def init_mysql(mysql_instance):
@@ -21,6 +48,7 @@ def cadastrar_lavoura():
     usuario_id = dados.get('usuarioId')
     nome_lavoura = dados.get('nomeLavoura')
     coordenadas = dados.get('coordenadas')
+    area_m2 = calcular_area_m2(coordenadas)
 
     if not usuario_id or not nome_lavoura or not coordenadas:
         return jsonify({
@@ -41,13 +69,14 @@ def cadastrar_lavoura():
         cursor.execute(
             """
             INSERT INTO lavouras
-            (usuario_id, nome_lavoura, coordenadas)
-            VALUES (%s, %s, %s)
+            (usuario_id, nome_lavoura, coordenadas, area_m2)
+            VALUES (%s, %s, %s, %s)
             """,
             (
                 usuario_id,
                 nome_lavoura,
-                coordenadas_json
+                coordenadas_json,
+                area_m2
             )
         )
 
@@ -80,7 +109,8 @@ def listar_todas_lavouras():
                 id,
                 usuario_id,
                 nome_lavoura,
-                coordenadas
+                coordenadas,
+                area_m2
             FROM lavouras
             """
         )
@@ -97,7 +127,8 @@ def listar_todas_lavouras():
                 "id": linha[0],
                 "usuarioId": linha[1],
                 "nomeLavoura": linha[2],
-                "coordenadas": json.loads(linha[3])
+                "coordenadas": json.loads(linha[3]),
+                "areaM2": float(linha[4]) if linha[4] is not None else 0
             })
 
         return jsonify(lavouras), 200
@@ -125,7 +156,8 @@ def listar_lavouras(usuario_id):
             l.coordenadas,
             l.criado_em,
             l.usuario_id,
-            u.nome
+            u.nome,
+            l.area_m2
         FROM lavouras l
         JOIN usuarios u ON l.usuario_id = u.id
         WHERE l.usuario_id = %s
@@ -148,7 +180,8 @@ def listar_lavouras(usuario_id):
             "coordenadas": json.loads(linha[2]),
             "criadoEm": linha[3].isoformat(),
             "usuarioId": linha[4],
-            "produtorNome": linha[5]
+            "produtorNome": linha[5],
+            "areaM2": float(linha[6]) if linha[6] is not None else 0
         })
 
         return jsonify(lavouras), 200
@@ -173,7 +206,8 @@ def buscar_lavoura(lavoura_id):
             SELECT
                 id,
                 nome_lavoura,
-                coordenadas
+                coordenadas,
+                area_m2
             FROM lavouras
             WHERE id = %s
             """,
@@ -193,7 +227,8 @@ def buscar_lavoura(lavoura_id):
         lavoura = {
             "id": linha[0],
             "nomeLavoura": linha[1],
-            "coordenadas": json.loads(linha[2])
+            "coordenadas": json.loads(linha[2]),
+            "areaM2": float(linha[3]) if linha[3] is not None else 0
         }
 
         return jsonify(lavoura), 200
@@ -208,6 +243,7 @@ def buscar_lavoura(lavoura_id):
     
 @lavoura_bp.route('/lavoura/<int:lavoura_id>', methods=['PUT'])
 def editar_lavoura(lavoura_id):
+
     dados = request.get_json()
 
     nome_lavoura = dados.get('nomeLavoura')
@@ -219,50 +255,74 @@ def editar_lavoura(lavoura_id):
         }), 400
 
     try:
+
         cursor = mysql.connection.cursor()
 
+        # Nome + coordenadas
         if nome_lavoura is not None and coordenadas is not None:
+
             if len(coordenadas) < 3:
                 return jsonify({
                     "mensagem": "O polígono precisa de pelo menos 3 pontos"
                 }), 400
 
+            area_m2 = calcular_area_m2(coordenadas)
             coordenadas_json = json.dumps(coordenadas)
 
             cursor.execute(
                 """
                 UPDATE lavouras
-                SET nome_lavoura = %s, coordenadas = %s
+                SET nome_lavoura = %s,
+                    coordenadas = %s,
+                    area_m2 = %s
                 WHERE id = %s
                 """,
-                (nome_lavoura, coordenadas_json, lavoura_id)
+                (
+                    nome_lavoura,
+                    coordenadas_json,
+                    area_m2,
+                    lavoura_id
+                )
             )
 
+        # Somente nome
         elif nome_lavoura is not None:
+
             cursor.execute(
                 """
                 UPDATE lavouras
                 SET nome_lavoura = %s
                 WHERE id = %s
                 """,
-                (nome_lavoura, lavoura_id)
+                (
+                    nome_lavoura,
+                    lavoura_id
+                )
             )
 
+        # Somente coordenadas
         elif coordenadas is not None:
+
             if len(coordenadas) < 3:
                 return jsonify({
                     "mensagem": "O polígono precisa de pelo menos 3 pontos"
                 }), 400
 
+            area_m2 = calcular_area_m2(coordenadas)
             coordenadas_json = json.dumps(coordenadas)
 
             cursor.execute(
                 """
                 UPDATE lavouras
-                SET coordenadas = %s
+                SET coordenadas = %s,
+                    area_m2 = %s
                 WHERE id = %s
                 """,
-                (coordenadas_json, lavoura_id)
+                (
+                    coordenadas_json,
+                    area_m2,
+                    lavoura_id
+                )
             )
 
         if cursor.rowcount == 0:
@@ -279,6 +339,7 @@ def editar_lavoura(lavoura_id):
         }), 200
 
     except Exception as erro:
+
         return jsonify({
             "mensagem": "Erro ao atualizar lavoura",
             "erro": str(erro)

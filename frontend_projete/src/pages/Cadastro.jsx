@@ -13,6 +13,7 @@ export default function Cadastro() {
   const [nome, setNome] = useState("");
   const [mensagem, setMensagem] = useState("");
   const [carregando, setCarregando] = useState(false);
+  const areaM2 = calcularAreaM2(coordenadas);
 
   async function salvarCadastro() {
     const usuarioId = localStorage.getItem("usuarioId");
@@ -56,6 +57,44 @@ export default function Cadastro() {
     }
   }
 
+  function calcularAreaM2(coordenadas) {
+  if (!coordenadas || coordenadas.length < 3) {
+    return 0;
+  }
+
+  const R = 6371000;
+
+  const latMedia =
+    coordenadas.reduce((soma, ponto) => soma + ponto.lat, 0) /
+    coordenadas.length;
+
+  const latMediaRad = (latMedia * Math.PI) / 180;
+
+  const pontos = coordenadas.map((ponto) => {
+    const x =
+      ((ponto.lng * Math.PI) / 180) *
+      R *
+      Math.cos(latMediaRad);
+
+    const y = ((ponto.lat * Math.PI) / 180) * R;
+
+    return { x, y };
+  });
+
+  let area = 0;
+
+  for (let i = 0; i < pontos.length; i++) {
+    const pontoAtual = pontos[i];
+    const proximoPonto = pontos[(i + 1) % pontos.length];
+
+    area +=
+      pontoAtual.x * proximoPonto.y -
+      proximoPonto.x * pontoAtual.y;
+  }
+
+  return Math.abs(area) / 2;
+}
+
   return (
 
     <div className="cadastro-container">
@@ -98,6 +137,17 @@ export default function Cadastro() {
               : "Nenhum polígono recebido."}
 
           </div>
+
+          <div className="info-area">
+  <strong>Área da lavoura:</strong>
+  <br />
+  {coordenadas && coordenadas.length >= 3
+    ? `${areaM2.toLocaleString("pt-BR", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })} m²`
+    : "Área indisponível."}
+</div>
 
           {mensagem && <p className="mensagem-cadastro">{mensagem}</p>}
 
