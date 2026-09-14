@@ -125,7 +125,7 @@ function metros()
             "Erro ao conectar com o serviço de clima."
         );
 
-        console.error(erroRequisicao);
+      console.error(erroRequisicao);
       } finally {
         setCarregando(false);
       }

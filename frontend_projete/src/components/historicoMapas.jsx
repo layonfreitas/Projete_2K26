@@ -183,8 +183,6 @@ export default function HistoricoMapas() {
             {vis?.tipo === 'zscore' ? <div className="historico-cores">{vis.palette.map((cor, i) => <span key={cor}><i style={{ background: `#${cor}` }} />{vis.rotulos[i]}</span>)}</div>
               : vis?.palette && <div className="historico-escala"><span>{vis.min}</span><div style={{ background: `linear-gradient(to right, ${vis.palette.map(c => `#${c}`).join(',')})` }} /><span>{vis.max}</span></div>}
             {selecao.modo === 'indice' && exibicao.dados.valor_indice != null && <span>Média na área válida: {Number(exibicao.dados.valor_indice).toFixed(3)}</span>}
-            <label>Opacidade <input aria-label="Opacidade da imagem" type="range" min="0" max="1" step="0.05" value={opacidade} onChange={e => setOpacidade(Number(e.target.value))} /></label>
-            <small>Áreas sem dados ficam transparentes. O contorno corresponde à área usada na geração da imagem.</small>
           </div>}
         </div>
       </div>
