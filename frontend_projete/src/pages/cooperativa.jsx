@@ -155,22 +155,21 @@ function Cooperativa() {
   async function handleDesVincular(event) {
     event.preventDefault();
     setMensagem("");
-    if (!produtorId || !agronomoId) {
-      setMensagem("Selecione um produtor e um agrônomo.");
+    if (!produtorId) {
+      setMensagem("Selecione um produtor");
       return;
     }
     try {
       const resposta = await fetchAutenticado(`${AUTH_API_URL}/desvincular`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ produtorId, agronomoId }),
+        body: JSON.stringify({ produtorId }),
       });
       const dados = await resposta.json();
 
       if (resposta.ok) {
-        setMensagem("Produtor desvinculado do agrônomo com sucesso!");
+        setMensagem("Produtor desvinculado com sucesso!");
         setProdutorId("");
-        setAgronomoId("");
         buscarUsuarios();
         buscarRanking();
       } else {
@@ -452,25 +451,36 @@ function Cooperativa() {
       </section>
 
       {/* ---------------- VÍNCULO ---------------- */}
-      <section className="cooperativa-card">
-        <h2>Direcionar produtor para agrônomo</h2>
-        <form onSubmit={handleVincular} className="cooperativa-form">
-          <select value={produtorId} onChange={(e) => setProdutorId(e.target.value)}>
-            <option value="">Selecione o produtor</option>
-            {produtores.map((p) => (
-              <option key={p.id} value={p.id}>{p.nome}</option>
-            ))}
-          </select>
-          <select value={agronomoId} onChange={(e) => setAgronomoId(e.target.value)}>
-            <option value="">Selecione o agrônomo</option>
-            {agronomos.map((a) => (
-              <option key={a.id} value={a.id}>{a.nome}</option>
-            ))}
-          </select>
-          <button type="button" onClick={handleVincular}>Vincular</button>
-          <button type="button" onClick={handleDesVincular}>Desvicular</button>
-        </form>
-      </section>
+<section className="cooperativa-card">
+  <h2>Direcionar produtor para agrônomo</h2>
+  <div>
+    <form onSubmit={handleVincular} className="cooperativa-form">
+      <select value={produtorId} onChange={(e) => setProdutorId(e.target.value)}>
+        <option value="">Selecione o produtor</option>
+        {produtores.map((p) => (
+          <option key={p.id} value={p.id}>{p.nome}</option>
+        ))}
+      </select>
+      <select value={agronomoId} onChange={(e) => setAgronomoId(e.target.value)}>
+        <option value="">Selecione o agrônomo</option>
+        {agronomos.map((a) => (
+          <option key={a.id} value={a.id}>{a.nome}</option>
+        ))}
+      </select>
+      <button type="button" className="btn-primary" onClick={handleVincular}>
+        Vincular
+      </button>
+    </form>
+  </div>
+  <div>
+    <form onSubmit={handleDesVincular} className="cooperativa-form">
+      <button type="button" className="btn-primary" onClick={handleDesVincular}>
+        Desvincular
+      </button>
+    </form>
+  </div>
+</section>
+
 
       {/* ---------------- PRODUTORES ---------------- */}
       <section className="cooperativa-card">
