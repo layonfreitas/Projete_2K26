@@ -1,108 +1,138 @@
 # ☕ CoffeeVision
 
-Plataforma para pequenos produtores de café monitorarem a saúde da lavoura, unindo **classificação de doenças em folhas por visão computacional (YOLO)**, **índices de vegetação via satélite (Google Earth Engine / Sentinel-2)** e **dados climáticos em tempo real**, tudo em um só lugar.
+Plataforma para **pequenos produtores de café** monitorarem a saúde da lavoura de forma simples e acessível, unindo:
 
-O produtor cadastra a lavoura no mapa, acompanha o clima do local, tira uma foto da folha para diagnóstico rápido e, no futuro, recebe alertas com base nos índices de vegetação — sem depender de tecnologias caras de agricultura de precisão.
+- 🔬 **Diagnóstico de doenças em folhas** por visão computacional (YOLO/ONNX)
+- 🛰️ **Índices de vegetação via satélite** (Google Earth Engine / Sentinel-2 — NDVI, NDRE, NDWI)
+- 🌦️ **Dados climáticos em tempo real**
+- 🗺️ **Cadastro e acompanhamento da lavoura em mapa**
+- 👥 **Fluxo com múltiplos perfis**: produtor, agrônomo e cooperativa
+
+Tudo em um só lugar — sem depender das tecnologias caras de agricultura de precisão que hoje só grandes propriedades conseguem pagar.
+
+---
+
+## 🎯 Problema
+
+Pequenos produtores geralmente não têm acesso a tecnologias avançadas de agricultura de precisão. Problemas como estresse hídrico, doenças e condições climáticas desfavoráveis costumam ser percebidos tarde demais, causando perdas na produção.
+
+## 💡 Solução
+
+O CoffeeVision reúne clima, dados da lavoura, imagens de folhas e índices de satélite em um único painel, e traduz esses dados técnicos em **alertas e informações práticas** para apoiar a decisão do produtor — que continua sendo o responsável final pelas decisões no campo.
+
+---
+
+## 👥 Perfis de usuário
+
+| Perfil | O que faz |
+|---|---|
+| **Produtor** | Cadastra a lavoura no mapa, acompanha clima e índices, tira foto da folha para diagnóstico, registra observações |
+| **Agrônomo** | Vincula-se a produtores, acompanha as lavouras vinculadas, registra laudos/observações técnicas |
+| **Cooperativa** | Cadastra/gerencia usuários (produtores e agrônomos), acompanha dashboard geral, ranking de agrônomos, envia avisos e exporta relatórios |
 
 ---
 
 ## 🔗 Como as partes se conectam
 
 ```
-┌─────────────────────┐
-│   Frontend (React)  │  → cadastro de lavoura no mapa, upload de foto,
-│  localhost:5173      │     clima do local, autenticação
-└──────────┬───────────┘
-           │
-           ├──► IA/API (FastAPI + YOLO/ONNX) ......... classifica a doença na foto da folha
-           │      localhost:8000
-           │
-           ├──► banco_de_dados (Flask + MySQL) ........ login, cadastro, lavouras, recuperação de senha
-           │      localhost:5000
-           │
-           ├──► backend_clima (Node/Express) .......... consulta o OpenWeatherMap
-           │      localhost:5001
-           │
-           └──► backend_indices (FastAPI + Earth Engine) . NDVI/NDRE/NDWI da lavoura via satélite
-                  (uso via script/API própria, não conectado ao frontend ainda)
+┌───────────────────────┐
+│   Frontend (React)     │  cadastro de lavoura no mapa, upload de foto,
+│   localhost:5173        │  clima, histórico, laudos, painéis por perfil
+└───────────┬─────────────┘
+            │
+            ├──► IA/API (FastAPI + YOLO/ONNX) ........... classifica doenças na foto da folha
+            │      localhost:8000
+            │
+            ├──► banco_de_dados (Flask + MySQL) .......... login, cadastro, lavouras, vínculos,
+            │      localhost:5000                          observações, imagens, avisos, laudos
+            │
+            ├──► backend_clima (Node/Express) ............ consulta o OpenWeatherMap
+            │      localhost:5001
+            │
+            └──► backend_indices (FastAPI + Earth Engine) . NDVI/NDRE/NDWI e zonas de manejo
+                   (chamado pelo banco_de_dados/processamento em lote, via Earth Engine)
 ```
 
-São **quatro serviços de backend independentes** rodando ao mesmo tempo, mais o frontend. Cada um cuida de uma parte do problema.
+São **quatro serviços de backend independentes**, mais o frontend. Cada um cuida de uma parte do problema.
 
 ---
 
-## 📁 Estrutura do Projeto
+## 📁 Estrutura do projeto
 
 ```
 Projete_2K26/
-├── IA/API/                    # Classificação de doenças na folha (FastAPI + YOLO exportado em ONNX)
-│   ├── classificar.py         # Servidor: recebe a foto, roda o modelo, devolve as doenças detectadas
-│   ├── best.onnx               # Modelo treinado (Cercospora, Bicho-mineiro, Phoma, Ferrugem)
-│   ├── index.html / teste.js  # Página simples pra testar o endpoint sem precisar do frontend
+├── IA/API/                     # Diagnóstico de doenças na folha (FastAPI + YOLO exportado em ONNX)
+│   ├── classificar.py           # POST /classificar/ — recebe a foto, roda o modelo, devolve as doenças
+│   ├── best.onnx                 # Modelo treinado (Cercospora, Bicho-mineiro, Phoma, Ferrugem)
+│   ├── index.html / teste.js    # Página simples para testar o endpoint sem o frontend
 │   └── requirements.txt
 │
-├── banco_de_dados/            # Autenticação, cadastro e persistência (Flask + MySQL)
-│   ├── app.py                  # Servidor principal, registra as rotas
-│   ├── config.py               # Configuração de conexão com o banco (variáveis de ambiente)
-│   ├── database/schema.sql     # Estrutura das tabelas (usuarios, lavouras)
+├── banco_de_dados/              # Autenticação, cadastro e persistência (Flask + MySQL)
+│   ├── app.py                    # Servidor principal, registra os blueprints
+│   ├── config.py                 # Conexão com o banco (variáveis de ambiente + SSL/CA)
+│   ├── database/schema.sql       # usuarios, lavouras, vinculos_agronomo, observacoes,
+│   │                              # imagens, indices_vegetacao, avisos, log_auditoria
+│   ├── Procfile                  # Deploy no Render (gunicorn)
 │   └── routes/
-│       ├── auth_routes.py      # /cadastro, /login
-│       ├── lavoura_routes.py   # /lavoura (criar/listar lavouras do usuário)
-│       └── senha_routes.py     # /senha/recuperar (código por e-mail via Brevo), /senha/trocar
+│       ├── auth_routes.py         # /cadastro, /login, /produtores, /observacoes
+│       ├── lavoura_routes.py      # /lavoura, /lavouras, /laudo/enviar_email
+│       ├── senha_routes.py        # /senha/recuperar/solicitar|confirmar, /senha/trocar
+│       ├── agronomo_routes.py     # /vincular, /agronomo/<id>/produtores
+│       ├── cooperativa_routes.py  # /cooperativa/* (usuários, dashboard, ranking, avisos, relatório.csv)
+│       ├── imagens_routes.py      # /imagens, /acessar_imagem, /get_i_valor
+│       └── indices_routes.py      # /indices_vegetacao
 │
-├── backend_clima/              # Consulta de clima (Node.js + Express)
-│   └── server.js                # GET /clima?lat=..&lon=.. → consulta o OpenWeatherMap
+├── backend_clima/               # Consulta de clima (Node.js + Express)
+│   └── server.js                  # GET /clima?lat=..&lon=.. → OpenWeatherMap
 │
-├── backend_indices/             # Índices de vegetação via satélite (FastAPI + Google Earth Engine)
-│   ├── backend_server.py        # POST /day_maps, POST /get_zona_de_manejo
-│   ├── get_indices.py           # Calcula NDVI, NDRE, NDWI a partir de imagens Sentinel-2
-│   ├── z_score.py                # Mapa de anomalia (desvio em relação ao histórico da área)
-│   └── serie_temporal.py         # Série temporal por zona de manejo
+├── backend_indices/              # Índices de vegetação via satélite (FastAPI + Google Earth Engine)
+│   ├── backend_server.py          # /health, /day_maps/, /processar_todas_lavouras/, /get_zona_de_manejo/
+│   ├── get_indices.py             # Calcula NDVI, NDRE, NDWI a partir de imagens Sentinel-2
+│   ├── z_score.py                 # Mapa de anomalia (desvio em relação ao histórico da área)
+│   ├── serie_temporal.py          # Série temporal por zona de manejo
+│   ├── processar_lavouras.py      # Processamento em lote das lavouras cadastradas
+│   └── gee_auth.py                # Autenticação com o Google Earth Engine
 │
-├── frontend_projete/            # Interface (React + Vite)
+├── frontend_projete/             # Interface (React 19 + Vite)
 │   └── src/
 │       ├── pages/
 │       │   ├── login.jsx / Cadastro.jsx
-│       │   ├── RecuperarSenha.jsx / TrocarSenha.jsx
-│       │   ├── home.jsx          # Upload de foto + diagnóstico + clima + lavouras cadastradas
-│       │   ├── mapa.jsx           # Desenho do contorno da lavoura no mapa (Leaflet)
+│       │   ├── RecuperarSenha.jsx / TrocarSenha.jsx / Editar_senha.jsx
+│       │   ├── home.jsx            # Upload de foto + diagnóstico + clima + lavouras cadastradas
+│       │   ├── mapa.jsx             # Desenho do contorno da lavoura no mapa (Leaflet)
+│       │   ├── historico.jsx / historicoMapas.jsx
+│       │   ├── observacao.jsx / observacao_produtor.jsx / edicao.jsx / laudo.jsx
 │       │   ├── perfil.jsx
-│       │   └── agronomo.jsx       # Em desenvolvimento — ainda não conectada nas rotas do app
-│       ├── components/            # Header, BottomNav, UploadCard, ResultCard, ClimaBanner...
-│       ├── services/
-│       │   ├── FrontendAPI.js     # Fala com a IA/API (classificação)
-│       │   └── climaAPI.js        # Fala com o backend_clima
-│       └── config/api.js          # URLs dos backends (local ou produção, via .env)
+│       │   ├── agronomo.jsx         # Painel do agrônomo
+│       │   └── cooperativa.jsx      # Painel da cooperativa
+│       ├── components/              # Header, BottomNav, UploadCard, ResultCard, ClimaBanner,
+│       │                            # AvisosBanner, NotificationBell, RotaProtegida...
+│       ├── services/                # FrontendAPI.js, climaAPI.js, historicoAPI.js, apiAutenticado.js
+│       └── config/api.js            # URLs dos backends (local ou produção, via .env)
 │
-└── iniciar.sh                    # Sobe automaticamente a IA/API + o frontend (Git Bash/Linux/macOS)
+└── README.md
 ```
 
 ---
 
 ## ⚙️ Como rodar
 
-O projeto tem **4 backends + 1 frontend**. Nem todos são obrigatórios para testar: se você só quer ver o diagnóstico de doenças funcionando, basta a IA/API + o frontend. Para o fluxo completo (login, cadastro de lavoura, clima), rode também o `banco_de_dados` e o `backend_clima`.
+O projeto tem **4 backends + 1 frontend**. Nem todos são obrigatórios para testar: se você só quer ver o diagnóstico de doenças funcionando, basta a `IA/API` + o `frontend_projete`. Para o fluxo completo (login, cadastro de lavoura, clima, painéis), rode também `banco_de_dados` e `backend_clima`.
 
 | Serviço | Obrigatório para... | Porta padrão |
 |---|---|---|
 | `IA/API` | Diagnóstico de doenças por foto | 8000 |
-| `banco_de_dados` | Login, cadastro, salvar lavouras | 5000 |
+| `banco_de_dados` | Login, cadastro, lavouras, painéis, laudos, avisos | 5000 |
 | `backend_clima` | Exibir o clima na tela inicial | 5001 |
-| `backend_indices` | Índices de vegetação via satélite (uso avançado/experimental) | — |
+| `backend_indices` | Índices de vegetação via satélite (Earth Engine) | 8001* |
 | `frontend_projete` | Interface | 5173 |
 
-### ✅ Opção rápida — IA + Frontend (script automático)
+\* `backend_indices` não define porta fixa no código — rode com `--port` na mão (veja abaixo).
 
-```bash
-bash iniciar.sh
-```
-Se der erro de permissão: `chmod +x iniciar.sh` antes. O script confere se você tem Python e Node.js, instala as dependências na primeira vez e abre a IA/API e o frontend automaticamente. **Ele não sobe o `banco_de_dados` nem o `backend_clima`** — para testar login/cadastro/clima, siga a opção manual abaixo também para esses dois serviços.
+**Pré-requisitos:** [Python 3.10+](https://www.python.org/downloads/) e [Node.js](https://nodejs.org/), com "Add to PATH" marcado na instalação, além de acesso a um banco **MySQL**.
 
-**Pré-requisitos:** [Python 3.10+](https://www.python.org/downloads/) e [Node.js](https://nodejs.org/), com "Add to PATH" marcado na instalação.
+### 1. IA/API — diagnóstico de doenças
 
-### 🔧 Opção manual (todos os serviços)
-
-#### 1. IA/API — diagnóstico de doenças
 ```bash
 cd IA/API
 python -m pip install -r requirements.txt
@@ -110,7 +140,8 @@ python -m uvicorn classificar:app --reload
 ```
 Roda em **http://127.0.0.1:8000** — teste em `/docs`.
 
-#### 2. banco_de_dados — login, cadastro e lavouras
+### 2. banco_de_dados — login, cadastro, lavouras e painéis
+
 ```bash
 cd banco_de_dados
 python -m pip install -r requirements.txt
@@ -124,14 +155,17 @@ DB_NAME=coffeeVision
 DB_PORT=3306
 BREVO_API_KEY=...
 BREVO_EMAIL_REMETENTE=...
+# opcional, apenas se o banco exigir SSL (ex: Aiven)
+DB_SSL_CA=./aiven-ca.pem
 ```
-Rode o script `database/schema.sql` no seu MySQL antes de iniciar. Depois:
+Rode o script `database/schema.sql` no seu MySQL antes de iniciar (cria `usuarios`, `lavouras`, `vinculos_agronomo`, `observacoes`, `imagens`, `indices_vegetacao`, `avisos` e `log_auditoria`). Depois:
 ```bash
 python app.py
 ```
-Roda em **http://127.0.0.1:5000**.
+Roda em **http://127.0.0.1:5000**. Em produção, o `Procfile` já está pronto para `gunicorn app:app`.
 
-#### 3. backend_clima — dados climáticos
+### 3. backend_clima — dados climáticos
+
 ```bash
 cd backend_clima
 npm install
@@ -146,15 +180,17 @@ npm start
 ```
 Roda em **http://localhost:5001**.
 
-#### 4. backend_indices — índices de vegetação (opcional/experimental)
+### 4. backend_indices — índices de vegetação (Earth Engine)
+
 ```bash
 cd backend_indices
-python -m pip install fastapi uvicorn earthengine-api google-auth pydantic
-python -m uvicorn backend_server:app --reload
+python -m pip install -r requirements.txt
+python -m uvicorn backend_server:app --reload --port 8001
 ```
-Requer autenticação configurada com o Google Earth Engine (`google.auth.default()`) e acesso ao projeto `projete2k26` no GEE. Ainda não está conectado ao frontend — hoje é consumido via chamadas diretas à API.
+Requer autenticação com o Google Earth Engine — configure `GOOGLE_CREDENTIALS_JSON_B64` (uma service account em base64, usada em produção) ou credenciais padrão do `gcloud` localmente, além de acesso ao projeto `projete2k26` no GEE (ou defina `EE_PROJECT` com outro projeto). Endpoints principais: `/health`, `/day_maps/`, `/processar_todas_lavouras/` e `/get_zona_de_manejo/`.
 
-#### 5. Frontend
+### 5. Frontend
+
 ```bash
 cd frontend_projete
 npm install
@@ -168,45 +204,18 @@ VITE_AUTH_API_URL=https://sua-api-auth.onrender.com
 VITE_IA_API_URL=https://sua-api-ia.onrender.com
 VITE_CLIMA_API_URL=https://sua-api-clima.onrender.com
 ```
-
----
-
-## 🆘 Solução de problemas
-
-**O terminal da IA/API "trava" numa linha e não mostra mais nada**
-Não travou — está carregando o modelo (`best.onnx`) na inicialização. Aguarde e acesse `http://127.0.0.1:8000/docs`.
-
-**`python`/`npm` não é reconhecido como comando**
-Python ou Node.js não estão no PATH. Reinstale marcando "Add to PATH" ou reinicie o terminal/PC.
-
-**Erro de porta em uso**
-Feche janelas de terminal antigas do projeto. As portas usadas são 8000 (IA), 5000 (banco), 5001 (clima) e 5173 (frontend).
-
-**Erro de conexão com o MySQL / certificado SSL**
-Se estiver usando um banco em nuvem (ex: Aiven), confirme que `DB_SSL_CA` (caminho do `.pem`) ou `DB_SSL_CA_B64` está definido no `.env` de `banco_de_dados`.
-
----
-
-## 🌐 Servidores online (Render)
-
-A IA de classificação também está hospedada em:
-```
-https://projete-2k26.onrender.com/classificar/
-```
-> ⚠️ No plano gratuito do Render, o servidor "dorme" após inatividade — a primeira requisição pode levar 1-2 minutos.
-
-Para usar os serviços online em vez dos locais, defina as variáveis `VITE_*` (veja seção "Frontend" acima) em vez de editar URLs direto no código.
+⚠️ O Vite "assa" essas variáveis no código durante o build — mudá-las depois exige rebuild.
 
 ---
 
 ## 🔗 Como funciona o diagnóstico por foto
 
 1. O produtor escolhe/tira uma foto da folha na tela inicial.
-2. O frontend envia a imagem para a IA/API via `FrontendAPI.js`.
+2. O frontend envia a imagem para a `IA/API` via `FrontendAPI.js`.
 3. O modelo YOLO (rodando via ONNX Runtime) detecta e classifica a(s) doença(s) presentes.
-4. O resultado volta traduzido para o produtor (ex: `"Rust"` → **Ferrugem**, `"Miner"` → **Bicho mineiro**).
+4. O resultado volta traduzido para o produtor (ex.: `"Rust"` → **Ferrugem**, `"Miner"` → **Bicho-mineiro**).
 
-Doenças reconhecidas hoje: **Ferrugem**, **Bicho mineiro**, **Mancha Phoma**, **Cercosporiose**.
+Doenças reconhecidas hoje: **Ferrugem**, **Bicho-mineiro**, **Mancha Phoma**, **Cercosporiose**.
 
 Exemplo de resposta da IA:
 ```json
@@ -219,15 +228,43 @@ Se nenhuma doença for detectada:
 
 ---
 
+## 🆘 Solução de problemas
+
+**O terminal da `IA/API` "trava" numa linha e não mostra mais nada**
+Não travou — está carregando o modelo (`best.onnx`) na inicialização. Aguarde e acesse `http://127.0.0.1:8000/docs`.
+
+**`python`/`npm` não é reconhecido como comando**
+Python ou Node.js não estão no PATH. Reinstale marcando "Add to PATH" ou reinicie o terminal/PC.
+
+**Erro de porta em uso**
+Feche janelas de terminal antigas do projeto. As portas usadas são 8000 (IA), 5000 (banco), 5001 (clima) e 5173 (frontend).
+
+**Erro de conexão com o MySQL / certificado SSL**
+Se estiver usando um banco em nuvem (ex.: Aiven), confirme que `DB_SSL_CA` (caminho do `.pem`) ou `DB_SSL_CA_B64` está definido no `.env` de `banco_de_dados`.
+
+**Erro de autenticação no `backend_indices`**
+Confirme que `GOOGLE_CREDENTIALS_JSON_B64` (ou as credenciais padrão do `gcloud`) estão configuradas e que a conta tem acesso ao projeto do Earth Engine.
+
+---
+
+## 🚀 Próximos passos
+
+- Conectar totalmente os índices de vegetação (`backend_indices`) aos alertas mostrados ao produtor
+- Uso de Machine Learning para recomendações mais precisas (ex.: modelos treinados no Weka)
+- Funcionamento offline mais completo
+- Expandir o histórico e os relatórios em PDF/CSV para agrônomos e cooperativas
+
+---
+
 ## 🛠️ Tecnologias usadas
 
 | Camada | Tecnologia |
 |---|---|
-| Frontend | React 19 + Vite + React Router + Leaflet |
-| IA (diagnóstico por foto) | YOLO (Ultralytics), exportado em ONNX + FastAPI |
-| Autenticação e dados | Flask + MySQL + bcrypt + Brevo (e-mail) |
+| Frontend | React 19 + Vite + React Router + Leaflet/React-Leaflet + jsPDF/html2canvas |
+| IA (diagnóstico por foto) | YOLO (Ultralytics), exportado em ONNX + FastAPI + ONNX Runtime |
+| Autenticação e dados | Flask + MySQL + bcrypt + Brevo (e-mail) + gunicorn (deploy) |
 | Clima | Node.js + Express + OpenWeatherMap |
-| Índices de vegetação | Google Earth Engine + Sentinel-2 + FastAPI |
+| Índices de vegetação | Google Earth Engine + Sentinel-2 + FastAPI + geemap/scikit-fuzzy |
 
 ---
 

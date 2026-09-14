@@ -39,3 +39,20 @@ def obter_credenciais():
     """
     configurar_credenciais_google()
     return google.auth.default(scopes=EE_SCOPES)
+
+# Inicialização preguiçosa: importar as rotas não dispara chamadas ao Google.
+from threading import Lock
+_ee_lock = Lock()
+_ee_inicializado = False
+
+
+def inicializar_ee():
+    global _ee_inicializado
+    with _ee_lock:
+        if not _ee_inicializado:
+            import ee
+            from dotenv import load_dotenv
+            load_dotenv()
+            credentials, project_id = obter_credenciais()
+            ee.Initialize(credentials, project=os.environ.get('EE_PROJECT') or 'projete2k26')
+            _ee_inicializado = True

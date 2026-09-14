@@ -3,7 +3,7 @@ import { buscarClima } from "../services/climaAPI";
 import "./ClimaBanner.css";
 import { useNavigate } from "react-router-dom";
 
-// calcula o centro aproximado do polígono da lavoura
+// Calcula o centro aproximado do polígono da lavoura
 function centroide(coordenadas) {
   const soma = coordenadas.reduce(
     (acc, ponto) => ({
@@ -25,7 +25,6 @@ function ClimaBanner({ lavouras }) {
   const [clima, setClima] = useState(null);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState("");
-
 
   const usuarioTipo = localStorage.getItem("usuarioTipo");
 
@@ -59,8 +58,8 @@ function ClimaBanner({ lavouras }) {
   function laudo() {
     if (!lavouraSelecionada) return;
 
-    // Salva os dados da lavoura selecionada
     localStorage.setItem("lavouraId", lavouraSelecionada.id);
+
     localStorage.setItem(
       "lavouraNome",
       lavouraSelecionada.nomeLavoura
@@ -69,27 +68,32 @@ function ClimaBanner({ lavouras }) {
     navigate(`/laudo/${lavouraSelecionada.id}`);
   }
 
-  function visualizarLavoura(){
+  // Visualizar lavoura no mapa
+  function visualizarLavoura() {
     if (!lavouraSelecionada) return;
 
-    // Salva os dados da lavoura selecionada
-    localStorage.setItem("lavouraId", lavouraSelecionada.id);
+    localStorage.setItem(
+      "lavouraId",
+      lavouraSelecionada.id
+    );
+
     localStorage.setItem(
       "lavouraNome",
       lavouraSelecionada.nomeLavoura
     );
-    
-    // Salva as coordenadas
-    localStorage.setItem("lavouraLatitude", lavouraSelecionada.latitude);
-    localStorage.setItem("lavouraLongitude", lavouraSelecionada.longitude);
 
     navigate("/mapa");
   }
 
+  // Editar lavoura
   function editarLavoura() {
     if (!lavouraSelecionada) return;
 
-    localStorage.setItem("lavouraId", lavouraSelecionada.id);
+    localStorage.setItem(
+      "lavouraId",
+      lavouraSelecionada.id
+    );
+
     navigate(`/edicao/${lavouraSelecionada.id}`);
   }
 
@@ -100,6 +104,7 @@ function ClimaBanner({ lavouras }) {
     async function carregarClima() {
       setCarregando(true);
       setErro("");
+      setClima(null);
 
       try {
         const { lat, lng } = centroide(
@@ -132,6 +137,7 @@ function ClimaBanner({ lavouras }) {
   return (
     <div className="clima-banner">
 
+      {/* TOPO */}
       <div className="clima-banner-topo">
 
         <h3>
@@ -157,6 +163,7 @@ function ClimaBanner({ lavouras }) {
               setLavouraId(id);
 
               localStorage.setItem("lavouraId", id);
+
               localStorage.setItem(
                 "lavouraNome",
                 lavoura.nomeLavoura
@@ -176,18 +183,21 @@ function ClimaBanner({ lavouras }) {
 
       </div>
 
+      {/* CARREGANDO */}
       {carregando && (
         <p className="clima-banner-status">
           Carregando clima...
         </p>
       )}
 
+      {/* ERRO */}
       {!carregando && erro && (
         <p className="clima-banner-status clima-banner-erro">
           {erro}
         </p>
       )}
 
+      {/* DADOS DO CLIMA */}
       {!carregando && !erro && clima && (
         <div className="clima-banner-dados">
 
@@ -209,43 +219,59 @@ function ClimaBanner({ lavouras }) {
 
           {lavouraSelecionada?.produtorNome && (
             <span>
-              👨‍🌾 Produtor: {lavouraSelecionada.produtorNome}
+              👨‍🌾 Produtor:{" "}
+              {lavouraSelecionada.produtorNome}
             </span>
           )}
-          {usuarioTipo === "agronomo" && (
-            <button
-              type="button"
-              onClick={observacao}
-            >
-              adicionar observação
-            </button>
-          )}
 
-          {usuarioTipo === "agronomo" && (
-            <button
-              type="button"
-              onClick={laudo}
-            >
-              emitir laudo
-            </button>
-          )}
-          {usuarioTipo === "produtor" && (
-            <button
-              type="button"
-              onClick={editarLavoura}
-            >
-              Editar Lavoura
-            </button>
-          )}
+          {/* AÇÕES */}
+          <div className="clima-banner-acoes">
 
-          {usuarioTipo === "agronomo" && (
-            <button
-              type="button"
-              onClick={visualizarLavoura}
-            >
-              Visualizar Lavoura
-            </button>
-          )}
+            {/* AGRÔNOMO */}
+            {usuarioTipo === "agronomo" && (
+              <>
+                <button
+                  type="button"
+                  className="acao-secundaria"
+                  onClick={observacao}
+                  title="Adicionar observação"
+                >
+                  📝 <span>Observação</span>
+                </button>
+
+                <button
+                  type="button"
+                  className="acao-secundaria"
+                  onClick={laudo}
+                  title="Emitir laudo"
+                >
+                  📄 <span>Laudo</span>
+                </button>
+
+                <button
+                  type="button"
+                  className="acao-secundaria"
+                  onClick={visualizarLavoura}
+                  title="Visualizar lavoura no mapa"
+                >
+                  🗺️ <span>Mapa</span>
+                </button>
+              </>
+            )}
+
+            {/* PRODUTOR */}
+            {usuarioTipo === "produtor" && (
+              <button
+                type="button"
+                className="acao-secundaria"
+                onClick={editarLavoura}
+                title="Editar lavoura"
+              >
+                ✏️ <span>Editar</span>
+              </button>
+            )}
+
+          </div>
 
         </div>
       )}

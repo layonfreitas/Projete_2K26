@@ -73,3 +73,27 @@
 .clima-banner-dados button:hover {
   background: #b6842f;
 }
+
+.clima-banner-acoes {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.acao-secundaria {
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  background: transparent;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.acao-secundaria:hover {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.acao-secundaria span {
+  margin-left: 3px;
+}

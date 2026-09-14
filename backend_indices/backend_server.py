@@ -1,21 +1,19 @@
 import ee
-import google.auth
-from get_indices import get_indices_image, save_indice_map
 from pydantic import BaseModel
 from fastapi import FastAPI, status, HTTPException, BackgroundTasks
 from datetime import date
-from z_score import salvar_mapa_z_score
-from serie_temporal import Imagem_para_zona_de_manejo, create_zonas_de_manejo
-from processar_lavouras import processar_todas_lavouras
-from gee_auth import obter_credenciais
-from dotenv import load_dotenv
-import requests
-import json
-import os
-load_dotenv()
+import logging
+from processar_lavouras import processar_todas_lavouras, processar_lavoura
+from georreferencia import criar_geometria
+from gee_auth import inicializar_ee
+from threading import Lock
 
-credentials, project_id = obter_credenciais()
-ee.Initialize(credentials, project="projete2k26")
+_processamento_lock = Lock()
+from dotenv import load_dotenv
+load_dotenv()
+logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
+
+
 
 class Day_req(BaseModel):
     coordenadas: list[list[float]]
@@ -47,62 +45,43 @@ async def health():
 
 
 
-@app.post("/day_maps/", status_code=status.HTTP_201_CREATED)
-async def create_day_maps(day_req: Day_req):
-    print("Iniciando processamento de imagens para a geometria")
-    geometria = ee.Geometry.Polygon(day_req.coordenadas)
-    usuario_id = day_req.usuario_id
-    lavoura_id = day_req.lavoura_id
-    imagemHoje = get_indices_image(geometria,date.today().isoformat(), 5, 30)
-    data_imagem = imagemHoje.date().format("YYYY-MM-dd").getInfo()
+@app.post("/day_maps/")
+def create_day_maps(day_req: Day_req):
+    # Mantém o contrato desta rota: pares [longitude, latitude].
+    if not _processamento_lock.acquire(blocking=False):
+        raise HTTPException(status_code=409, detail="Já há um processamento em andamento neste serviço.")
+    try:
+        inicializar_ee()
+        geometria = criar_geometria(day_req.coordenadas, ordem='lnglat')
+        resultado = processar_lavoura({'id':day_req.lavoura_id,'usuarioId':day_req.usuario_id}, geometria=geometria)
+        if resultado['status'] == 'sem_dados':
+            raise HTTPException(status_code=422, detail=resultado)
+        if resultado['status'] == 'erro':
+            raise HTTPException(status_code=502, detail=resultado)
+        return resultado
+    finally:
+        _processamento_lock.release()
 
-    dados= {
-        'id': lavoura_id,
-        'usuario_id': usuario_id,
-        'data_imagem': data_imagem,
-        'indice': indices[0]
-    }
-    json_dados = json.dumps(dados)
-    resposta = requests.get(url = os.environ.get("DATABASE_URL") + "/acessar_imagem", params=dados)
-    if(resposta.status_code == 200):
-        print("Imagem já processada para a data disponivel.")
-        return {
-            "status": "sucesso",
-            "mensagem": "A imagem já foi processada para a data disponivel."
-        }
-    
-    if imagemHoje==None:
-         raise HTTPException(
-            status_code=status.HTTP_200_OK,
-            detail="Nenhuma imagem válida encontrada"
-        )
-    for indice in indices:
-        print(f"Salvando mapa do índice {indice} para a geometria")
-        save_indice_map(imagemHoje, indice, geometria, usuario_id, lavoura_id)
-        salvar_mapa_z_score(imagemHoje, indice, usuario_id, lavoura_id, geometria)
 
-    return {
-        "status": "sucesso",
-        "mensagem": "Uma nova imagem foi processada."
-    }
-   
-@app.post("/processar_todas_lavouras/", status_code=status.HTTP_202_ACCEPTED)
-async def processar_todas(background_tasks: BackgroundTasks):
-    """
-    Dispara o processamento de índices para todas as lavouras cadastradas.
-    Roda em segundo plano para responder rápido (evita timeout de proxy
-    em plataformas como Render/Railway) e é pensado para ser chamado por
-    um agendador externo (ex: GitHub Actions com 'schedule').
-    """
-    background_tasks.add_task(processar_todas_lavouras)
-    return {
-        "status": "aceito",
-        "mensagem": "Processamento de todas as lavouras iniciado em segundo plano."
-    }
+def _processar_em_segundo_plano():
+    try:
+        processar_todas_lavouras()
+    finally:
+        _processamento_lock.release()
+
+
+@app.post("/processar_todas_lavouras/", status_code=202)
+def processar_todas(background_tasks: BackgroundTasks):
+    if not _processamento_lock.acquire(blocking=False):
+        raise HTTPException(status_code=409, detail="Já há um processamento em andamento neste serviço.")
+    background_tasks.add_task(_processar_em_segundo_plano)
+    return {"status":"aceito","mensagem":"Processamento iniciado; acompanhe os resultados nos logs do backend."}
 
 
 @app.post("/get_zona_de_manejo/", status_code=status.HTTP_201_CREATED)
 async def zonas_de_manejo(zona_de_manejo_req: Zona_de_manejo_req):
+    inicializar_ee()
+    from serie_temporal import Imagem_para_zona_de_manejo, create_zonas_de_manejo
     geometria = ee.Geometry.Polygon(zona_de_manejo_req.coordenadas)
     usuario_id = zona_de_manejo_req.usuario_id
     lavoura_id = zona_de_manejo_req.lavoura_id

@@ -397,25 +397,29 @@ export default function Mapa() {
   // =========================================================
 
   function desenharLavoura(coordenadas) {
-    if (
-      !map.current ||
-      !coordenadas ||
-      coordenadas.length < 3
-    ) {
-      return;
-    }
+      if (
+    !map.current ||
+    !coordenadas ||
+    coordenadas.length < 3
+  ) {
+    return;
+  }
 
-    const pontos = coordenadas.map((p) => [
-      p.lat,
-      p.lng,
-    ]);
+  const pontos = coordenadas.map((p) => [
+    p.lat,
+    p.lng,
+  ]);
 
-  L.polygon(pontos, {
+  const poligono = L.polygon(pontos, {
     color: "#ff0000",
     weight: 3,
     fillColor: "#ff0000",
     fillOpacity: 0.3,
   }).addTo(map.current);
+
+  // Aproxima o mapa na lavoura
+  map.current.fitBounds(poligono.getBounds());
+
 }
 
   async function carregarLavouras() {
@@ -456,11 +460,22 @@ export default function Mapa() {
         dados
       );
 
-      dados.forEach((lavoura) => {
-        desenharLavoura(
-          lavoura.coordenadas
-        );
-      });
+const lavouraIdSelecionada =
+  localStorage.getItem("lavouraId");
+
+if (lavouraIdSelecionada) {
+  const lavoura = dados.find(
+    (l) => String(l.id) === String(lavouraIdSelecionada)
+  );
+
+  if (lavoura) {
+    desenharLavoura(lavoura.coordenadas);
+  }
+} else {
+  dados.forEach((lavoura) => {
+    desenharLavoura(lavoura.coordenadas);
+  });
+}
 
     } catch (erro) {
       console.error(
