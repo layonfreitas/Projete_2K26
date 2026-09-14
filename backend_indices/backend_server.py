@@ -55,7 +55,11 @@ def create_day_maps(day_req: Day_req):
         raise HTTPException(status_code=409, detail="Já há um processamento em andamento neste serviço.")
     try:
         inicializar_ee()
-        geometria = criar_geometria(day_req.coordenadas, ordem='lnglat')
+        coordenadas = [
+        [p.lng, p.lat]
+        for p in day_req.coordenadas
+    ]
+        geometria = criar_geometria(coordenadas, ordem='lnglat')
         resultado = processar_lavoura({'id':day_req.lavoura_id,'usuarioId':day_req.usuario_id}, geometria=geometria)
         if resultado['status'] == 'sem_dados':
             raise HTTPException(status_code=422, detail=resultado)
