@@ -3,6 +3,7 @@ fastapi
 uvicorn[standard]
 pydantic
 python-dotenv
+flask
 
 # Google Earth Engine & Google Cloud / API Services
 earthengine-api
