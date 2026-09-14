@@ -14,9 +14,12 @@ load_dotenv()
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
 
 
+class Coordenada(BaseModel):
+    lat: float
+    lng: float
 
 class Day_req(BaseModel):
-    coordenadas: list[list[float]]
+    coordenadas: list[Coordenada]
     usuario_id: int
     lavoura_id: int
     
@@ -58,6 +61,7 @@ def create_day_maps(day_req: Day_req):
             raise HTTPException(status_code=422, detail=resultado)
         if resultado['status'] == 'erro':
             raise HTTPException(status_code=502, detail=resultado)
+    
         return resultado
     finally:
         _processamento_lock.release()
