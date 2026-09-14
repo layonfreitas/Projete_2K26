@@ -8,7 +8,7 @@ from get_indices import (get_indices_image,save_indice_map,obter_valores_indices
 from z_score import salvar_mapa_z_score
 from georreferencia import normalizar_coordenadas,criar_geometria
 from gee_auth import inicializar_ee
-import Flask
+import flask
 
 log = logging.getLogger(__name__)
 
@@ -68,7 +68,7 @@ def obter_classificao(lat,lon,clmi):
         "temperatura":dados_climaticos["temperatura_media"],
         "precipitacao":dados_climaticos["precipitacao"]
     }
-    resposta = requests.post(api_url('/clmi_clf'), json= jsonify(dados))
+    resposta = requests.post(api_url('/clmi_clf'), json= dados)
     resposta.raise_for_status()
     dados_resposta = resposta.json()
     classificao = dados_resposta.classificacao
@@ -114,8 +114,13 @@ def processar_lavoura(lavoura, data_alvo=None, janela=30, indices=None, geometri
             resultado['erros'].append(f'{nome}: {erro}')
             log.exception('Falha na lavoura %s / %s',lavoura['id'],nome)
 
+
     clmi = valores.get('CLMI')   
-            
+    latitude = lavoura['coordenadas'][0][1]
+    longitude = lavoura['coordenadas'][0][0]
+    classificacao = obter_classificao(latitude, longitude, clmi)
+    
+    resultado['classificacao'] = classificacao
     resultado['status'] = ('parcial' if resultado['salvos'] else 'erro') if resultado['erros'] else ('concluido' if resultado['salvos'] else 'sem_dados')
     log.info('Lavoura %s: %s; %s mapas salvos.',lavoura['id'],resultado['status'],len(resultado['salvos']))
     return resultado
