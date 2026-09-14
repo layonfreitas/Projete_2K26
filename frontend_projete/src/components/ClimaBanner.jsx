@@ -47,11 +47,6 @@ function ClimaBanner({ lavouras }) {
     (lavoura) => lavoura.id === lavouraId
   );
 
-function metros()
-{
- 
-}
-
   // Ir para observações
   function observacao() {
     if (!lavouraSelecionada) return;
