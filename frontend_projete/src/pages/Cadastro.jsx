@@ -3,7 +3,7 @@ import { useState } from "react";
 import { AUTH_API_URL } from "../config/api";
 import "./Cadastro.css";
 
-function calcularAreaM2(coordenadas) {
+function calcularAreaHectares(coordenadas) {
   if (!coordenadas || coordenadas.length < 3) {
     return 0;
   }
@@ -43,9 +43,10 @@ function calcularAreaM2(coordenadas) {
       proximoPonto.x * pontoAtual.y;
   }
 
-  return Math.abs(area) / 2;
-}
+  const areaM2 = Math.abs(area) / 2;
 
+  return areaM2 / 10000; // converte m² para hectares
+}
 export default function Cadastro() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -151,7 +152,7 @@ export default function Cadastro() {
               ? `${areaM2.toLocaleString("pt-BR", {
                   minimumFractionDigits: 2,
                   maximumFractionDigits: 2,
-                })} m²`
+                })} ha`
               : "Área indisponível."}
           </div>
 

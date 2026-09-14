@@ -8,7 +8,7 @@ lavoura_bp = Blueprint('lavoura', __name__)
 
 mysql = None
 
-def calcular_area_m2(coordenadas):
+def calcular_area_hectares(coordenadas):
     if len(coordenadas) < 3:
         return 0
 
@@ -32,7 +32,7 @@ def calcular_area_m2(coordenadas):
 
         area += (x1 * y2) - (x2 * y1)
 
-    return abs(area) / 2
+    return abs(area) / 10000
 
 
 def init_mysql(mysql_instance):
@@ -48,7 +48,7 @@ def cadastrar_lavoura():
     usuario_id = dados.get('usuarioId')
     nome_lavoura = dados.get('nomeLavoura')
     coordenadas = dados.get('coordenadas')
-    area_m2 = calcular_area_m2(coordenadas)
+    area_hectares = calcular_area_hectares('coordenadas')
 
     if not usuario_id or not nome_lavoura or not coordenadas:
         return jsonify({

@@ -218,11 +218,11 @@ function ClimaBanner({ lavouras }) {
           </span>
           <span>
   🌱 Área:{" "}
-  {Number(lavouraSelecionada?.areaM2 || 0).toLocaleString("pt-BR", {
+  {Number(lavouraSelecionada?.area_hectares || 0).toLocaleString("pt-BR", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })}{" "}
-  m²
+  ha
 </span>
 
           {lavouraSelecionada?.produtorNome && (
