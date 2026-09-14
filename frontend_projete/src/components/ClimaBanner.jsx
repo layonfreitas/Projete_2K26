@@ -47,11 +47,6 @@ function ClimaBanner({ lavouras }) {
     (lavoura) => lavoura.id === lavouraId
   );
 
-function metros()
-{
- 
-}
-
   // Ir para observações
   function observacao() {
     if (!lavouraSelecionada) return;
@@ -221,6 +216,14 @@ function metros()
           <span>
             ☁️ {clima.condicao}
           </span>
+          <span>
+  🌱 Área:{" "}
+  {Number(lavouraSelecionada?.areaM2 || 0).toLocaleString("pt-BR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}{" "}
+  m²
+</span>
 
           {lavouraSelecionada?.produtorNome && (
             <span>
