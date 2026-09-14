@@ -27,7 +27,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan = lifespan)
 
 
-@app.post("/clmi_clf/")
+@app.post("/clmi_clf")
 async def classificar(dados: Dados):
     nova_instancia = Instance.create_instance([dados.clmi, dados.temperatura, dados.precipitacao, None])
     nova_instancia.dataset = cabecalho

@@ -1,5 +1,6 @@
 """Processamento por lavoura; falhas de um índice não interrompem os demais."""
 from datetime import date
+from datetime import date, timedelta
 import logging
 import requests
 from get_indices import (get_indices_image,save_indice_map,obter_valores_indices,
@@ -7,9 +8,75 @@ from get_indices import (get_indices_image,save_indice_map,obter_valores_indices
 from z_score import salvar_mapa_z_score
 from georreferencia import normalizar_coordenadas,criar_geometria
 from gee_auth import inicializar_ee
+import Flask
 
 log = logging.getLogger(__name__)
 
+
+
+
+def get_weather_data(lat, lon):
+    data_fim = date.today()
+    data_inicio = data_fim - timedelta(days=30)
+
+    parametros = {
+        "latitude": lat,
+        "longitude": lon,
+        "start_date": data_inicio.isoformat(),
+        "end_date": data_fim.isoformat(),
+        "daily": "temperature_2m_mean,precipitation_sum",
+        "timezone": "America/Sao_Paulo"
+    }
+
+    url = "https://archive-api.open-meteo.com/v1/archive"
+
+    try:
+        resposta = requests.get(url, params=parametros, timeout=(15, 60))
+        resposta.raise_for_status()
+
+        dados = resposta.json()
+        daily = dados["daily"]
+
+        temperaturas = daily["temperature_2m_mean"]
+        precipitacoes = [
+            0 if valor is None else valor
+            for valor in daily["precipitation_sum"]
+        ]
+
+        temperatura_media = sum(temperaturas) / len(temperaturas)
+        precipitacao = sum(precipitacoes)
+
+        return {
+            "mensagem": "Dados climaticos obtidos.",
+            "temperatura_media": temperatura_media,
+            "precipitacao": precipitacao
+        }
+
+    except Exception as erro:
+        print(erro)
+        return {
+            "status": 500,
+            "mensagem": "Erro ao buscar dados do clima. Por favor, tente novamente mais tarde."
+        }
+
+
+
+def obter_classificao(lat,lon,clmi):
+    dados_climaticos = get_weather_data(lat, lon)
+    dados = {
+        "clmi":clmi,
+        "temperatura":dados_climaticos["temperatura_media"],
+        "precipitacao":dados_climaticos["precipitacao"]
+    }
+    resposta = requests.post(api_url('/clmi_clf'), json= jsonify(dados))
+    resposta.raise_for_status()
+    dados_resposta = resposta.json()
+    classificao = dados_resposta.classificacao
+    return classificao
+
+    
+
+    
 
 def buscar_todas_lavouras():
     resposta = requests.get(api_url('/lavouras'),timeout=(15,60))
@@ -46,6 +113,9 @@ def processar_lavoura(lavoura, data_alvo=None, janela=30, indices=None, geometri
         except Exception as erro:
             resultado['erros'].append(f'{nome}: {erro}')
             log.exception('Falha na lavoura %s / %s',lavoura['id'],nome)
+
+    clmi = valores.get('CLMI')   
+            
     resultado['status'] = ('parcial' if resultado['salvos'] else 'erro') if resultado['erros'] else ('concluido' if resultado['salvos'] else 'sem_dados')
     log.info('Lavoura %s: %s; %s mapas salvos.',lavoura['id'],resultado['status'],len(resultado['salvos']))
     return resultado
