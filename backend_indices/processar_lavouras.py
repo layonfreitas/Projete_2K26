@@ -116,7 +116,7 @@ def processar_lavoura(lavoura, data_alvo=None, janela=30, indices=None, geometri
 
 
     clmi = valores.get('CLMI')   
-    latitude = lavoura['coordenadas'][0][1]
+    latitude = lavoura['coordenadas'][0][1]  
     longitude = lavoura['coordenadas'][0][0]
     classificacao = obter_classificao(latitude, longitude, clmi)
 
