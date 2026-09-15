@@ -394,6 +394,22 @@ def remover_lavoura(lavoura_id):
             (lavoura_id,)
         )
 
+        cursor.execute(
+            """
+            DELETE FROM indices_vegetacao
+            WHERE lavoura_id = %s
+            """,
+            (lavoura_id,)
+        )
+
+        cursor.execute(
+            """
+            DELETE FROM clima
+            WHERE lavoura_id = %s
+            """,
+            (lavoura_id,)
+        )
+
         # Remove a lavoura
         cursor.execute(
             """
@@ -422,8 +438,7 @@ def remover_lavoura(lavoura_id):
             "mensagem": "Erro ao remover lavoura",
             "erro": str(erro)
         }), 500
-
-
+    
 @lavoura_bp.route('/laudo/enviar_email', methods=['POST'])
 def enviar_laudo_email():
 
