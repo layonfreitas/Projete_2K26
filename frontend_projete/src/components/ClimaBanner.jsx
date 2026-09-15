@@ -113,7 +113,12 @@ function ClimaBanner({ lavouras }) {
 
         const dados = await buscarClima(lat, lng);
 
-        setClima(dados);
+        if (dados){
+          setClima(dados);
+        } else {
+          setClima(null);
+          setErro("Erro ao buscar clima. Tente novamente mais tarde.");
+        }
       } catch (erroRequisicao) {
         setErro(
           erroRequisicao.message ||
@@ -134,158 +139,183 @@ function ClimaBanner({ lavouras }) {
     return null;
   }
 
-  return (
-    <div className="clima-banner">
+return (
+  <div className="clima-banner">
 
-      {/* TOPO */}
-      <div className="clima-banner-topo">
+    {/* TOPO */}
+    <div className="clima-banner-topo">
+      <h3>
+        🌦️ Clima{" "}
+        {lavouraSelecionada
+          ? `— ${lavouraSelecionada.nomeLavoura}`
+          : ""}
+      </h3>
 
-        <h3>
-          🌦️ Clima{" "}
-          {lavouraSelecionada
-            ? `— ${lavouraSelecionada.nomeLavoura}`
-            : ""}
-        </h3>
+      {lavouras.length > 1 && (
+        <select
+          className="clima-banner-select"
+          value={lavouraId ?? ""}
+          onChange={(evento) => {
+            const id = Number(evento.target.value);
 
-        {lavouras.length > 1 && (
-          <select
-            className="clima-banner-select"
-            value={lavouraId ?? ""}
-            onChange={(evento) => {
-              const id = Number(evento.target.value);
+            const lavoura = lavouras.find(
+              (l) => l.id === id
+            );
 
-              const lavoura = lavouras.find(
-                (l) => l.id === id
-              );
+            if (!lavoura) return;
 
-              if (!lavoura) return;
+            setLavouraId(id);
 
-              setLavouraId(id);
+            localStorage.setItem("lavouraId", id);
+            localStorage.setItem(
+              "lavouraNome",
+              lavoura.nomeLavoura
+            );
+          }}
+        >
+          {lavouras.map((lavoura) => (
+            <option
+              key={lavoura.id}
+              value={lavoura.id}
+            >
+              {lavoura.nomeLavoura}
+            </option>
+          ))}
+        </select>
+      )}
+    </div>
 
-              localStorage.setItem("lavouraId", id);
+    {/* CARREGANDO CLIMA */}
+    {carregando && (
+      <p className="clima-banner-status">
+        Carregando clima...
+      </p>
+    )}
 
-              localStorage.setItem(
-                "lavouraNome",
-                lavoura.nomeLavoura
-              );
-            }}
-          >
-            {lavouras.map((lavoura) => (
-              <option
-                key={lavoura.id}
-                value={lavoura.id}
-              >
-                {lavoura.nomeLavoura}
-              </option>
-            ))}
-          </select>
+    {/* ERRO DO CLIMA */}
+    {!carregando && erro && (
+      <p className="clima-banner-status clima-banner-erro">
+        🌤️ {erro}
+      </p>
+    )}
+
+    {/* DADOS DO CLIMA */}
+    {!carregando && !erro && clima && (
+      <div className="clima-banner-dados">
+
+        <span>
+          🌡️ {clima.temperatura}°C
+        </span>
+
+        <span>
+          💧 {clima.umidade}%
+        </span>
+
+        <span>
+          🌬️ {clima.vento} m/s
+        </span>
+
+        <span>
+          ☁️ {clima.condicao}
+        </span>
+
+        <span>
+          🌱 Área:{" "}
+          {Number(
+            lavouraSelecionada?.area_hectares || 0
+          ).toLocaleString("pt-BR", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          })}{" "}
+          ha
+        </span>
+
+        {lavouraSelecionada?.produtorNome && (
+          <span>
+            👨‍🌾 Produtor:{" "}
+            {lavouraSelecionada.produtorNome}
+          </span>
         )}
 
       </div>
+    )}
 
-      {/* CARREGANDO */}
-      {carregando && (
-        <p className="clima-banner-status">
-          Carregando clima...
-        </p>
+    {/* ÁREA / PRODUTOR QUANDO O CLIMA ESTÁ INDISPONÍVEL */}
+    {!carregando && erro && (
+      <div className="clima-banner-dados">
+
+        <span>
+          🌱 Área:{" "}
+          {Number(
+            lavouraSelecionada?.area_hectares || 0
+          ).toLocaleString("pt-BR", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          })}{" "}
+          ha
+        </span>
+
+        {lavouraSelecionada?.produtorNome && (
+          <span>
+            👨‍🌾 Produtor:{" "}
+            {lavouraSelecionada.produtorNome}
+          </span>
+        )}
+
+      </div>
+    )}
+
+    {/* AÇÕES */}
+    <div className="clima-banner-acoes">
+
+      {/* AGRÔNOMO */}
+      {usuarioTipo === "agronomo" && (
+        <>
+          <button
+            type="button"
+            className="acao-secundaria"
+            onClick={observacao}
+            title="Adicionar observação"
+          >
+            📝 <span>Observação</span>
+          </button>
+
+          <button
+            type="button"
+            className="acao-secundaria"
+            onClick={laudo}
+            title="Emitir laudo"
+          >
+            📄 <span>Laudo</span>
+          </button>
+
+          <button
+            type="button"
+            className="acao-secundaria"
+            onClick={visualizarLavoura}
+            title="Visualizar lavoura no mapa"
+          >
+            🗺️ <span>Mapa</span>
+          </button>
+        </>
       )}
 
-      {/* ERRO */}
-      {!carregando && erro && (
-        <p className="clima-banner-status clima-banner-erro">
-          {erro}
-        </p>
-      )}
-
-      {/* DADOS DO CLIMA */}
-      {!carregando && !erro && clima && (
-        <div className="clima-banner-dados">
-
-          <span>
-            🌡️ {clima.temperatura}°C
-          </span>
-
-          <span>
-            💧 {clima.umidade}%
-          </span>
-
-          <span>
-            🌬️ {clima.vento} m/s
-          </span>
-
-          <span>
-            ☁️ {clima.condicao}
-          </span>
-          <span>
-  🌱 Área:{" "}
-  {Number(lavouraSelecionada?.area_hectares || 0).toLocaleString("pt-BR", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}{" "}
-  ha
-</span>
-
-          {lavouraSelecionada?.produtorNome && (
-            <span>
-              👨‍🌾 Produtor:{" "}
-              {lavouraSelecionada.produtorNome}
-            </span>
-          )}
-
-          {/* AÇÕES */}
-          <div className="clima-banner-acoes">
-
-            {/* AGRÔNOMO */}
-            {usuarioTipo === "agronomo" && (
-              <>
-                <button
-                  type="button"
-                  className="acao-secundaria"
-                  onClick={observacao}
-                  title="Adicionar observação"
-                >
-                  📝 <span>Observação</span>
-                </button>
-
-                <button
-                  type="button"
-                  className="acao-secundaria"
-                  onClick={laudo}
-                  title="Emitir laudo"
-                >
-                  📄 <span>Laudo</span>
-                </button>
-
-                <button
-                  type="button"
-                  className="acao-secundaria"
-                  onClick={visualizarLavoura}
-                  title="Visualizar lavoura no mapa"
-                >
-                  🗺️ <span>Mapa</span>
-                </button>
-              </>
-            )}
-
-            {/* PRODUTOR */}
-            {usuarioTipo === "produtor" && (
-              <button
-                type="button"
-                className="acao-secundaria"
-                onClick={editarLavoura}
-                title="Editar lavoura"
-              >
-                ✏️ <span>Editar</span>
-              </button>
-            )}
-
-          </div>
-
-        </div>
+      {/* PRODUTOR */}
+      {usuarioTipo === "produtor" && (
+        <button
+          type="button"
+          className="acao-secundaria"
+          onClick={editarLavoura}
+          title="Editar lavoura"
+        >
+          ✏️ <span>Editar</span>
+        </button>
       )}
 
     </div>
-  );
+
+  </div>
+);
 }
 
 export default ClimaBanner;
