@@ -7,3 +7,5 @@ python-multipart
 pydantic
 python-weka-wrapper3
 contextlib2
+os
+dotenv
