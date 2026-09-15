@@ -399,19 +399,10 @@ const ehProdutor = usuarioTipo === "produtor";
   // DESENHAR LAVOURAS JÁ CADASTRADAS
   // =========================================================
 
-  function desenharLavoura(coordenadas) {
-      if (
-    !map.current ||
-    !coordenadas ||
-    coordenadas.length < 3
-  ) {
-    return;
-  }
+  function desenharLavoura(lavoura) {
+     if (!map.current || !lavoura?.coordenadas?.length) return;
 
-  const pontos = coordenadas.map((p) => [
-    p.lat,
-    p.lng,
-  ]);
+  const pontos = lavoura.coordenadas.map((p) => [p.lat, p.lng]);
 
   const poligono = L.polygon(pontos, {
     color: "#ff0000",
@@ -420,7 +411,15 @@ const ehProdutor = usuarioTipo === "produtor";
     fillOpacity: 0.3,
   }).addTo(map.current);
 
-  // Aproxima o mapa na lavoura
+  poligono.bindTooltip(
+    `<b>Lavoura:</b> ${lavoura.nomeLavoura}<br>
+     <b>Área:</b> ${Number(lavoura.areaHectares).toFixed(2)} ha`,
+    {
+      sticky: true,
+      direction: "top",
+    }
+  );
+
   map.current.fitBounds(poligono.getBounds());
 
 }
@@ -472,11 +471,11 @@ if (lavouraIdSelecionada) {
   );
 
   if (lavoura) {
-    desenharLavoura(lavoura.coordenadas);
+    desenharLavoura(lavoura);
   }
 } else {
   dados.forEach((lavoura) => {
-    desenharLavoura(lavoura.coordenadas);
+    desenharLavoura(lavoura);
   });
 }
 
