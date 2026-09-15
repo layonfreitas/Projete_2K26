@@ -57,7 +57,7 @@ export default function Cadastro() {
   const [mensagem, setMensagem] = useState("");
   const [carregando, setCarregando] = useState(false);
 
-  const areaM2 = calcularAreaM2(coordenadas);
+  const area_hectares = calcularAreaHectares(coordenadas);
 
   async function salvarCadastro() {
     const usuarioId = localStorage.getItem("usuarioId");
@@ -149,7 +149,7 @@ export default function Cadastro() {
             <br />
 
             {coordenadas && coordenadas.length >= 3
-              ? `${areaM2.toLocaleString("pt-BR", {
+              ? `${area_hectares.toLocaleString("pt-BR", {
                   minimumFractionDigits: 2,
                   maximumFractionDigits: 2,
                 })} ha`

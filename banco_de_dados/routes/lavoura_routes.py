@@ -48,7 +48,7 @@ def cadastrar_lavoura():
     usuario_id = dados.get('usuarioId')
     nome_lavoura = dados.get('nomeLavoura')
     coordenadas = dados.get('coordenadas')
-    area_hectares = calcular_area_hectares('coordenadas')
+    area_hectares = calcular_area_hectares(coordenadas)
 
     if not usuario_id or not nome_lavoura or not coordenadas:
         return jsonify({
@@ -76,7 +76,7 @@ def cadastrar_lavoura():
                 usuario_id,
                 nome_lavoura,
                 coordenadas_json,
-                area_m2
+                area_hectares
             )
         )
 
@@ -181,7 +181,7 @@ def listar_lavouras(usuario_id):
             "criadoEm": linha[3].isoformat(),
             "usuarioId": linha[4],
             "produtorNome": linha[5],
-            "areaM2": float(linha[6]) if linha[6] is not None else 0
+            "areaHectares": float(linha[6]) if linha[6] is not None else 0
         })
 
         return jsonify(lavouras), 200
@@ -266,7 +266,7 @@ def editar_lavoura(lavoura_id):
                     "mensagem": "O polígono precisa de pelo menos 3 pontos"
                 }), 400
 
-            area_m2 = calcular_area_m2(coordenadas)
+            area_m2 = calcular_area_hectares(coordenadas)
             coordenadas_json = json.dumps(coordenadas)
 
             cursor.execute(
