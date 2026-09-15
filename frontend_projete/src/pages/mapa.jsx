@@ -26,6 +26,9 @@ L.Icon.Default.mergeOptions({
 export default function Mapa() {
   const navigate = useNavigate();
 
+  const usuarioTipo = localStorage.getItem("usuarioTipo");
+const ehProdutor = usuarioTipo === "produtor";
+
   const mapaRef = useRef(null);
   const map = useRef(null);
 
@@ -112,7 +115,7 @@ export default function Mapa() {
     // =========================================================
     // CLIQUE NO MAPA → CRIA UM POSTO
     // =========================================================
-
+    if (ehProdutor) {
     map.current.on("click", (e) => {
       contadorPostos.current++;
 
@@ -181,7 +184,7 @@ export default function Mapa() {
         map.current = null;
       }
     };
-  }, []);
+  } []});
 
   // =========================================================
   // PREVIEW DO CONTORNO
@@ -543,6 +546,9 @@ if (lavouraIdSelecionada) {
           Buscar
         </button>
 
+        {ehProdutor && (
+        <>
+
         <button onClick={confirmarContorno}>
           Confirmar Contorno
         </button>
@@ -555,6 +561,8 @@ if (lavouraIdSelecionada) {
           <button className="botao-confirmar-cadastro" onClick={confirmarCadastro}>
             Confirmar Cadastro
           </button>
+        )}
+        </>
         )}
 
       </div>
