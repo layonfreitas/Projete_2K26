@@ -181,7 +181,7 @@ def listar_lavouras(usuario_id):
             "criadoEm": linha[3].isoformat(),
             "usuarioId": linha[4],
             "produtorNome": linha[5],
-            "areaHectares": float(linha[6]) if linha[6] is not None else 0
+            "areaHectares": float(linha[6] / 10000) if linha[6] is not None else 0
         })
 
         return jsonify(lavouras), 200

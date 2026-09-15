@@ -222,7 +222,7 @@ return (
         <span>
           🌱 Área:{" "}
           {Number(
-            lavouraSelecionada?.area_hectares || 0
+            lavouraSelecionada?.areaHectares || 0
           ).toLocaleString("pt-BR", {
             minimumFractionDigits: 2,
             maximumFractionDigits: 2,
@@ -247,7 +247,7 @@ return (
         <span>
           🌱 Área:{" "}
           {Number(
-            lavouraSelecionada?.area_hectares || 0
+            lavouraSelecionada?.areaHectares || 0
           ).toLocaleString("pt-BR", {
             minimumFractionDigits: 2,
             maximumFractionDigits: 2,
