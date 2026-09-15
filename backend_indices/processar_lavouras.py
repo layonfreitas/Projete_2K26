@@ -76,7 +76,7 @@ def obter_classificao(lat,lon,clmi):
     resposta = requests.post(ia_url+'/clmi_clf', json= dados)
     resposta.raise_for_status()
     dados_resposta = resposta.json()
-    classificao = dados_resposta.classificacao
+    classificao = dados_resposta['classificacao']
     return classificao
 
     
