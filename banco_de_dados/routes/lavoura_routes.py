@@ -344,14 +344,11 @@ def editar_lavoura(lavoura_id):
             "mensagem": "Erro ao atualizar lavoura",
             "erro": str(erro)
         }), 500
-
-
 @lavoura_bp.route('/lavoura/<int:lavoura_id>', methods=['DELETE'])
 def remover_lavoura(lavoura_id):
     try:
         cursor = mysql.connection.cursor()
 
-        # Verifica se a lavoura existe
         cursor.execute(
             """
             SELECT id
@@ -369,31 +366,6 @@ def remover_lavoura(lavoura_id):
                 "mensagem": "Lavoura não encontrada"
             }), 404
 
-        # Remove os registros relacionados à lavoura
-        cursor.execute(
-            """
-            DELETE FROM observacoes
-            WHERE lavoura_id = %s
-            """,
-            (lavoura_id,)
-        )
-
-        cursor.execute(
-            """
-            DELETE FROM imagens
-            WHERE lavoura_id = %s
-            """,
-            (lavoura_id,)
-        )
-
-        cursor.execute(
-            """
-            DELETE FROM log_auditoria
-            WHERE lavoura_id = %s
-            """,
-            (lavoura_id,)
-        )
-
         cursor.execute(
             """
             DELETE FROM indices_vegetacao
@@ -410,7 +382,30 @@ def remover_lavoura(lavoura_id):
             (lavoura_id,)
         )
 
-        # Remove a lavoura
+        cursor.execute(
+            """
+            DELETE FROM observacoes
+            WHERE lavoura_id = %s
+            """,
+            (lavoura_id,)
+        )
+
+        cursor.execute(
+            """
+            DELETE FROM log_auditoria
+            WHERE lavoura_id = %s
+            """,
+            (lavoura_id,)
+        )
+
+        cursor.execute(
+            """
+            DELETE FROM imagens
+            WHERE lavoura_id = %s
+            """,
+            (lavoura_id,)
+        )
+
         cursor.execute(
             """
             DELETE FROM lavouras
@@ -438,6 +433,8 @@ def remover_lavoura(lavoura_id):
             "mensagem": "Erro ao remover lavoura",
             "erro": str(erro)
         }), 500
+
+
     
 @lavoura_bp.route('/laudo/enviar_email', methods=['POST'])
 def enviar_laudo_email():
