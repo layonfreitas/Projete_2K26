@@ -392,6 +392,7 @@ function Cooperativa() {
         <h2>Ranking por agrônomo</h2>
         {ranking.length === 0 && <p className="cooperativa-status">Nenhum agrônomo cadastrado ainda.</p>}
         {ranking.length > 0 && (
+          <div className="tabela-scroll">
           <table className="cooperativa-tabela">
             <thead>
               <tr>
@@ -412,6 +413,7 @@ function Cooperativa() {
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </section>
 

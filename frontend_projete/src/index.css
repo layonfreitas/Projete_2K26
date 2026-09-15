@@ -50,6 +50,49 @@ html,
 body {
   margin: 0;
   padding: 0;
+  overflow-x: hidden;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+/* garante que nenhuma imagem/svg/vídeo/tabela ultrapasse a largura do
+   contêiner, não importa o componente/página */
+img,
+svg,
+video,
+canvas {
+  max-width: 100%;
+  height: auto;
+}
+
+table {
+  max-width: 100%;
+}
+
+/* qualquer tabela "crua" (sem wrapper próprio) ganha rolagem horizontal
+   em vez de estourar o layout em telas estreitas */
+.tabela-scroll {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ---------- breakpoints globais de tipografia/espaçamento ---------- */
+@media (max-width: 380px) {
+  body {
+    font-size: 14.5px;
+  }
+
+  h1 {
+    font-size: 22px;
+  }
+
+  h2 {
+    font-size: 18px;
+  }
 }
 
 body {

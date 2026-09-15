@@ -61,6 +61,20 @@
   grid-column: 1 / -1;
 }
 
+@media (max-width: 380px) {
+  .clima-banner {
+    padding: 20px 18px;
+  }
+
+  .clima-banner-dados {
+    grid-template-columns: 1fr;
+  }
+
+  .clima-banner-acoes {
+    flex-wrap: wrap;
+  }
+}
+
 .clima-banner-dados button {
   background: var(--gold);
   color: var(--ink);
@@ -82,6 +96,7 @@
 
 .acao-secundaria {
   border: 1px solid rgba(0, 0, 0, 0.15);
+  background: transparent;
   padding: 6px 10px;
   border-radius: 6px;
   font-size: 13px;

@@ -297,3 +297,31 @@
   padding: 12px 24px;
   border-radius: var(--radius-sm);
 }
+
+/* ---------- responsividade extra p/ telas bem estreitas ---------- */
+.tabela-scroll {
+  margin: 0 -4px;
+  padding: 0 4px;
+}
+
+.cooperativa-tabela {
+  min-width: 420px;
+}
+
+@media (max-width: 360px) {
+  .cooperativa-page {
+    padding: 22px 14px 100px;
+  }
+
+  .cooperativa-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .cooperativa-acoes {
+    flex-direction: column;
+  }
+
+  .cooperativa-acoes button {
+    width: 100%;
+  }
+}

@@ -177,6 +177,7 @@ const ehProdutor = usuarioTipo === "produtor";
         atualizarPreview();
       }
     });
+    }
 
     return () => {
       if (map.current) {
@@ -184,7 +185,7 @@ const ehProdutor = usuarioTipo === "produtor";
         map.current = null;
       }
     };
-  } []});
+  }, [ehProdutor]);
 
   // =========================================================
   // PREVIEW DO CONTORNO

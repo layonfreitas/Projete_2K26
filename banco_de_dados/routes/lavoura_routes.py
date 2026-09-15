@@ -48,7 +48,7 @@ def cadastrar_lavoura():
     usuario_id = dados.get('usuarioId')
     nome_lavoura = dados.get('nomeLavoura')
     coordenadas = dados.get('coordenadas')
-    area_hectares = calcular_area_hectares(coordenadas)
+    area_hectares = calcular_area_m2(coordenadas)
 
     if not usuario_id or not nome_lavoura or not coordenadas:
         return jsonify({
@@ -266,7 +266,7 @@ def editar_lavoura(lavoura_id):
                     "mensagem": "O polígono precisa de pelo menos 3 pontos"
                 }), 400
 
-            area_m2 = calcular_area_hectares(coordenadas)
+            area_m2 = calcular_area_m2(coordenadas)
             coordenadas_json = json.dumps(coordenadas)
 
             cursor.execute(
