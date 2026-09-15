@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -14,7 +13,6 @@ import iconeSombra from "leaflet/dist/images/marker-shadow.png";
 
 import { AUTH_API_URL } from "../config/api";
 
-// Configuração dos ícones padrão do Leaflet
 delete L.Icon.Default.prototype._getIconUrl;
 
 L.Icon.Default.mergeOptions({
@@ -27,7 +25,7 @@ export default function Mapa() {
   const navigate = useNavigate();
 
   const usuarioTipo = localStorage.getItem("usuarioTipo");
-const ehProdutor = usuarioTipo === "produtor";
+  const ehProdutor = usuarioTipo === "produtor";
 
   const mapaRef = useRef(null);
   const map = useRef(null);
@@ -44,47 +42,71 @@ const ehProdutor = usuarioTipo === "produtor";
   const [mostrarSugestoes, setMostrarSugestoes] = useState(false);
   const [statusMunicipios, setStatusMunicipios] = useState("Carregando cidades...");
 
-  const normalizar = (texto) => texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  const normalizar = (texto) =>
+    texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+
   const termo = normalizar(cidade.trim());
-  const sugestoes = termo.length >= 2
-    ? municipios.filter((item) => item.busca.includes(termo)).slice(0, 8)
-    : [];
+
+  const sugestoes =
+    termo.length >= 2
+      ? municipios
+          .filter((item) => item.busca.includes(termo))
+          .slice(0, 8)
+      : [];
 
   useEffect(() => {
     const controller = new AbortController();
+
     async function carregarMunicipios() {
       try {
         const resposta = await fetch(
           "https://servicodados.ibge.gov.br/api/v1/localidades/municipios?orderBy=nome",
           { signal: controller.signal }
         );
-        if (!resposta.ok) throw new Error("Falha ao carregar municípios");
+
+        if (!resposta.ok) {
+          throw new Error("Falha ao carregar municípios");
+        }
+
         const dados = await resposta.json();
-        setMunicipios(dados.map((item) => {
-          const uf = item.microrregiao?.mesorregiao?.UF?.sigla
-            ?? item["regiao-imediata"]?.["regiao-intermediaria"]?.UF?.sigla;
-          const nome = uf ? `${item.nome}, ${uf}` : item.nome;
-          return { id: item.id, nome, busca: nome.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() };
-        }));
+
+        setMunicipios(
+          dados.map((item) => {
+            const uf =
+              item.microrregiao?.mesorregiao?.UF?.sigla ??
+              item["regiao-imediata"]?.["regiao-intermediaria"]?.UF?.sigla;
+
+            const nome = uf ? `${item.nome}, ${uf}` : item.nome;
+
+            return {
+              id: item.id,
+              nome,
+              busca: nome
+                .normalize("NFD")
+                .replace(/[\u0300-\u036f]/g, "")
+                .toLowerCase(),
+            };
+          })
+        );
+
         setStatusMunicipios("");
       } catch (erro) {
         if (erro.name !== "AbortError") {
-          setStatusMunicipios("Sugestões indisponíveis. Digite a cidade e clique em Buscar.");
+          setStatusMunicipios(
+            "Sugestões indisponíveis. Digite a cidade e clique em Buscar."
+          );
         }
       }
     }
+
     carregarMunicipios();
+
     return () => controller.abort();
   }, []);
-
-  // =========================================================
-  // INICIALIZAÇÃO DO MAPA
-  // =========================================================
 
   useEffect(() => {
     if (map.current) return;
 
-    // Limites aproximados do território brasileiro
     const limitesBrasil = L.latLngBounds(
       [-35.0, -75.0],
       [6.0, -32.0]
@@ -94,89 +116,100 @@ const ehProdutor = usuarioTipo === "produtor";
       center: [-14.2350, -51.9253],
       zoom: 4,
       minZoom: 4,
+      maxZoom: 17,
       maxBounds: limitesBrasil,
       maxBoundsViscosity: 1.0,
+      zoomControl: true,
     });
 
-    // Enquadra o Brasil inteiro
     map.current.fitBounds(limitesBrasil);
 
-    // Imagem de satélite
     L.tileLayer(
       "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
       {
         attribution: "Tiles © Esri",
+        maxZoom: 17,
       }
     ).addTo(map.current);
 
-    // Carrega as lavouras já cadastradas
     carregarLavouras();
 
-    // =========================================================
-    // CLIQUE NO MAPA → CRIA UM POSTO
-    // =========================================================
     if (ehProdutor) {
-    map.current.on("click", (e) => {
-      contadorPostos.current++;
+      map.current.on("click", (e) => {
+        contadorPostos.current++;
 
-      const lat = e.latlng.lat;
-      const lng = e.latlng.lng;
+        const lat = e.latlng.lat;
+        const lng = e.latlng.lng;
 
-      const marcador = L.marker([lat, lng], { draggable: true, autoPan: true }).addTo(map.current);
+        const marcador = L.marker([lat, lng], {
+          draggable: true,
+          autoPan: true,
+        }).addTo(map.current);
 
-      const id = contadorPostos.current;
+        const id = contadorPostos.current;
 
-      marcador.bindPopup(`
-        <b>Posto ${id}</b><br>
-        Lat: ${lat.toFixed(6)}<br>
-        Lng: ${lng.toFixed(6)}<br>
-        <button id="remover-${id}">Remover</button>
-      `);
+        marcador.bindPopup(`
+          <b>Posto ${id}</b><br>
+          Lat: ${lat.toFixed(6)}<br>
+          Lng: ${lng.toFixed(6)}<br>
+          <button id="remover-${id}">Remover</button>
+        `);
 
-      marcador.on("popupopen", () => {
-        const botao = document.getElementById(`remover-${id}`);
+        marcador.on("popupopen", () => {
+          const botao = document.getElementById(`remover-${id}`);
 
-        if (botao) {
-          botao.onclick = () => removerPosto(id);
-        }
-      });
+          if (botao) {
+            botao.onclick = () => removerPosto(id);
+          }
+        });
 
-      postos.current.push({
-        id,
-        marcador,
-        lat,
-        lng,
-      });
+        postos.current.push({
+          id,
+          marcador,
+          lat,
+          lng,
+        });
 
-      marcador.on("dragstart", () => marcador.closePopup());
-      marcador.on("drag", () => {
-        const ponto = postos.current.find((p) => p.id === id);
-        if (!ponto) return;
-        const posicao = marcador.getLatLng();
-        ponto.lat = posicao.lat;
-        ponto.lng = posicao.lng;
+        marcador.on("dragstart", () => marcador.closePopup());
+
+        marcador.on("drag", () => {
+          const ponto = postos.current.find((p) => p.id === id);
+
+          if (!ponto) return;
+
+          const posicao = marcador.getLatLng();
+
+          ponto.lat = posicao.lat;
+          ponto.lng = posicao.lng;
+
+          if (contornoLavoura.current) {
+            contornoLavoura.current.setLatLngs(
+              postos.current.map((p) => [p.lat, p.lng])
+            );
+          } else {
+            atualizarPreview();
+          }
+        });
+
+        marcador.on("dragend", () => {
+          const posicao = marcador.getLatLng();
+
+          marcador.setPopupContent(`
+            <b>Posto ${id}</b><br>
+            Lat: ${posicao.lat.toFixed(6)}<br>
+            Lng: ${posicao.lng.toFixed(6)}<br>
+            <button id="remover-${id}">Remover</button>
+          `);
+        });
+
         if (contornoLavoura.current) {
-          contornoLavoura.current.setLatLngs(postos.current.map((p) => [p.lat, p.lng]));
+          contornoLavoura.current.setLatLngs(
+            postos.current.map((p) => [p.lat, p.lng])
+          );
         } else {
           atualizarPreview();
         }
       });
-      marcador.on("dragend", () => {
-        const posicao = marcador.getLatLng();
-        marcador.setPopupContent(`
-          <b>Posto ${id}</b><br>
-          Lat: ${posicao.lat.toFixed(6)}<br>
-          Lng: ${posicao.lng.toFixed(6)}<br>
-          <button id="remover-${id}">Remover</button>
-        `);
-      });
-
-      if (contornoLavoura.current) {
-        contornoLavoura.current.setLatLngs(postos.current.map((p) => [p.lat, p.lng]));
-      } else {
-        atualizarPreview();
-      }
-    });
     }
 
     return () => {
@@ -187,18 +220,12 @@ const ehProdutor = usuarioTipo === "produtor";
     };
   }, [ehProdutor]);
 
-  // =========================================================
-  // PREVIEW DO CONTORNO
-  // =========================================================
-
   function atualizarPreview() {
-    // Remove preview anterior
     if (previewLavoura.current) {
       map.current.removeLayer(previewLavoura.current);
       previewLavoura.current = null;
     }
 
-    // Precisa de pelo menos 2 pontos
     if (postos.current.length < 2) {
       return;
     }
@@ -208,7 +235,6 @@ const ehProdutor = usuarioTipo === "produtor";
       p.lng,
     ]);
 
-    // PREVIEW VERMELHO
     const estiloPreview = {
       color: "#ff0000",
       weight: 3,
@@ -230,10 +256,6 @@ const ehProdutor = usuarioTipo === "produtor";
     }
   }
 
-  // =========================================================
-  // REMOVER POSTO
-  // =========================================================
-
   function removerPosto(id) {
     const index = postos.current.findIndex(
       (p) => p.id === id
@@ -241,30 +263,24 @@ const ehProdutor = usuarioTipo === "produtor";
 
     if (index === -1) return;
 
-    // Remove marcador
     map.current.removeLayer(
       postos.current[index].marcador
     );
 
-    // Remove da lista
     postos.current.splice(index, 1);
 
-    // Atualiza preview
     atualizarPreview();
 
-    // Se havia contorno confirmado, remove
     if (contornoLavoura.current) {
-      map.current.removeLayer(contornoLavoura.current);
+      map.current.removeLayer(
+        contornoLavoura.current
+      );
 
       contornoLavoura.current = null;
 
       setContornoCriado(false);
     }
   }
-
-  // =========================================================
-  // BUSCAR CIDADE
-  // =========================================================
 
   async function buscarCidade() {
     if (!cidade.trim()) return;
@@ -301,24 +317,18 @@ const ehProdutor = usuarioTipo === "produtor";
     }
   }
 
-  // =========================================================
-  // CONFIRMAR CONTORNO
-  // =========================================================
-
   function confirmarContorno() {
     if (postos.current.length < 3) {
       alert("Marque pelo menos 3 pontos.");
       return;
     }
 
-    // Remove contorno antigo
     if (contornoLavoura.current) {
       map.current.removeLayer(
         contornoLavoura.current
       );
     }
 
-    // Remove preview
     if (previewLavoura.current) {
       map.current.removeLayer(
         previewLavoura.current
@@ -332,23 +342,18 @@ const ehProdutor = usuarioTipo === "produtor";
       p.lng,
     ]);
 
-    // =====================================================
-    // CONTORNO DEFINITIVO VERMELHO
-    // =====================================================
-
-    contornoLavoura.current = L.polygon(coordenadas, {
-      color: "#2f4a33",
-      weight: 3,
-      fillColor: "#2f4a33",
-      fillOpacity: 0.3,
-    }).addTo(map.current);
+    contornoLavoura.current = L.polygon(
+      coordenadas,
+      {
+        color: "#2f4a33",
+        weight: 3,
+        fillColor: "#2f4a33",
+        fillOpacity: 0.3,
+      }
+    ).addTo(map.current);
 
     setContornoCriado(true);
   }
-
-  // =========================================================
-  // APAGAR CONTORNO
-  // =========================================================
 
   function apagarContorno() {
     if (!contornoLavoura.current) {
@@ -364,13 +369,8 @@ const ehProdutor = usuarioTipo === "produtor";
 
     setContornoCriado(false);
 
-    // Volta para o preview tracejado
     atualizarPreview();
   }
-
-  // =========================================================
-  // IR PARA CADASTRO
-  // =========================================================
 
   function confirmarCadastro() {
     if (
@@ -396,34 +396,38 @@ const ehProdutor = usuarioTipo === "produtor";
     });
   }
 
-  // =========================================================
-  // DESENHAR LAVOURAS JÁ CADASTRADAS
-  // =========================================================
-
   function desenharLavoura(lavoura) {
-     if (!map.current || !lavoura?.coordenadas?.length) return;
-
-  const pontos = lavoura.coordenadas.map((p) => [p.lat, p.lng]);
-
-  const poligono = L.polygon(pontos, {
-    color: "#ff0000",
-    weight: 3,
-    fillColor: "#ff0000",
-    fillOpacity: 0.3,
-  }).addTo(map.current);
-
-  poligono.bindTooltip(
-    `<b>Lavoura:</b> ${lavoura.nomeLavoura}<br>
-     <b>Área:</b> ${Number(lavoura.areaHectares).toFixed(2)} ha`,
-    {
-      sticky: true,
-      direction: "top",
+    if (
+      !map.current ||
+      !lavoura?.coordenadas?.length
+    ) {
+      return;
     }
-  );
 
-  map.current.fitBounds(poligono.getBounds());
+    const pontos = lavoura.coordenadas.map((p) => [
+      p.lat,
+      p.lng,
+    ]);
 
-}
+    const poligono = L.polygon(
+      pontos,
+      {
+        color: "#ff0000",
+        weight: 3,
+        fillColor: "#ff0000",
+        fillOpacity: 0.3,
+      }
+    ).addTo(map.current);
+
+    poligono.bindTooltip(
+      `<b>Lavoura:</b> ${lavoura.nomeLavoura}<br>
+       <b>Área:</b> ${Number(lavoura.areaHectares).toFixed(2)} ha`,
+      {
+        sticky: true,
+        direction: "top",
+      }
+    );
+  }
 
   async function carregarLavouras() {
     const usuarioId =
@@ -463,22 +467,24 @@ const ehProdutor = usuarioTipo === "produtor";
         dados
       );
 
-const lavouraIdSelecionada =
-  localStorage.getItem("lavouraId");
+      const lavouraIdSelecionada =
+        localStorage.getItem("lavouraId");
 
-if (lavouraIdSelecionada) {
-  const lavoura = dados.find(
-    (l) => String(l.id) === String(lavouraIdSelecionada)
-  );
+      if (lavouraIdSelecionada) {
+        const lavoura = dados.find(
+          (l) =>
+            String(l.id) ===
+            String(lavouraIdSelecionada)
+        );
 
-  if (lavoura) {
-    desenharLavoura(lavoura);
-  }
-} else {
-  dados.forEach((lavoura) => {
-    desenharLavoura(lavoura);
-  });
-}
+        if (lavoura) {
+          desenharLavoura(lavoura);
+        }
+      } else {
+        dados.forEach((lavoura) => {
+          desenharLavoura(lavoura);
+        });
+      }
 
     } catch (erro) {
       console.error(
@@ -488,18 +494,23 @@ if (lavouraIdSelecionada) {
     }
   }
 
-  // =========================================================
-  // INTERFACE
-  // =========================================================
-
   return (
     <div className="pagina-mapa">
 
       <div className="barra-superior">
 
-        <div className="busca-cidade" onBlur={(e) => {
-          if (!e.currentTarget.contains(e.relatedTarget)) setMostrarSugestoes(false);
-        }}>
+        <div
+          className="busca-cidade"
+          onBlur={(e) => {
+            if (
+              !e.currentTarget.contains(
+                e.relatedTarget
+              )
+            ) {
+              setMostrarSugestoes(false);
+            }
+          }}
+        >
           <input
             type="text"
             aria-label="Pesquisar cidade"
@@ -507,39 +518,73 @@ if (lavouraIdSelecionada) {
             placeholder="Digite uma cidade..."
             autoComplete="off"
             value={cidade}
-            onFocus={() => setMostrarSugestoes(true)}
+            onFocus={() =>
+              setMostrarSugestoes(true)
+            }
             onChange={(e) => {
               setCidade(e.target.value);
               setMostrarSugestoes(true);
             }}
             onKeyDown={(e) => {
-              if (e.key === "Escape") setMostrarSugestoes(false);
-              if (e.key === "ArrowDown") {
-                const primeira = e.currentTarget.parentElement.querySelector(".sugestoes-cidades button");
-                if (primeira) { e.preventDefault(); primeira.focus(); }
+              if (e.key === "Escape") {
+                setMostrarSugestoes(false);
               }
+
+              if (e.key === "ArrowDown") {
+                const primeira =
+                  e.currentTarget.parentElement.querySelector(
+                    ".sugestoes-cidades button"
+                  );
+
+                if (primeira) {
+                  e.preventDefault();
+                  primeira.focus();
+                }
+              }
+
               if (e.key === "Enter") {
                 setMostrarSugestoes(false);
                 buscarCidade();
               }
             }}
           />
-          {mostrarSugestoes && termo.length >= 2 && (
-            <ul className="sugestoes-cidades" aria-label="Sugestões de cidades">
-              {sugestoes.map((item) => (
-                <li key={item.id}>
-                  <button type="button" onClick={() => {
-                    setCidade(item.nome);
-                    setMostrarSugestoes(false);
-                  }}>{item.nome}</button>
-                </li>
-              ))}
-              {sugestoes.length === 0 && <li className="aviso-cidades">
-                {statusMunicipios || "Nenhuma cidade encontrada."}
-              </li>}
-            </ul>
-          )}
-          <span id="status-cidades" className="status-cidades" role="status">{statusMunicipios}</span>
+
+          {mostrarSugestoes &&
+            termo.length >= 2 && (
+              <ul
+                className="sugestoes-cidades"
+                aria-label="Sugestões de cidades"
+              >
+                {sugestoes.map((item) => (
+                  <li key={item.id}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCidade(item.nome);
+                        setMostrarSugestoes(false);
+                      }}
+                    >
+                      {item.nome}
+                    </button>
+                  </li>
+                ))}
+
+                {sugestoes.length === 0 && (
+                  <li className="aviso-cidades">
+                    {statusMunicipios ||
+                      "Nenhuma cidade encontrada."}
+                  </li>
+                )}
+              </ul>
+            )}
+
+          <span
+            id="status-cidades"
+            className="status-cidades"
+            role="status"
+          >
+            {statusMunicipios}
+          </span>
         </div>
 
         <button onClick={buscarCidade}>
@@ -547,22 +592,24 @@ if (lavouraIdSelecionada) {
         </button>
 
         {ehProdutor && (
-        <>
+          <>
+            <button onClick={confirmarContorno}>
+              Confirmar Contorno
+            </button>
 
-        <button onClick={confirmarContorno}>
-          Confirmar Contorno
-        </button>
+            <button onClick={apagarContorno}>
+              Apagar Contorno
+            </button>
 
-        <button onClick={apagarContorno}>
-          Apagar Contorno
-        </button>
-
-        {contornoCriado && (
-          <button className="botao-confirmar-cadastro" onClick={confirmarCadastro}>
-            Confirmar Cadastro
-          </button>
-        )}
-        </>
+            {contornoCriado && (
+              <button
+                className="botao-confirmar-cadastro"
+                onClick={confirmarCadastro}
+              >
+                Confirmar Cadastro
+              </button>
+            )}
+          </>
         )}
 
       </div>
