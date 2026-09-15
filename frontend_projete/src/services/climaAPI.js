@@ -24,6 +24,7 @@ import { CLIMA_API_URL } from "../config/api";
 // o frontend não precisa saber de onde veio o dado.
 
 export async function buscarClima(lat, lng) {
+  try {
   const resposta = await fetch(
     `${CLIMA_API_URL}/clima?lat=${lat}&lon=${lng}`
   );
@@ -35,4 +36,9 @@ export async function buscarClima(lat, lng) {
   }
 
   return dados;
+
+} catch (erro) {
+  console.error("Erro ao buscar clima:", erro);
+  return null;
+}
 }

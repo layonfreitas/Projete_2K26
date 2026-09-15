@@ -60,12 +60,14 @@ def create_day_maps(day_req: Day_req):
         for p in day_req.coordenadas
     ]
         geometria = criar_geometria(coordenadas, ordem='lnglat')
-        resultado = processar_lavoura({'id':day_req.lavoura_id,'usuarioId':day_req.usuario_id}, geometria=geometria)
+        resultado = processar_lavoura({'id':day_req.lavoura_id,'usuarioId':day_req.usuario_id, 'coordenadas': coordenadas}, geometria=geometria)
+        print('geometria processada.')
         if resultado['status'] == 'sem_dados':
             raise HTTPException(status_code=422, detail=resultado)
         if resultado['status'] == 'erro':
             raise HTTPException(status_code=502, detail=resultado)
-    
+
+        print(resultado)
         return resultado
     finally:
         _processamento_lock.release()

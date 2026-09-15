@@ -9,7 +9,10 @@ from z_score import salvar_mapa_z_score
 from georreferencia import normalizar_coordenadas,criar_geometria
 from gee_auth import inicializar_ee
 from flask import Flask, jsonify, request
+from dotenv import load_dotenv
+import os
 
+load_dotenv()
 log = logging.getLogger(__name__)
 
 
@@ -68,10 +71,12 @@ def obter_classificao(lat,lon,clmi):
         "temperatura":dados_climaticos["temperatura_media"],
         "precipitacao":dados_climaticos["precipitacao"]
     }
-    resposta = requests.post(api_url('/clmi_clf'), json= dados)
+
+    ia_url = os.getenv("IA_URL", "http://localhost:8000/clmi_clf")
+    resposta = requests.post(ia_url+'/clmi_clf', json= dados)
     resposta.raise_for_status()
     dados_resposta = resposta.json()
-    classificao = dados_resposta.classificacao
+    classificao = dados_resposta['classificacao']
     return classificao
 
     
@@ -116,7 +121,7 @@ def processar_lavoura(lavoura, data_alvo=None, janela=30, indices=None, geometri
 
 
     clmi = valores.get('CLMI')   
-    latitude = lavoura['coordenadas'][0][1]
+    latitude = lavoura['coordenadas'][0][1]  
     longitude = lavoura['coordenadas'][0][0]
     classificacao = obter_classificao(latitude, longitude, clmi)
 

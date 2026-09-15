@@ -8,7 +8,7 @@ lavoura_bp = Blueprint('lavoura', __name__)
 
 mysql = None
 
-def calcular_area_hectares(coordenadas):
+def calcular_area_m2(coordenadas):
     if len(coordenadas) < 3:
         return 0
 
@@ -32,7 +32,7 @@ def calcular_area_hectares(coordenadas):
 
         area += (x1 * y2) - (x2 * y1)
 
-    return abs(area) / 10000
+    return abs(area) / 2
 
 
 def init_mysql(mysql_instance):
