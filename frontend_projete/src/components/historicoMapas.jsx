@@ -34,10 +34,10 @@ export default function HistoricoMapas() {
   const exibicao = estadoMapa.chave === chave && estadoMapa.atualizacao === atualizacao ? estadoMapa : { carregando: Boolean(chave), erro: '', dados: null };
 
   useEffect(() => {
-    const map = L.map(container.current, { center: [-14.235, -51.925], zoom: 4, maxZoom: 22, trackResize: false });
+    const map = L.map(container.current, { center: [-14.235, -51.925], zoom: 4, maxZoom: 17, trackResize: false });
     mapa.current = map;
     L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-      { attribution: 'Tiles © Esri', maxNativeZoom: 19, maxZoom: 22 }).addTo(map);
+      { attribution: 'Tiles © Esri', maxNativeZoom: 19, maxZoom: 17 }).addTo(map);
     const observer = new ResizeObserver(() => {
       map.stop();
       map.invalidateSize({ pan: false });
