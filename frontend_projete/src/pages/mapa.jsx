@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { useNavigate, useLocation } from "react-router-dom";
 
 import L from "leaflet";
