@@ -169,7 +169,7 @@ export default function ClimaBanner({ lavouras }) {
     return () => {
       cancelado = true;
     };
-  }, [idSelecionado, latitude latitude, longitude, chaveClima]);
+  }, [idSelecionado, latitude, longitude, chaveClima]);
 
   function salvarSelecao() {
     if (!lavouraSelecionada) return;
@@ -326,7 +326,7 @@ export default function ClimaBanner({ lavouras }) {
         )}
       </div>
 
-      <div className="clima-banner-acoes">
+           <div className="clima-banner-acoes">
         {usuarioTipo === "agronomo" && (
           <>
             <button
@@ -354,7 +354,6 @@ export default function ClimaBanner({ lavouras }) {
               title="Visualizar lavoura no mapa"
             >
               🗺️ <span>Mapa</span>
-           </span>
             </button>
           </>
         )}
