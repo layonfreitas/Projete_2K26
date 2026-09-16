@@ -3,9 +3,9 @@ import bcrypt
 import csv
 import io
 
-
 from auth_utils import requer_tipo, init_mysql as init_auth_utils_mysql
 from email_utils import enviar_email, montar_email_aviso
+
 
 cooperativa_bp = Blueprint("cooperativa_bp", __name__)
 
@@ -22,64 +22,106 @@ def init_mysql(mysql_instance):
 # GESTÃO DE USUÁRIOS
 # ================================================================
 
-# Cooperativa cadastra um novo usuário já escolhendo o tipo
-# (produtor ou agronomo). Reaproveita a mesma lógica de hash
-# de senha do /cadastro normal (routes/auth_routes.py).
-@cooperativa_bp.route('/cooperativa/cadastrar-usuario', methods=['POST'])
-@requer_tipo('cooperativa')
+@cooperativa_bp.route(
+    "/cooperativa/cadastrar-usuario",
+    methods=["POST"]
+)
+@requer_tipo("cooperativa")
 def cadastrar_usuario():
-    dados = request.get_json()
-    nome = dados.get('nome')
-    email = dados.get('email')
-    senha = dados.get('senha')
-    tipo = dados.get('tipo')  # 'produtor' ou 'agronomo'
+    dados = request.get_json(silent=True)
+
+    if not isinstance(dados, dict):
+        return jsonify({"mensagem": "Dados inválidos."}), 400
+
+    nome = dados.get("nome")
+    email = dados.get("email")
+    senha = dados.get("senha")
+    tipo = dados.get("tipo")
 
     if not nome or not email or not senha or not tipo:
-        return jsonify({"mensagem": "nome, email, senha e tipo são obrigatórios"}), 400
+        return jsonify({
+            "mensagem": "nome, email, senha e tipo são obrigatórios"
+        }), 400
 
-    if tipo not in ('produtor', 'agronomo'):
-        return jsonify({"mensagem": "tipo deve ser 'produtor' ou 'agronomo'"}), 400
+    if tipo not in ("produtor", "agronomo"):
+        return jsonify({
+            "mensagem": "tipo deve ser 'produtor' ou 'agronomo'"
+        }), 400
 
-    senha_hash = bcrypt.hashpw(senha.encode('utf-8'), bcrypt.gensalt())
+    if not isinstance(senha, str):
+        return jsonify({"mensagem": "Senha inválida."}), 400
+
+    senha_hash = bcrypt.hashpw(
+        senha.encode("utf-8"),
+        bcrypt.gensalt()
+    )
+
+    cursor = None
 
     try:
         cursor = mysql.connection.cursor()
+
         cursor.execute(
-            """INSERT INTO usuarios (nome, confirma_nome, email, senha_hash, confirma_senha_hash, tipo)
-               VALUES (%s, %s, %s, %s, %s, %s)""",
+            """
+            INSERT INTO usuarios (
+                nome,
+                confirma_nome,
+                email,
+                senha_hash,
+                confirma_senha_hash,
+                tipo
+            )
+            VALUES (%s, %s, %s, %s, %s, %s)
+            """,
             (nome, nome, email, senha_hash, senha_hash, tipo)
         )
-        mysql.connection.commit()
+
         novo_id = cursor.lastrowid
-        cursor.close()
-        return jsonify({"mensagem": "Usuário cadastrado com sucesso", "id": novo_id}), 201
-    except Exception as erro:
-        return jsonify({"mensagem": "Erro ao cadastrar usuário", "erro": str(erro)}), 500
+        mysql.connection.commit()
+
+        return jsonify({
+            "mensagem": "Usuário cadastrado com sucesso",
+            "id": novo_id
+        }), 201
+
+    except Exception:
+        if cursor is not None:
+            mysql.connection.rollback()
+
+        current_app.logger.exception("Erro ao cadastrar usuário")
+
+        return jsonify({
+            "mensagem": "Erro ao cadastrar usuário."
+        }), 500
+
+    finally:
+        if cursor is not None:
+            cursor.close()
 
 
-# Lista todos os agrônomos e produtores, com o agrônomo vinculado
-# (se já houver um) para cada produtor. É a tabela principal da
-# tela da cooperativa.
-@cooperativa_bp.route('/cooperativa/usuarios', methods=['GET'])
-@requer_tipo('cooperativa')
+@cooperativa_bp.route("/cooperativa/usuarios", methods=["GET"])
+@requer_tipo("cooperativa")
 def listar_usuarios():
+    cursor = None
+
     try:
         cursor = mysql.connection.cursor()
+
         cursor.execute(
-            """SELECT
-                   usuarios.id,
-                   usuarios.nome,
-                   usuarios.email,
-                   usuarios.tipo,
-                   vinculos_agronomo.agronomo_id
-               FROM usuarios
-               LEFT JOIN vinculos_agronomo
-                   ON vinculos_agronomo.produtor_id = usuarios.id
-               WHERE usuarios.tipo IN ('produtor', 'agronomo')
-               ORDER BY usuarios.tipo, usuarios.nome"""
+            """
+            SELECT
+                usuarios.id,
+                usuarios.nome,
+                usuarios.email,
+                usuarios.tipo,
+                vinculos_agronomo.agronomo_id
+            FROM usuarios
+            LEFT JOIN vinculos_agronomo
+                ON vinculos_agronomo.produtor_id = usuarios.id
+            WHERE usuarios.tipo IN ('produtor', 'agronomo')
+            ORDER BY usuarios.tipo, usuarios.nome
+            """
         )
-        resultados = cursor.fetchall()
-        cursor.close()
 
         usuarios = [
             {
@@ -89,108 +131,210 @@ def listar_usuarios():
                 "tipo": linha[3],
                 "agronomoId": linha[4],
             }
-            for linha in resultados
+            for linha in cursor.fetchall()
         ]
+
         return jsonify(usuarios), 200
-    except Exception as erro:
-        return jsonify({"mensagem": "Erro ao listar usuários", "erro": str(erro)}), 500
+
+    except Exception:
+        current_app.logger.exception("Erro ao listar usuários")
+
+        return jsonify({
+            "mensagem": "Erro ao listar usuários."
+        }), 500
+
+    finally:
+        if cursor is not None:
+            cursor.close()
 
 
-# Editar nome/email de um produtor ou agrônomo.
-@cooperativa_bp.route('/cooperativa/usuario/<int:usuario_id>', methods=['PUT'])
-@requer_tipo('cooperativa')
+@cooperativa_bp.route(
+    "/cooperativa/usuario/<int:usuario_id>",
+    methods=["PUT"]
+)
+@requer_tipo("cooperativa")
 def editar_usuario(usuario_id):
-    dados = request.get_json()
-    nome = dados.get('nome')
-    email = dados.get('email')
+    dados = request.get_json(silent=True)
+
+    if not isinstance(dados, dict):
+        return jsonify({"mensagem": "Dados inválidos."}), 400
+
+    nome = dados.get("nome")
+    email = dados.get("email")
 
     if not nome or not email:
-        return jsonify({"mensagem": "nome e email são obrigatórios"}), 400
+        return jsonify({
+            "mensagem": "nome e email são obrigatórios"
+        }), 400
+
+    cursor = None
 
     try:
         cursor = mysql.connection.cursor()
-        cursor.execute("SELECT tipo FROM usuarios WHERE id = %s", (usuario_id,))
-        existente = cursor.fetchone()
-        if not existente or existente[0] not in ('produtor', 'agronomo'):
-            cursor.close()
-            return jsonify({"mensagem": "Usuário não encontrado"}), 404
 
         cursor.execute(
-            "UPDATE usuarios SET nome = %s, confirma_nome = %s, email = %s WHERE id = %s",
+            "SELECT tipo FROM usuarios WHERE id = %s",
+            (usuario_id,)
+        )
+
+        existente = cursor.fetchone()
+
+        if not existente or existente[0] not in ("produtor", "agronomo"):
+            return jsonify({
+                "mensagem": "Usuário não encontrado"
+            }), 404
+
+        cursor.execute(
+            """
+            UPDATE usuarios
+            SET nome = %s,
+                confirma_nome = %s,
+                email = %s
+            WHERE id = %s
+            """,
             (nome, nome, email, usuario_id)
         )
+
         mysql.connection.commit()
-        cursor.close()
-        return jsonify({"mensagem": "Usuário atualizado com sucesso"}), 200
-    except Exception as erro:
-        return jsonify({"mensagem": "Erro ao editar usuário", "erro": str(erro)}), 500
+
+        return jsonify({
+            "mensagem": "Usuário atualizado com sucesso"
+        }), 200
+
+    except Exception:
+        if cursor is not None:
+            mysql.connection.rollback()
+
+        current_app.logger.exception("Erro ao editar usuário")
+
+        return jsonify({
+            "mensagem": "Erro ao editar usuário."
+        }), 500
+
+    finally:
+        if cursor is not None:
+            cursor.close()
 
 
-# Deleta um produtor ou agrônomo de verdade (não é soft-delete).
-# Antes de apagar o usuário, remove tudo que depende dele pra não
-# quebrar as foreign keys: observações -> imagens -> lavouras ->
-# vínculo com agrônomo -> o usuário em si.
-@cooperativa_bp.route('/cooperativa/usuario/<int:usuario_id>', methods=['DELETE'])
-@requer_tipo('cooperativa')
+@cooperativa_bp.route(
+    "/cooperativa/usuario/<int:usuario_id>",
+    methods=["DELETE"]
+)
+@requer_tipo("cooperativa")
 def deletar_usuario(usuario_id):
+    cursor = None
+
     try:
         cursor = mysql.connection.cursor()
 
-        cursor.execute("SELECT tipo FROM usuarios WHERE id = %s", (usuario_id,))
+        cursor.execute(
+            "SELECT tipo FROM usuarios WHERE id = %s",
+            (usuario_id,)
+        )
+
         existente = cursor.fetchone()
-        if not existente or existente[0] not in ('produtor', 'agronomo'):
-            cursor.close()
-            return jsonify({"mensagem": "Usuário não encontrado"}), 404
 
-        tipo = existente[0]
+        if not existente or existente[0] not in ("produtor", "agronomo"):
+            return jsonify({
+                "mensagem": "Usuário não encontrado"
+            }), 404
 
-        if tipo == 'produtor':
-            # observações das lavouras desse produtor
+        if existente[0] == "produtor":
             cursor.execute(
-                "DELETE observacoes FROM observacoes "
-                "JOIN lavouras ON lavouras.id = observacoes.lavoura_id "
-                "WHERE lavouras.usuario_id = %s",
+                """
+                DELETE observacoes
+                FROM observacoes
+                JOIN lavouras
+                    ON lavouras.id = observacoes.lavoura_id
+                WHERE lavouras.usuario_id = %s
+                """,
                 (usuario_id,)
             )
-            # imagens/índices ligados às lavouras desse produtor
-            cursor.execute("DELETE FROM imagens WHERE usuario_id = %s", (usuario_id,))
-            # lavouras do produtor
-            cursor.execute("DELETE FROM lavouras WHERE usuario_id = %s", (usuario_id,))
-            # vínculo com o agrônomo, se houver
-            cursor.execute("DELETE FROM vinculos_agronomo WHERE produtor_id = %s", (usuario_id,))
-        else:  # agronomo
-            # desfaz os vínculos onde ele era o responsável
-            cursor.execute("DELETE FROM vinculos_agronomo WHERE agronomo_id = %s", (usuario_id,))
 
-        cursor.execute("DELETE FROM usuarios WHERE id = %s", (usuario_id,))
+            cursor.execute(
+                "DELETE FROM imagens WHERE usuario_id = %s",
+                (usuario_id,)
+            )
+
+            cursor.execute(
+                "DELETE FROM lavouras WHERE usuario_id = %s",
+                (usuario_id,)
+            )
+
+            cursor.execute(
+                """
+                DELETE FROM vinculos_agronomo
+                WHERE produtor_id = %s
+                """,
+                (usuario_id,)
+            )
+
+        else:
+            cursor.execute(
+                """
+                DELETE FROM vinculos_agronomo
+                WHERE agronomo_id = %s
+                """,
+                (usuario_id,)
+            )
+
+        cursor.execute(
+            "DELETE FROM usuarios WHERE id = %s",
+            (usuario_id,)
+        )
+
         mysql.connection.commit()
-        cursor.close()
 
-        return jsonify({"mensagem": "Usuário e dados vinculados excluídos com sucesso"}), 200
-    except Exception as erro:
-        mysql.connection.rollback()
-        return jsonify({"mensagem": "Erro ao excluir usuário", "erro": str(erro)}), 500
+        return jsonify({
+            "mensagem": "Usuário e dados vinculados excluídos com sucesso"
+        }), 200
+
+    except Exception:
+        if cursor is not None:
+            mysql.connection.rollback()
+
+        current_app.logger.exception("Erro ao excluir usuário")
+
+        return jsonify({
+            "mensagem": "Erro ao excluir usuário."
+        }), 500
+
+    finally:
+        if cursor is not None:
+            cursor.close()
 
 
 # ================================================================
-# DASHBOARD CONSOLIDADO
+# DASHBOARD
 # ================================================================
 
-@cooperativa_bp.route('/cooperativa/dashboard', methods=['GET'])
-@requer_tipo('cooperativa')
+@cooperativa_bp.route("/cooperativa/dashboard", methods=["GET"])
+@requer_tipo("cooperativa")
 def dashboard():
+    cursor = None
+
     try:
         cursor = mysql.connection.cursor()
 
-        cursor.execute("SELECT COUNT(*) FROM usuarios WHERE tipo = 'produtor'")
+        cursor.execute(
+            "SELECT COUNT(*) FROM usuarios WHERE tipo = 'produtor'"
+        )
         total_produtores = cursor.fetchone()[0]
 
-        cursor.execute("SELECT COUNT(*) FROM usuarios WHERE tipo = 'agronomo'")
+        cursor.execute(
+            "SELECT COUNT(*) FROM usuarios WHERE tipo = 'agronomo'"
+        )
         total_agronomos = cursor.fetchone()[0]
 
         cursor.execute(
-            "SELECT COUNT(*) FROM usuarios WHERE tipo = 'produtor' "
-            "AND id NOT IN (SELECT produtor_id FROM vinculos_agronomo)"
+            """
+            SELECT COUNT(*)
+            FROM usuarios
+            WHERE tipo = 'produtor'
+              AND id NOT IN (
+                  SELECT produtor_id FROM vinculos_agronomo
+              )
+            """
         )
         produtores_sem_agronomo = cursor.fetchone()[0]
 
@@ -200,23 +344,35 @@ def dashboard():
         cursor.execute(
             "SELECT status, COUNT(*) FROM lavouras GROUP BY status"
         )
-        contagem_status = {linha[0]: linha[1] for linha in cursor.fetchall()}
 
-        # lista das lavouras em estado crítico/atenção, pra cooperativa ver rápido onde olhar
+        contagem_status = {
+            linha[0]: linha[1]
+            for linha in cursor.fetchall()
+        }
+
         cursor.execute(
-            """SELECT lavouras.id, lavouras.nome_lavoura, lavouras.status,
-                      usuarios.nome AS produtor_nome
-               FROM lavouras
-               JOIN usuarios ON usuarios.id = lavouras.usuario_id
-               WHERE lavouras.status IN ('atencao', 'critico')
-               ORDER BY FIELD(lavouras.status, 'critico', 'atencao')"""
+            """
+            SELECT
+                lavouras.id,
+                lavouras.nome_lavoura,
+                lavouras.status,
+                usuarios.nome
+            FROM lavouras
+            JOIN usuarios ON usuarios.id = lavouras.usuario_id
+            WHERE lavouras.status IN ('atencao', 'critico')
+            ORDER BY FIELD(lavouras.status, 'critico', 'atencao')
+            """
         )
-        lavouras_em_alerta = [
-            {"id": l[0], "nomeLavoura": l[1], "status": l[2], "produtor": l[3]}
-            for l in cursor.fetchall()
-        ]
 
-        cursor.close()
+        lavouras_em_alerta = [
+            {
+                "id": linha[0],
+                "nomeLavoura": linha[1],
+                "status": linha[2],
+                "produtor": linha[3],
+            }
+            for linha in cursor.fetchall()
+        ]
 
         return jsonify({
             "totalProdutores": total_produtores,
@@ -230,153 +386,326 @@ def dashboard():
             },
             "lavourasEmAlerta": lavouras_em_alerta,
         }), 200
-    except Exception as erro:
-        return jsonify({"mensagem": "Erro ao montar dashboard", "erro": str(erro)}), 500
+
+    except Exception:
+        current_app.logger.exception("Erro ao montar dashboard")
+
+        return jsonify({
+            "mensagem": "Erro ao montar dashboard."
+        }), 500
+
+    finally:
+        if cursor is not None:
+            cursor.close()
 
 
 # ================================================================
-# RANKING POR AGRÔNOMO
+# RANKING DOS AGRÔNOMOS
 # ================================================================
 
-@cooperativa_bp.route('/cooperativa/ranking-agronomos', methods=['GET'])
-@requer_tipo('cooperativa')
+@cooperativa_bp.route(
+    "/cooperativa/ranking-agronomos",
+    methods=["GET"]
+)
+@requer_tipo("cooperativa")
 def ranking_agronomos():
+    cursor = None
+
     try:
         cursor = mysql.connection.cursor()
+
         cursor.execute(
-            """SELECT
-                   usuarios.id,
-                   usuarios.nome,
-                   COUNT(DISTINCT vinculos_agronomo.produtor_id) AS total_produtores,
-                   COUNT(DISTINCT lavouras.id) AS total_lavouras,
-                   SUM(CASE WHEN lavouras.status = 'critico' THEN 1 ELSE 0 END) AS lavouras_criticas
-               FROM usuarios
-               LEFT JOIN vinculos_agronomo ON vinculos_agronomo.agronomo_id = usuarios.id
-               LEFT JOIN lavouras ON lavouras.usuario_id = vinculos_agronomo.produtor_id
-               WHERE usuarios.tipo = 'agronomo'
-               GROUP BY usuarios.id, usuarios.nome
-               ORDER BY total_produtores DESC"""
+            """
+            SELECT
+                usuarios.id,
+                usuarios.nome,
+                COUNT(DISTINCT vinculos_agronomo.produtor_id),
+                COUNT(DISTINCT lavouras.id),
+                SUM(
+                    CASE
+                        WHEN lavouras.status = 'critico' THEN 1
+                        ELSE 0
+                    END
+                )
+            FROM usuarios
+            LEFT JOIN vinculos_agronomo
+                ON vinculos_agronomo.agronomo_id = usuarios.id
+            LEFT JOIN lavouras
+                ON lavouras.usuario_id = vinculos_agronomo.produtor_id
+            WHERE usuarios.tipo = 'agronomo'
+            GROUP BY usuarios.id, usuarios.nome
+            ORDER BY COUNT(DISTINCT vinculos_agronomo.produtor_id) DESC
+            """
         )
-        resultados = cursor.fetchall()
-        cursor.close()
 
         ranking = [
             {
-                "id": r[0],
-                "nome": r[1],
-                "totalProdutores": r[2],
-                "totalLavouras": r[3],
-                "lavourasCriticas": r[4] or 0,
+                "id": linha[0],
+                "nome": linha[1],
+                "totalProdutores": linha[2],
+                "totalLavouras": linha[3],
+                "lavourasCriticas": linha[4] or 0,
             }
-            for r in resultados
+            for linha in cursor.fetchall()
         ]
+
         return jsonify(ranking), 200
-    except Exception as erro:
-        return jsonify({"mensagem": "Erro ao montar ranking", "erro": str(erro)}), 500
+
+    except Exception:
+        current_app.logger.exception("Erro ao montar ranking")
+
+        return jsonify({
+            "mensagem": "Erro ao montar ranking."
+        }), 500
+
+    finally:
+        if cursor is not None:
+            cursor.close()
 
 
 # ================================================================
-# RELATÓRIO (CSV)
+# RELATÓRIO CSV
 # ================================================================
 
-@cooperativa_bp.route('/cooperativa/relatorio.csv', methods=['GET'])
-@requer_tipo('cooperativa')
+@cooperativa_bp.route(
+    "/cooperativa/relatorio.csv",
+    methods=["GET"]
+)
+@requer_tipo("cooperativa")
 def relatorio_csv():
+    cursor = None
+
     try:
         cursor = mysql.connection.cursor()
+
         cursor.execute(
-            """SELECT
-                   usuarios.nome AS produtor,
-                   agronomo.nome AS agronomo,
-                   lavouras.nome_lavoura,
-                   lavouras.status,
-                   lavouras.criado_em
-               FROM lavouras
-               JOIN usuarios ON usuarios.id = lavouras.usuario_id
-               LEFT JOIN vinculos_agronomo ON vinculos_agronomo.produtor_id = usuarios.id
-               LEFT JOIN usuarios AS agronomo ON agronomo.id = vinculos_agronomo.agronomo_id
-               ORDER BY usuarios.nome"""
+            """
+            SELECT
+                usuarios.nome,
+                agronomo.nome,
+                lavouras.nome_lavoura,
+                lavouras.status,
+                lavouras.criado_em
+            FROM lavouras
+            JOIN usuarios ON usuarios.id = lavouras.usuario_id
+            LEFT JOIN vinculos_agronomo
+                ON vinculos_agronomo.produtor_id = usuarios.id
+            LEFT JOIN usuarios AS agronomo
+                ON agronomo.id = vinculos_agronomo.agronomo_id
+            ORDER BY usuarios.nome
+            """
         )
-        linhas = cursor.fetchall()
-        cursor.close()
 
         buffer = io.StringIO()
         escritor = csv.writer(buffer)
-        escritor.writerow(["Produtor", "Agrônomo", "Lavoura", "Status", "Cadastrada em"])
-        for l in linhas:
-            escritor.writerow([l[0], l[1] or "Sem agrônomo", l[2], l[3], l[4]])
+
+        escritor.writerow([
+            "Produtor",
+            "Agrônomo",
+            "Lavoura",
+            "Status",
+            "Cadastrada em",
+        ])
+
+        for linha in cursor.fetchall():
+            escritor.writerow([
+                linha[0],
+                linha[1] or "Sem agrônomo",
+                linha[2],
+                linha[3],
+                linha[4],
+            ])
 
         return Response(
             buffer.getvalue(),
             mimetype="text/csv",
-            headers={"Content-Disposition": "attachment; filename=relatorio_coffeevision.csv"}
+            headers={
+                "Content-Disposition":
+                    "attachment; filename=relatorio_coffeevision.csv"
+            }
         )
-    except Exception as erro:
-        return jsonify({"mensagem": "Erro ao gerar relatório", "erro": str(erro)}), 500
+
+    except Exception:
+        current_app.logger.exception("Erro ao gerar relatório")
+
+        return jsonify({
+            "mensagem": "Erro ao gerar relatório."
+        }), 500
+
+    finally:
+        if cursor is not None:
+            cursor.close()
 
 
+# ================================================================
+# CRIAR AVISO
+# ================================================================
 
-
-@cooperativa_bp.route('/cooperativa/avisos', methods=['POST'])
-@requer_tipo('cooperativa')
+@cooperativa_bp.route("/cooperativa/avisos", methods=["POST"])
+@requer_tipo("cooperativa")
 def criar_aviso():
-    dados = request.get_json()
-    titulo = dados.get('titulo')
-    mensagem = dados.get('mensagem')
-    destinatario_tipo = dados.get('destinatarioTipo', 'todos')
-    cooperativa_id = request.headers.get('X-Usuario-Id')
+    dados = request.get_json(silent=True)
 
-    if not titulo or not mensagem:
-        return jsonify({"mensagem": "titulo e mensagem são obrigatórios"}), 400
+    if not isinstance(dados, dict):
+        return jsonify({"mensagem": "Dados inválidos."}), 400
 
-    if destinatario_tipo not in ('todos', 'produtores', 'agronomos'):
-        return jsonify({"mensagem": "destinatarioTipo inválido"}), 400
+    titulo = dados.get("titulo")
+    mensagem = dados.get("mensagem")
+    destinatario_tipo = dados.get("destinatarioTipo", "todos")
+    cooperativa_id = request.headers.get("X-Usuario-Id", type=int)
+
+    if (
+        not isinstance(titulo, str)
+        or not titulo.strip()
+        or not isinstance(mensagem, str)
+        or not mensagem.strip()
+    ):
+        return jsonify({
+            "mensagem": "Título e mensagem são obrigatórios."
+        }), 400
+
+    if destinatario_tipo not in ("todos", "produtores", "agronomos"):
+        return jsonify({
+            "mensagem": "Destinatário inválido."
+        }), 400
+
+    titulo = titulo.strip()
+    mensagem = mensagem.strip()
+    cursor = None
 
     try:
         cursor = mysql.connection.cursor()
+
+        # Todo aviso novo começa como não lido.
         cursor.execute(
-            """INSERT INTO avisos (cooperativa_id, titulo, mensagem, destinatario_tipo)
-               VALUES (%s, %s, %s, %s)""",
+            """
+            INSERT INTO avisos (
+                cooperativa_id,
+                titulo,
+                mensagem,
+                destinatario_tipo,
+                lido
+            )
+            VALUES (%s, %s, %s, %s, 0)
+            """,
             (cooperativa_id, titulo, mensagem, destinatario_tipo)
         )
-        mysql.connection.commit()
 
-        # Busca os e-mails de quem deve receber, conforme o destinatarioTipo
-        if destinatario_tipo == 'todos':
-            cursor.execute("SELECT email FROM usuarios WHERE tipo IN ('produtor', 'agronomo')")
-        elif destinatario_tipo == 'produtores':
-            cursor.execute("SELECT email FROM usuarios WHERE tipo = 'produtor'")
-        else:  # 'agronomos'
-            cursor.execute("SELECT email FROM usuarios WHERE tipo = 'agronomo'")
+        aviso_id = cursor.lastrowid
+
+        if destinatario_tipo == "todos":
+            cursor.execute(
+                """
+                SELECT email FROM usuarios
+                WHERE tipo IN ('produtor', 'agronomo')
+                """
+            )
+        elif destinatario_tipo == "produtores":
+            cursor.execute(
+                "SELECT email FROM usuarios WHERE tipo = 'produtor'"
+            )
+        else:
+            cursor.execute(
+                "SELECT email FROM usuarios WHERE tipo = 'agronomo'"
+            )
 
         emails = [linha[0] for linha in cursor.fetchall()]
-        cursor.close()
+        mysql.connection.commit()
 
-        # Manda o e-mail pra cada destinatário. Um e-mail que falhar não
-        # derruba a resposta inteira (o aviso já foi salvo com sucesso) —
-        # só registra no log do servidor pra investigar depois.
+    except Exception:
+        if cursor is not None:
+            mysql.connection.rollback()
+
+        current_app.logger.exception("Erro ao criar aviso")
+
+        return jsonify({
+            "mensagem": "Erro ao criar aviso."
+        }), 500
+
+    finally:
+        if cursor is not None:
+            cursor.close()
+
+    # O aviso já está salvo. Falhas de e-mail não desfazem a criação.
+    enviados = 0
+    falhas = 0
+
+    try:
         html, texto = montar_email_aviso(titulo, mensagem)
-        falhas = []
+
         for email in emails:
             try:
-                enviar_email(email, f"CoffeeVision — {titulo}", html, texto)
-            except Exception as erro_email:
-                falhas.append(email)
-                print(f"Erro ao enviar aviso por e-mail para {email}: {erro_email}")
+                enviar_email(
+                    email,
+                    f"CoffeeVision — {titulo}",
+                    html,
+                    texto
+                )
+                enviados += 1
+            except Exception:
+                falhas += 1
+                current_app.logger.exception(
+                    "Falha ao enviar e-mail do aviso %s",
+                    aviso_id
+                )
 
-        resposta = {"mensagem": "Aviso enviado com sucesso", "emailsEnviados": len(emails) - len(falhas)}
-        if falhas:
-            resposta["emailsComFalha"] = len(falhas)
+    except Exception:
+        falhas = len(emails)
+        current_app.logger.exception(
+            "Falha ao preparar e-mail do aviso %s",
+            aviso_id
+        )
 
-        return jsonify(resposta), 201
-    except Exception as erro:
-        return jsonify({"mensagem": "Erro ao criar aviso", "erro": str(erro)}), 500
+    resposta = {
+        "mensagem": "Aviso criado com sucesso.",
+        "id": aviso_id,
+        "emailsEnviados": enviados,
+    }
+
+    if falhas:
+        resposta["emailsComFalha"] = falhas
+
+    return jsonify(resposta), 201
 
 
-# Lista os avisos relevantes para o tipo de usuário que está pedindo
-# (usado tanto pela cooperativa pra ver o histórico, quanto pelo
-# produtor/agrônomo pra ver o que recebeu).
-@cooperativa_bp.route('/avisos', methods=['GET'])
+# ================================================================
+# IDENTIFICAÇÃO PARA CONSULTA E LEITURA DE AVISOS
+# ================================================================
+
+def _contexto_avisos(cursor):
+    # Compatibilidade com o login atual.
+    # Este cabeçalho não substitui uma sessão/token autenticado.
+    usuario_id = request.headers.get("X-Usuario-Id", type=int)
+
+    if not usuario_id or usuario_id <= 0:
+        return None
+
+    cursor.execute(
+        "SELECT tipo FROM usuarios WHERE id = %s",
+        (usuario_id,)
+    )
+
+    usuario = cursor.fetchone()
+
+    if not usuario:
+        return None
+
+    destino = {
+        "produtor": "produtores",
+        "agronomo": "agronomos",
+    }.get(usuario[0])
+
+    if destino is None:
+        return None
+
+    return usuario_id, destino
+
+
+# ================================================================
+# LISTAR AVISOS — LEITURA COMPARTILHADA
+# ================================================================
+
+@cooperativa_bp.route("/avisos", methods=["GET"])
 def listar_avisos():
     cursor = None
 
@@ -409,14 +738,16 @@ def listar_avisos():
 
         avisos = [
             {
-                "id": a[0],
-                "titulo": a[1],
-                "mensagem": a[2],
-                "destinatarioTipo": a[3],
-                "criadoEm": a[4].isoformat() if a[4] else None,
-                "lido": bool(a[5]),
+                "id": linha[0],
+                "titulo": linha[1],
+                "mensagem": linha[2],
+                "destinatarioTipo": linha[3],
+                "criadoEm": (
+                    linha[4].isoformat() if linha[4] else None
+                ),
+                "lido": bool(linha[5]),
             }
-            for a in cursor.fetchall()
+            for linha in cursor.fetchall()
         ]
 
         resposta = jsonify(avisos)
@@ -436,9 +767,13 @@ def listar_avisos():
             cursor.close()
 
 
+# ================================================================
+# MARCAR UM AVISO COMO LIDO
+# ================================================================
+
 @cooperativa_bp.route(
-    '/avisos/<int:aviso_id>/ler',
-    methods=['POST']
+    "/avisos/<int:aviso_id>/ler",
+    methods=["POST"]
 )
 def marcar_aviso_lido(aviso_id):
     cursor = None
@@ -454,7 +789,6 @@ def marcar_aviso_lido(aviso_id):
 
         usuario_id, destino = contexto
 
-        # Confere se o usuário pode receber esse aviso.
         cursor.execute(
             """
             SELECT id
@@ -470,7 +804,6 @@ def marcar_aviso_lido(aviso_id):
                 "mensagem": "Aviso não encontrado."
             }), 404
 
-        # A leitura é compartilhada por todos os destinatários.
         cursor.execute(
             """
             UPDATE avisos
@@ -506,7 +839,11 @@ def marcar_aviso_lido(aviso_id):
             cursor.close()
 
 
-@cooperativa_bp.route('/avisos/ler-todos', methods=['POST'])
+# ================================================================
+# MARCAR AVISOS CARREGADOS COMO LIDOS
+# ================================================================
+
+@cooperativa_bp.route("/avisos/ler-todos", methods=["POST"])
 def marcar_todos_avisos_lidos():
     dados = request.get_json(silent=True)
     ids = dados.get("ids") if isinstance(dados, dict) else None
@@ -533,7 +870,6 @@ def marcar_todos_avisos_lidos():
 
         usuario_id, destino = contexto
 
-        # Marca somente os avisos carregados e permitidos.
         for aviso_id in set(ids):
             cursor.execute(
                 """
@@ -566,253 +902,163 @@ def marcar_todos_avisos_lidos():
     finally:
         if cursor is not None:
             cursor.close()
-    # Compatibilidade com o login atual do projeto.
-    # X-Usuario-Id não substitui autenticação por sessão/token.
-    usuario_id = request.headers.get("X-Usuario-Id", type=int)
-
-    if not usuario_id or usuario_id <= 0:
-        return None
-
-    cursor.execute(
-        "SELECT tipo FROM usuarios WHERE id = %s",
-        (usuario_id,)
-    )
-
-    usuario = cursor.fetchone()
-
-    if not usuario:
-        return None
-
-    destino = {
-        "produtor": "produtores",
-        "agronomo": "agronomos",
-    }.get(usuario[0])
-
-    if destino is None:
-        return None
-
-    return usuario_id, destino
 
 
-@cooperativa_bp.route('/avisos', methods=['GET'])
-def listar_avisos():
-    cursor = mysql.connection.cursor()
-
-    try:
-        contexto = _contexto_avisos(cursor)
-
-        if contexto is None:
-            return jsonify({
-                "mensagem": "Usuário inválido para receber avisos."
-            }), 401
-
-        usuario_id, destino = contexto
-
-        cursor.execute(
-            """
-            SELECT
-                a.id,
-                a.titulo,
-                a.mensagem,
-                a.destinatario_tipo,
-                a.criado_em,
-                l.lido_em
-            FROM avisos a
-            LEFT JOIN avisos_leituras l
-                ON l.aviso_id = a.id
-                AND l.usuario_id = %s
-            WHERE a.destinatario_tipo IN ('todos', %s)
-            ORDER BY a.criado_em DESC, a.id DESC
-            """,
-            (usuario_id, destino)
-        )
-
-        avisos = [
-            {
-                "id": a[0],
-                "titulo": a[1],
-                "mensagem": a[2],
-                "destinatarioTipo": a[3],
-                "criadoEm": a[4].isoformat(),
-                "lido": a[5] is not None,
-                "lidoEm": a[5].isoformat() if a[5] else None,
-            }
-            for a in cursor.fetchall()
-        ]
-
-        return jsonify(avisos), 200
-
-    except Exception:
-        return jsonify({
-            "mensagem": "Não foi possível carregar os avisos."
-        }), 500
-
-    finally:
-        cursor.close()
-
+# ================================================================
+# ALTERAÇÃO DE SENHA
+# ================================================================
 
 @cooperativa_bp.route(
-    '/avisos/<int:aviso_id>/ler',
-    methods=['POST']
+    "/usuario/<int:usuario_id>/senha",
+    methods=["PUT"]
 )
-def marcar_aviso_lido(aviso_id):
-    cursor = mysql.connection.cursor()
+@requer_tipo("produtor", "agronomo", "cooperativa")
+def senha_edit(usuario_id):
+    dados = request.get_json(silent=True)
+
+    if not isinstance(dados, dict):
+        return jsonify({"mensagem": "Dados inválidos."}), 400
+
+    nova_senha = dados.get("senha")
+
+    if not isinstance(nova_senha, str) or len(nova_senha) < 6:
+        return jsonify({
+            "mensagem": "A senha deve ter pelo menos 6 caracteres."
+        }), 400
+
+    solicitante_id = request.headers.get("X-Usuario-Id", type=int)
+    cursor = None
 
     try:
-        contexto = _contexto_avisos(cursor)
+        cursor = mysql.connection.cursor()
 
-        if contexto is None:
-            return jsonify({
-                "mensagem": "Usuário inválido para receber avisos."
-            }), 401
-
-        usuario_id, destino = contexto
-
-        # Confere se o aviso é destinado ao tipo deste usuário.
         cursor.execute(
-            """
-            SELECT id
-            FROM avisos
-            WHERE id = %s
-              AND destinatario_tipo IN ('todos', %s)
-            """,
-            (aviso_id, destino)
+            "SELECT tipo FROM usuarios WHERE id = %s",
+            (solicitante_id,)
+        )
+        solicitante = cursor.fetchone()
+
+        if not solicitante:
+            return jsonify({"mensagem": "Usuário inválido."}), 401
+
+        # Usuário altera a própria senha.
+        # Cooperativa também pode alterar a senha de outros usuários.
+        if (
+            solicitante_id != usuario_id
+            and solicitante[0] != "cooperativa"
+        ):
+            return jsonify({
+                "mensagem": "Você não pode alterar a senha deste usuário."
+            }), 403
+
+        cursor.execute(
+            "SELECT id FROM usuarios WHERE id = %s",
+            (usuario_id,)
         )
 
         if cursor.fetchone() is None:
             return jsonify({
-                "mensagem": "Aviso não encontrado."
+                "mensagem": "Usuário não encontrado."
             }), 404
 
-        # Se já estiver lido, preserva a primeira data de leitura.
+        senha_hash = bcrypt.hashpw(
+            nova_senha.encode("utf-8"),
+            bcrypt.gensalt()
+        ).decode("utf-8")
+
         cursor.execute(
             """
-            INSERT INTO avisos_leituras (aviso_id, usuario_id)
-            VALUES (%s, %s)
-            ON DUPLICATE KEY UPDATE lido_em = lido_em
+            UPDATE usuarios
+            SET senha_hash = %s,
+                confirma_senha_hash = %s
+            WHERE id = %s
             """,
-            (aviso_id, usuario_id)
+            (senha_hash, senha_hash, usuario_id)
         )
 
         mysql.connection.commit()
 
         return jsonify({
-            "mensagem": "Leitura salva."
+            "mensagem": "Senha alterada com sucesso."
         }), 200
 
     except Exception:
-        mysql.connection.rollback()
+        if cursor is not None:
+            mysql.connection.rollback()
+
+        current_app.logger.exception("Erro ao alterar senha")
 
         return jsonify({
-            "mensagem": "Não foi possível salvar a leitura."
+            "mensagem": "Não foi possível alterar a senha."
         }), 500
 
     finally:
-        cursor.close()
+        if cursor is not None:
+            cursor.close()
 
 
-@cooperativa_bp.route('/avisos/ler-todos', methods=['POST'])
-def marcar_todos_avisos_lidos():
-    dados = request.get_json(silent=True) or {}
-    ids = dados.get("ids") if isinstance(dados, dict) else None
-
-    if (
-        not isinstance(ids, list)
-        or len(ids) > 1000
-        or any(type(i) is not int or i <= 0 for i in ids)
-    ):
-        return jsonify({
-            "mensagem": "Informe até 1000 IDs válidos."
-        }), 400
-
-    cursor = mysql.connection.cursor()
-
-    try:
-        contexto = _contexto_avisos(cursor)
-
-        if contexto is None:
-            return jsonify({
-                "mensagem": "Usuário inválido para receber avisos."
-            }), 401
-
-        usuario_id, destino = contexto
-
-        # Marca apenas os avisos carregados na tela e permitidos.
-        for aviso_id in set(ids):
-            cursor.execute(
-                """
-                INSERT INTO avisos_leituras (aviso_id, usuario_id)
-                SELECT id, %s
-                FROM avisos
-                WHERE id = %s
-                  AND destinatario_tipo IN ('todos', %s)
-                ON DUPLICATE KEY UPDATE lido_em = lido_em
-                """,
-                (usuario_id, aviso_id, destino)
-            )
-
-        mysql.connection.commit()
-
-        return jsonify({
-            "mensagem": "Leituras salvas."
-        }), 200
-
-    except Exception:
-        mysql.connection.rollback()
-
-        return jsonify({
-            "mensagem": "Não foi possível salvar as leituras."
-        }), 500
-
-    finally:
-        cursor.close()
-
-@cooperativa_bp.route("/usuario/<int:usuario_id>/senha", methods=["PUT"])
-def senha_edit(usuario_id):
-    dados= request.get_json()
-    nova_senha = dados.get("senha")
-
-    if not nova_senha or len(nova_senha)<6:
-        return jsonify({"mensagem":"senha invalida"}), 400
-
-    senha_hash = bcrypt.hashpw(nova_senha.encode("utf-8"), bcrypt.gensalt())
-
-    cursor = mysql.conection.cursor()
-    cursor.execute(
-        "UPDATE usuarios Set senha = % WHERE id=%s",
-        (senha_hash.decode("utf-8"), usuario_id)
-    )
-    mysql.conection.commit()
-    cursor.close()
-
-    return jsonify({"mensagem": "Senha altearada com sucesso."}),200
-
+# ================================================================
+# DESVINCULAR PRODUTOR DO AGRÔNOMO
+# ================================================================
 
 @cooperativa_bp.route("/desvincular", methods=["POST"])
+@requer_tipo("cooperativa")
 def desvincular():
-    dados = request.get_json()
+    dados = request.get_json(silent=True)
+
+    if not isinstance(dados, dict):
+        return jsonify({"mensagem": "Dados inválidos."}), 400
+
     produtor_id = dados.get("produtorId")
 
     if not produtor_id:
-        return jsonify({"mensagem": "Produtor é obrigatório"}), 400
+        return jsonify({
+            "mensagem": "Produtor é obrigatório."
+        }), 400
 
-    cursor = mysql.connection.cursor()
+    cursor = None
+
     try:
-        cursor.execute(
-            "SELECT id FROM vinculos_agronomo WHERE produtor_id = %s ",
-            (produtor_id)
-        )
-        if cursor.fetchone() is None:
-            return jsonify({"mensagem": "Vínculo não encontrado."}), 404
+        cursor = mysql.connection.cursor()
 
         cursor.execute(
-            "DELETE FROM vinculos_agronomo WHERE produtor_id = %s",
-            (produtor_id)
+            """
+            SELECT id
+            FROM vinculos_agronomo
+            WHERE produtor_id = %s
+            """,
+            (produtor_id,)
         )
+
+        if cursor.fetchone() is None:
+            return jsonify({
+                "mensagem": "Vínculo não encontrado."
+            }), 404
+
+        cursor.execute(
+            """
+            DELETE FROM vinculos_agronomo
+            WHERE produtor_id = %s
+            """,
+            (produtor_id,)
+        )
+
         mysql.connection.commit()
-        return jsonify({"mensagem": "Produtor desvinculado com sucesso."}), 200
-    except Exception as erro:
-        mysql.connection.rollback()
-        return jsonify({"mensagem": "Erro ao desvincular produtor.", "erro": str(erro)}), 500
+
+        return jsonify({
+            "mensagem": "Produtor desvinculado com sucesso."
+        }), 200
+
+    except Exception:
+        if cursor is not None:
+            mysql.connection.rollback()
+
+        current_app.logger.exception("Erro ao desvincular produtor")
+
+        return jsonify({
+            "mensagem": "Erro ao desvincular produtor."
+        }), 500
+
     finally:
-        cursor.close()
+        if cursor is not None:
+            cursor.close()
