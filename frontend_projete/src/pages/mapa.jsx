@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -56,6 +57,8 @@ export default function Mapa() {
 
   useEffect(() => {
     const controller = new AbortController();
+    const location = useLocation();
+    const focarLavouraId = location.state?.focarLavouraId;
 
     async function carregarMunicipios() {
       try {
@@ -435,65 +438,108 @@ export default function Mapa() {
     );
   }
 
-  async function carregarLavouras() {
-    const usuarioId =
-      localStorage.getItem("usuarioId");
+async function carregarLavouras() {
+  const usuarioId = localStorage.getItem("usuarioId");
+  const usuarioTipo = localStorage.getItem("usuarioTipo");
 
-    const usuarioTipo =
-      localStorage.getItem("usuarioTipo");
+  if (!usuarioId) return;
 
-    if (!usuarioId && usuarioTipo !== "agronomo") return;
+  // Guarda a instância para evitar desenhar em um mapa
+  // que tenha sido fechado enquanto a busca estava acontecendo.
+  const mapaAtual = map.current;
 
-const url =
-  usuarioTipo === "agronomo"
-    ? `${AUTH_API_URL}/lavouras`
-    : `${AUTH_API_URL}/lavouras/${usuarioId}`;
+  if (!mapaAtual) return;
 
-    try {
-     const resposta = await fetch(url);
+  const url =
+    usuarioTipo === "agronomo"
+      ? `${AUTH_API_URL}/lavouras`
+      : `${AUTH_API_URL}/lavouras/${usuarioId}`;
 
-      const dados = await resposta.json();
+  try {
+    const resposta = await fetch(url);
 
-      if (!resposta.ok) {
-        console.error(
-          "Erro ao buscar lavouras:",
-          dados
-        );
-
-        return;
-      }
-
-      console.log(
-        "Lavouras cadastradas:",
-        dados
-      );
-
-     const lavouraIdSelecionada =
-  localStorage.getItem("lavouraId");
-
-if (usuarioTipo === "produtor" && lavouraIdSelecionada) {
-  const lavoura = dados.find(
-    (l) =>
-      String(l.id) ===
-      String(lavouraIdSelecionada)
-  );
-
-  if (lavoura) {
-    desenharLavoura(lavoura);
-  }
-} else {
-  dados.forEach((lavoura) => {
-    desenharLavoura(lavoura);
-  });
-}
-
-    } catch (erro) {
-      console.error(
-        "Erro ao carregar lavouras:",
-        erro
+    if (!resposta.ok) {
+      throw new Error(
+        `Não foi possível carregar as lavouras: ${resposta.status}`
       );
     }
+
+    const dados = await resposta.json();
+
+    if (!Array.isArray(dados)) {
+      throw new Error("A resposta das lavouras não é uma lista.");
+    }
+
+    if (map.current !== mapaAtual) return;
+
+    // Preserva o filtro que o produtor já usava.
+    const lavouraIdSalva = localStorage.getItem("lavouraId");
+
+    if (usuarioTipo === "produtor" && lavouraIdSalva) {
+      const lavoura = dados.find(
+        (item) => String(item.id) === String(lavouraIdSalva)
+      );
+
+      if (lavoura) {
+        desenharLavoura(lavoura);
+      }
+    } else {
+      // Agrônomo continua vendo os contornos das lavouras.
+      dados.forEach((lavoura) => {
+        desenharLavoura(lavoura);
+      });
+    }
+
+    // Só aplica o zoom direcionado quando veio do botão Mapa.
+    if (focarLavouraId == null) return;
+
+    const selecionada = dados.find(
+      (lavoura) =>
+        String(lavoura.id) === String(focarLavouraId)
+    );
+
+    if (!Array.isArray(selecionada?.coordenadas)) return;
+
+    const pontos = selecionada.coordenadas
+      .filter(
+        (ponto) =>
+          ponto.lat != null &&
+          ponto.lng != null &&
+          String(ponto.lat).trim() !== "" &&
+          String(ponto.lng).trim() !== ""
+      )
+      .map((ponto) => [
+        Number(ponto.lat),
+        Number(ponto.lng),
+      ])
+      .filter(
+        ([lat, lng]) =>
+          Number.isFinite(lat) &&
+          Number.isFinite(lng) &&
+          lat >= -90 &&
+          lat <= 90 &&
+          lng >= -180 &&
+          lng <= 180
+      );
+
+    if (pontos.length < 3) return;
+
+    const limites = L.latLngBounds(pontos);
+
+    if (!limites.isValid()) return;
+
+    mapaAtual.invalidateSize({ pan: false });
+
+    // Enquadra a lavoura inteira com uma margem ao redor.
+    mapaAtual.fitBounds(limites, {
+      padding: [40, 40],
+      maxZoom: 17,
+      animate: false,
+    });
+  } catch (erro) {
+    console.error("Erro ao carregar lavouras:", erro);
   }
+}
 function ponto_proximo(latlng)
 {
   const pontoClick = map.current.latLngTolayerPoint(latlng);

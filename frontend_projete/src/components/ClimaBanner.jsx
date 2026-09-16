@@ -69,20 +69,21 @@ function ClimaBanner({ lavouras }) {
   }
 
   // Visualizar lavoura no mapa
-  function visualizarLavoura() {
-    if (!lavouraSelecionada) return;
+   function visualizarLavoura() {
+  if (!lavouraSelecionada) return;
 
-    localStorage.setItem(
-      "lavouraId",
-      lavouraSelecionada.id
-    );
+  localStorage.setItem("lavouraId", lavouraSelecionada.id);
+  localStorage.setItem(
+    "lavouraNome",
+    lavouraSelecionada.nomeLavoura
+  );
 
-    localStorage.setItem(
-      "lavouraNome",
-      lavouraSelecionada.nomeLavoura
-    );
-
-    navigate("/mapa");
+  navigate("/mapa", {
+    state: {
+      focarLavouraId: lavouraSelecionada.id,
+    },
+  });
+}
   }
 
   // Editar lavoura
@@ -316,6 +317,6 @@ return (
 
   </div>
 );
-}
+
 
 export default ClimaBanner;
