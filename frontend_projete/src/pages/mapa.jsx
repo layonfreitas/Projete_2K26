@@ -419,13 +419,19 @@ export default function Mapa() {
       }
     ).addTo(map.current);
 
+    const areaHectares =
+  lavoura.areaHectares ??
+  (Number(lavoura.areaM2) / 10000);
+
     poligono.bindTooltip(
-      `<b>Lavoura:</b> ${lavoura.nomeLavoura}<br>
-       <b>Área:</b> ${Number(lavoura.areaHectares).toFixed(2)} ha`,
-      {
-        sticky: true,
-        direction: "top",
-      }
+    `<b>Lavoura:</b> ${lavoura.nomeLavoura}<br>
+   ${!ehProdutor ? `<b>Produtor:</b> ${lavoura.produtorNome}<br>` : ""}
+   <b>Área:</b> ${Number(areaHectares).toFixed(2)} ha`,
+  {
+    sticky: true,
+    direction: "top",
+  }
+      
     );
   }
 
@@ -436,20 +442,15 @@ export default function Mapa() {
     const usuarioTipo =
       localStorage.getItem("usuarioTipo");
 
-    const produtorSelecionadoId =
-      localStorage.getItem("produtorSelecionadoId");
+    if (!usuarioId && usuarioTipo !== "agronomo") return;
 
-    const idParaBuscar =
-      usuarioTipo === "agronomo"
-        ? produtorSelecionadoId
-        : usuarioId;
-
-    if (!idParaBuscar) return;
+const url =
+  usuarioTipo === "agronomo"
+    ? `${AUTH_API_URL}/lavouras`
+    : `${AUTH_API_URL}/lavouras/${usuarioId}`;
 
     try {
-      const resposta = await fetch(
-        `${AUTH_API_URL}/lavouras/${idParaBuscar}`
-      );
+     const resposta = await fetch(url);
 
       const dados = await resposta.json();
 
@@ -467,24 +468,24 @@ export default function Mapa() {
         dados
       );
 
-      const lavouraIdSelecionada =
-        localStorage.getItem("lavouraId");
+     const lavouraIdSelecionada =
+  localStorage.getItem("lavouraId");
 
-      if (lavouraIdSelecionada) {
-        const lavoura = dados.find(
-          (l) =>
-            String(l.id) ===
-            String(lavouraIdSelecionada)
-        );
+if (usuarioTipo === "produtor" && lavouraIdSelecionada) {
+  const lavoura = dados.find(
+    (l) =>
+      String(l.id) ===
+      String(lavouraIdSelecionada)
+  );
 
-        if (lavoura) {
-          desenharLavoura(lavoura);
-        }
-      } else {
-        dados.forEach((lavoura) => {
-          desenharLavoura(lavoura);
-        });
-      }
+  if (lavoura) {
+    desenharLavoura(lavoura);
+  }
+} else {
+  dados.forEach((lavoura) => {
+    desenharLavoura(lavoura);
+  });
+}
 
     } catch (erro) {
       console.error(
