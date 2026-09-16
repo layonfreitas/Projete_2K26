@@ -493,7 +493,26 @@ export default function Mapa() {
       );
     }
   }
+function ponto_proximo(latlng)
+{
+  const pontoClick = map.current.latLngTolayerPoint(latlng);
 
+  let menordist = Infinity;
+  let IndiceInsercao = postos.current.length;
+
+  for(let i = 0; i < postos.current.length -1; i++){
+    const p1 = map.current.latLngToLayerPoint([postos.current[i].lat, postos.current[i].lng]);
+    const p2 = map.current.latLngToLayerPoint([postos.current[i + 1].lat, postos.current[i + 1].lng]);
+    
+    const distancia = L.LineUtil.pointToSegmentDistance(pontoClique, p1, p2);
+
+    if(menordist < distancia){
+      menordist = distancia;
+      IndiceInsercao = i+1;
+    }
+  }
+  return IndiceInsercao;
+}
   return (
     <div className="pagina-mapa">
 
