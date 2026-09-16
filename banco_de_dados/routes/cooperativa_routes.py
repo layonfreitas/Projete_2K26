@@ -1,7 +1,8 @@
-from flask import Blueprint, request, jsonify, Response
+from flask import Blueprint, request, jsonify, Response, current_app
 import bcrypt
 import csv
 import io
+
 
 from auth_utils import requer_tipo, init_mysql as init_auth_utils_mysql
 from email_utils import enviar_email, montar_email_aviso
@@ -376,7 +377,195 @@ def criar_aviso():
 # (usado tanto pela cooperativa pra ver o histórico, quanto pelo
 # produtor/agrônomo pra ver o que recebeu).
 @cooperativa_bp.route('/avisos', methods=['GET'])
-def _contexto_avisos(cursor):
+def listar_avisos():
+    cursor = None
+
+    try:
+        cursor = mysql.connection.cursor()
+        contexto = _contexto_avisos(cursor)
+
+        if contexto is None:
+            return jsonify({
+                "mensagem": "Usuário inválido para receber avisos."
+            }), 401
+
+        usuario_id, destino = contexto
+
+        cursor.execute(
+            """
+            SELECT
+                id,
+                titulo,
+                mensagem,
+                destinatario_tipo,
+                criado_em,
+                COALESCE(lido, 0)
+            FROM avisos
+            WHERE destinatario_tipo IN ('todos', %s)
+            ORDER BY criado_em DESC, id DESC
+            """,
+            (destino,)
+        )
+
+        avisos = [
+            {
+                "id": a[0],
+                "titulo": a[1],
+                "mensagem": a[2],
+                "destinatarioTipo": a[3],
+                "criadoEm": a[4].isoformat() if a[4] else None,
+                "lido": bool(a[5]),
+            }
+            for a in cursor.fetchall()
+        ]
+
+        resposta = jsonify(avisos)
+        resposta.headers["Cache-Control"] = "no-store"
+
+        return resposta, 200
+
+    except Exception:
+        current_app.logger.exception("Erro ao listar avisos")
+
+        return jsonify({
+            "mensagem": "Não foi possível carregar os avisos."
+        }), 500
+
+    finally:
+        if cursor is not None:
+            cursor.close()
+
+
+@cooperativa_bp.route(
+    '/avisos/<int:aviso_id>/ler',
+    methods=['POST']
+)
+def marcar_aviso_lido(aviso_id):
+    cursor = None
+
+    try:
+        cursor = mysql.connection.cursor()
+        contexto = _contexto_avisos(cursor)
+
+        if contexto is None:
+            return jsonify({
+                "mensagem": "Usuário inválido para receber avisos."
+            }), 401
+
+        usuario_id, destino = contexto
+
+        # Confere se o usuário pode receber esse aviso.
+        cursor.execute(
+            """
+            SELECT id
+            FROM avisos
+            WHERE id = %s
+              AND destinatario_tipo IN ('todos', %s)
+            """,
+            (aviso_id, destino)
+        )
+
+        if cursor.fetchone() is None:
+            return jsonify({
+                "mensagem": "Aviso não encontrado."
+            }), 404
+
+        # A leitura é compartilhada por todos os destinatários.
+        cursor.execute(
+            """
+            UPDATE avisos
+            SET lido = 1
+            WHERE id = %s
+              AND destinatario_tipo IN ('todos', %s)
+            """,
+            (aviso_id, destino)
+        )
+
+        mysql.connection.commit()
+
+        return jsonify({
+            "mensagem": "Leitura salva.",
+            "id": aviso_id,
+            "lido": True,
+        }), 200
+
+    except Exception:
+        if cursor is not None:
+            mysql.connection.rollback()
+
+        current_app.logger.exception(
+            "Erro ao marcar aviso como lido"
+        )
+
+        return jsonify({
+            "mensagem": "Não foi possível salvar a leitura."
+        }), 500
+
+    finally:
+        if cursor is not None:
+            cursor.close()
+
+
+@cooperativa_bp.route('/avisos/ler-todos', methods=['POST'])
+def marcar_todos_avisos_lidos():
+    dados = request.get_json(silent=True)
+    ids = dados.get("ids") if isinstance(dados, dict) else None
+
+    if (
+        not isinstance(ids, list)
+        or len(ids) > 1000
+        or any(type(i) is not int or i <= 0 for i in ids)
+    ):
+        return jsonify({
+            "mensagem": "Informe até 1000 IDs válidos."
+        }), 400
+
+    cursor = None
+
+    try:
+        cursor = mysql.connection.cursor()
+        contexto = _contexto_avisos(cursor)
+
+        if contexto is None:
+            return jsonify({
+                "mensagem": "Usuário inválido para receber avisos."
+            }), 401
+
+        usuario_id, destino = contexto
+
+        # Marca somente os avisos carregados e permitidos.
+        for aviso_id in set(ids):
+            cursor.execute(
+                """
+                UPDATE avisos
+                SET lido = 1
+                WHERE id = %s
+                  AND destinatario_tipo IN ('todos', %s)
+                """,
+                (aviso_id, destino)
+            )
+
+        mysql.connection.commit()
+
+        return jsonify({
+            "mensagem": "Leituras salvas."
+        }), 200
+
+    except Exception:
+        if cursor is not None:
+            mysql.connection.rollback()
+
+        current_app.logger.exception(
+            "Erro ao marcar todos os avisos como lidos"
+        )
+
+        return jsonify({
+            "mensagem": "Não foi possível salvar as leituras."
+        }), 500
+
+    finally:
+        if cursor is not None:
+            cursor.close()
     # Compatibilidade com o login atual do projeto.
     # X-Usuario-Id não substitui autenticação por sessão/token.
     usuario_id = request.headers.get("X-Usuario-Id", type=int)
