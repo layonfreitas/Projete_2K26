@@ -1,322 +1,375 @@
-import { useState, useEffect } from "react";
-import { buscarClima } from "../services/climaAPI";
-import "./ClimaBanner.css";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-// Calcula o centro aproximado do polígono da lavoura
+import { buscarClima } from "../services/climaAPI";
+import "./ClimaBanner.css";
+
 function centroide(coordenadas) {
-  const soma = coordenadas.reduce(
-    (acc, ponto) => ({
-      lat: acc.lat + ponto.lat,
-      lng: acc.lng + ponto.lng,
+  if (!Array.isArray(coordenadas)) return null;
+
+  const pontos = coordenadas
+    .filter(
+      (ponto) =>
+        ponto?.lat != null &&
+        ponto?.lng != null &&
+        String(ponto.lat).trim() !== "" &&
+        String(ponto.lng).trim() !== ""
+    )
+    .map((ponto) => ({
+      lat: Number(ponto.lat),
+      lng: Number(ponto.lng),
+    }))
+    .filter(
+      (ponto) =>
+        Number.isFinite(ponto.lat) &&
+        Number.isFinite(ponto.lng) &&
+        ponto.lat >= -90 &&
+        ponto.lat <= 90 &&
+        ponto.lng >= -180 &&
+        ponto.lng <= 180
+    );
+
+  if (pontos.length === 0) return null;
+
+  const soma = pontos.reduce(
+    (total, ponto) => ({
+      lat: total.lat + ponto.lat,
+      lng: total.lng + ponto.lng,
     }),
     { lat: 0, lng: 0 }
   );
 
   return {
-    lat: soma.lat / coordenadas.length,
-    lng: soma.lng / coordenadas.length,
+    lat: soma.lat / pontos.length,
+    lng: soma.lng / pontos.length,
   };
 }
 
-function ClimaBanner({ lavouras }) {
-  const [lavouraId, setLavouraId] = useState(null);
+export default function ClimaBanner({ lavouras }) {
+  const navigate = useNavigate();
 
-  const [clima, setClima] = useState(null);
-  const [carregando, setCarregando] = useState(true);
-  const [erro, setErro] = useState("");
+  const listaLavouras = Array.isArray(lavouras)
+    ? lavouras
+    : [];
 
   const usuarioTipo = localStorage.getItem("usuarioTipo");
 
-  const navigate = useNavigate();
+  const [lavouraId, setLavouraId] = useState(null);
 
-  // Seleciona a primeira lavoura quando a lista chega
-  useEffect(() => {
-    if (lavouras && lavouras.length > 0 && lavouraId === null) {
-      const lavoura = lavouras[0];
-
-      setLavouraId(lavoura.id);
-
-      localStorage.setItem("lavouraId", lavoura.id);
-      localStorage.setItem("lavouraNome", lavoura.nomeLavoura);
-    }
-  }, [lavouras, lavouraId]);
-
-  // Descobre qual objeto representa a lavoura selecionada
-  const lavouraSelecionada = lavouras?.find(
-    (lavoura) => lavoura.id === lavouraId
-  );
-
-  // Ir para observações
-  function observacao() {
-    if (!lavouraSelecionada) return;
-
-    navigate(`/observacao/${lavouraSelecionada.id}`);
-  }
-
-  // Ir para o laudo
-  function laudo() {
-    if (!lavouraSelecionada) return;
-
-    localStorage.setItem("lavouraId", lavouraSelecionada.id);
-
-    localStorage.setItem(
-      "lavouraNome",
-      lavouraSelecionada.nomeLavoura
-    );
-
-    navigate(`/laudo/${lavouraSelecionada.id}`);
-  }
-
-  // Visualizar lavoura no mapa
-   function visualizarLavoura() {
-  if (!lavouraSelecionada) return;
-
-  localStorage.setItem("lavouraId", lavouraSelecionada.id);
-  localStorage.setItem(
-    "lavouraNome",
-    lavouraSelecionada.nomeLavoura
-  );
-
-  navigate("/mapa", {
-    state: {
-      focarLavouraId: lavouraSelecionada.id,
-    },
+  const [estadoClima, setEstadoClima] = useState({
+    chave: "",
+    clima: null,
+    carregando: false,
+    erro: "",
   });
-}
-  }
 
-  // Editar lavoura
-  function editarLavoura() {
-    if (!lavouraSelecionada) return;
+  const lavouraSelecionada =
+    listaLavouras.find(
+      (lavoura) => String(lavoura.id) === String(lavouraId)
+    ) ??
+    listaLavouras[0] ??
+    null;
+
+  const idSelecionado = lavouraSelecionada?.id;
+  const nomeSelecionado = lavouraSelecionada?.nomeLavoura;
+
+  // Mantém a seleção válida quando a lista de lavouras muda.
+  useEffectEffect(() => {
+    if (idSelecionado == null) {
+      setLavouraId(null);
+      return;
+    }
+
+    setLavouraId(String(idSelecionado));
 
     localStorage.setItem(
       "lavouraId",
-      lavouraSelecionada.id
+      String(idSelecionado)
     );
 
-    navigate(`/edicao/${lavouraSelecionada.id}`);
-  }
+    localStorage.setItem(
+      "lavouraNome",
+      nomeSelecionado || ""
+    );
+  }, [idSelecionado, nomeSelecionado]);
 
-  // Busca o clima da lavoura selecionada
+  const centro = centroide(
+    lavouraSelecionada?.coordenadas
+  );
+
+  const latitude = centro?.lat;
+  const longitude = centro?.lng;
+
+  const chaveClima =
+    idSelecionado == null
+      ? ""
+      : `${idSelecionado}:${latitude}:${longitude}`;
+
+  // Busca o clima e ignora respostas de uma seleção anterior.
   useEffect(() => {
-    if (!lavouraSelecionada?.coordenadas?.length) return;
+    let cancelado = false;
+
+    if (idSelecionado == null) return;
+
+    if (latitude == null || longitude == null) {
+      setEstadoClima({
+        chave: chaveClima,
+        clima: null,
+        carregando: false,
+        erro: "A lavoura está sem coordenadas válidas.",
+      });
+
+      return;
+    }
 
     async function carregarClima() {
-      setCarregando(true);
-      setErro("");
-      setClima(null);
+      setEstadoClima({
+        chave: chaveClima,
+        clima: null,
+        carregando: true,
+        erro: "",
+      });
 
       try {
-        const { lat, lng } = centroide(
-          lavouraSelecionada.coordenadas
+        const dados = await buscarClima(
+          latitude,
+          longitude
         );
 
-        const dados = await buscarClima(lat, lng);
+        if (cancelado) return;
 
-        if (dados){
-          setClima(dados);
-        } else {
-          setClima(null);
-          setErro("Erro ao buscar clima. Tente novamente mais tarde.");
+        if (!dados) {
+          throw new Error(
+            "Não foi possível obter o clima desta lavoura."
+          );
         }
-      } catch (erroRequisicao) {
-        setErro(
-          erroRequisicao.message ||
-            "Erro ao conectar com o serviço de clima."
-        );
 
-      console.error(erroRequisicao);
-      } finally {
-        setCarregando(false);
+        setEstadoClima({
+          chave: chaveClima,
+          clima: dados,
+          carregando: false,
+          erro: "",
+        });
+      } catch (erro) {
+        if (cancelado) return;
+
+        setEstadoClima({
+          chave: chaveClima,
+          clima: null,
+          carregando: false,
+          erro:
+            erro.message ||
+            "Erro ao conectar com o serviço de clima.",
+        });
       }
     }
 
     carregarClima();
-  }, [lavouraSelecionada?.id]);
 
-  // Se não houver lavouras, não mostra o banner
-  if (!lavouras || lavouras.length === 0) {
+    return () => {
+      cancelado = true;
+    };
+  }, [idSelecionado, latitude latitude, longitude, chaveClima]);
+
+  function salvarSelecao() {
+    if (!lavouraSelecionada) return;
+
+    localStorage.setItem(
+      "lavouraId",
+      String(lavouraSelecionada.id)
+    );
+
+    localStorage.setItem(
+      "lavouraNome",
+      lavouraSelecionada.nomeLavoura || ""
+    );
+  }
+
+  function observacao() {
+    if (!lavouraSelecionada) return;
+
+    salvarSelecao();
+
+    navigate(
+      `/observacao/${lavouraSelecionada.id}`
+    );
+  }
+
+  function laudo() {
+    if (!lavouraSelecionada) return;
+
+    salvarSelecao();
+
+    navigate(`/laudo/${lavouraSelecionada.id}`);
+  }
+
+  function visualizarLavoura() {
+    if (!lavouraSelecionada) return;
+
+    salvarSelecao();
+
+    navigate("/mapa", {
+      state: {
+        focarLavouraId: lavouraSelecionada.id,
+      },
+    });
+  }
+
+  function editarLavoura() {
+    if (!lavouraSelecionada) return;
+
+    salvarSelecao();
+
+    navigate(`/edicao/${lavouraSelecionada.id}`);
+  }
+
+  if (!lavouraSelecionada) {
     return null;
   }
 
-return (
-  <div className="clima-banner">
+  const climaAtual =
+    estadoClima.chave === chaveClima
+      ? estadoClima
+      : {
+          clima: null,
+          carregando: true,
+          erro: "",
+        };
 
-    {/* TOPO */}
-    <div className="clima-banner-topo">
-      <h3>
-        🌦️ Clima{" "}
-        {lavouraSelecionada
-          ? `— ${lavouraSelecionada.nomeLavoura}`
-          : ""}
-      </h3>
+  const { clima, carregando, erro } = climaAtual;
 
-      {lavouras.length > 1 && (
-        <select
-          className="clima-banner-select"
-          value={lavouraId ?? ""}
-          onChange={(evento) => {
-            const id = Number(evento.target.value);
+  const area = Number(
+    lavouraSelecionada.areaHectares ??
+      Number(lavouraSelecionada.areaM2) / 10000
+  );
 
-            const lavoura = lavouras.find(
-              (l) => l.id === id
-            );
+  const areaFormatada = Number.isFinite(area)
+    ? `${area.toLocaleString("pt-BR", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })} ha`
+    : "Não informada";
 
-            if (!lavoura) return;
+  return (
+    <div className="clima-banner">
+      <div className="clima-banner-topo">
+        <h3>
+          🌦️ Clima — {lavouraSelecionada.nomeLavoura}
+        </h3>
 
-            setLavouraId(id);
+        {listaLavouras.length > 1 && (
+          <select
+            className="clima-banner-select"
+            aria-label="Selecionar lavoura"
+            value={String(lavouraSelecionada.id)}
+            onChange={(evento) => {
+              setLavouraId(evento.target.value);
+            }}
+          >
+            {listaLavouras.map((lavoura) => (
+              <option
+                key={lavoura.id}
+                value={String(lavoura.id)}
+              >
+                {lavoura.nomeLavoura}
+              </option>
+            ))}
+          </select>
+        )}
+      </div>
 
-            localStorage.setItem("lavouraId", id);
-            localStorage.setItem(
-              "lavouraNome",
-              lavoura.nomeLavoura
-            );
-          }}
+      {carregando && (
+        <p className="clima-banner-status">
+          Carregando clima...
+        </p>
+      )}
+
+      {!carregando && erro && (
+        <p
+          className="clima-banner-status clima-banner-erro"
+          role="alert"
         >
-          {lavouras.map((lavoura) => (
-            <option
-              key={lavoura.id}
-              value={lavoura.id}
+          🌤️ {erro}
+        </p>
+      )}
+
+      <div className="clima-banner-dados">
+        {!carregando && !erro && clima && (
+          <>
+            <span>
+              🌡️ {clima.temperatura}°C
+            </span>
+
+            <span>
+              💧 {clima.umidade}%
+            </span>
+
+            <span>
+              🌬️ {clima.vento} m/s
+            </span>
+
+            <span>
+              ☁️ {clima.condicao}
+            </span>
+          </>
+        )}
+
+        <span>
+          🌱 Área: {areaFormatada}
+        </span>
+
+        {lavouraSelecionada.produtorNome && (
+          <span>
+            👨‍🌾 Produtor:{" "}
+            {lavouraSelecionada.produtorNome}
+          </span>
+        )}
+      </div>
+
+      <div className="clima-banner-acoes">
+        {usuarioTipo === "agronomo" && (
+          <>
+            <button
+              type="button"
+              className="acao-secundaria"
+              onClick={observacao}
+              title="Adicionar observação"
             >
-              {lavoura.nomeLavoura}
-            </option>
-          ))}
-        </select>
-      )}
-    </div>
+              📝 <span>Observação</span>
+            </button>
 
-    {/* CARREGANDO CLIMA */}
-    {carregando && (
-      <p className="clima-banner-status">
-        Carregando clima...
-      </p>
-    )}
+            <button
+              type="button"
+              className="acao-secundaria"
+              onClick={laudo}
+              title="Emitir laudo"
+            >
+              📄 <span>Laudo</span>
+            </button>
 
-    {/* ERRO DO CLIMA */}
-    {!carregando && erro && (
-      <p className="clima-banner-status clima-banner-erro">
-        🌤️ {erro}
-      </p>
-    )}
-
-    {/* DADOS DO CLIMA */}
-    {!carregando && !erro && clima && (
-      <div className="clima-banner-dados">
-
-        <span>
-          🌡️ {clima.temperatura}°C
-        </span>
-
-        <span>
-          💧 {clima.umidade}%
-        </span>
-
-        <span>
-          🌬️ {clima.vento} m/s
-        </span>
-
-        <span>
-          ☁️ {clima.condicao}
-        </span>
-
-        <span>
-          🌱 Área:{" "}
-          {Number(
-            lavouraSelecionada?.areaHectares || 0
-          ).toLocaleString("pt-BR", {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
-          })}{" "}
-          ha
-        </span>
-
-        {lavouraSelecionada?.produtorNome && (
-          <span>
-            👨‍🌾 Produtor:{" "}
-            {lavouraSelecionada.produtorNome}
-          </span>
+            <button
+              type="button"
+              className="acao-secundaria"
+              onClick={visualizarLavoura}
+              title="Visualizar lavoura no mapa"
+            >
+              🗺️ <span>Mapa</span>
+           </span>
+            </button>
+          </>
         )}
 
-      </div>
-    )}
-
-    {/* ÁREA / PRODUTOR QUANDO O CLIMA ESTÁ INDISPONÍVEL */}
-    {!carregando && erro && (
-      <div className="clima-banner-dados">
-
-        <span>
-          🌱 Área:{" "}
-          {Number(
-            lavouraSelecionada?.areaHectares || 0
-          ).toLocaleString("pt-BR", {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
-          })}{" "}
-          ha
-        </span>
-
-        {lavouraSelecionada?.produtorNome && (
-          <span>
-            👨‍🌾 Produtor:{" "}
-            {lavouraSelecionada.produtorNome}
-          </span>
+        {usuarioTipo === "produtor" && (
+          <button
+            type="button"
+            className="acao-secundaria"
+            onClick={editarLavoura}
+            title="Editar lavoura"
+          >
+            ✏️ <span>Editar</span>
+          </button>
         )}
-
       </div>
-    )}
-
-    {/* AÇÕES */}
-    <div className="clima-banner-acoes">
-
-      {/* AGRÔNOMO */}
-      {usuarioTipo === "agronomo" && (
-        <>
-          <button
-            type="button"
-            className="acao-secundaria"
-            onClick={observacao}
-            title="Adicionar observação"
-          >
-            📝 <span>Observação</span>
-          </button>
-
-          <button
-            type="button"
-            className="acao-secundaria"
-            onClick={laudo}
-            title="Emitir laudo"
-          >
-            📄 <span>Laudo</span>
-          </button>
-
-          <button
-            type="button"
-            className="acao-secundaria"
-            onClick={visualizarLavoura}
-            title="Visualizar lavoura no mapa"
-          >
-            🗺️ <span>Mapa</span>
-          </button>
-        </>
-      )}
-
-      {/* PRODUTOR */}
-      {usuarioTipo === "produtor" && (
-        <button
-          type="button"
-          className="acao-secundaria"
-          onClick={editarLavoura}
-          title="Editar lavoura"
-        >
-          ✏️ <span>Editar</span>
-        </button>
-      )}
-
     </div>
-
-  </div>
-);
-
-
-export default ClimaBanner;
+  );
+}
