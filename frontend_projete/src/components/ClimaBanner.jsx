@@ -1,277 +1,160 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-
 import { buscarClima } from "../services/climaAPI";
 import "./ClimaBanner.css";
 
-function centroide(coordenadas) {
-  if (!Array.isArray(coordenadas)) return null;
-
-  const pontos = coordenadas
-    .filter(
-      (ponto) =>
-        ponto?.lat != null &&
-        ponto?.lng != null &&
-        String(ponto.lat).trim() !== "" &&
-        String(ponto.lng).trim() !== ""
-    )
-    .map((ponto) => ({
-      lat: Number(ponto.lat),
-      lng: Number(ponto.lng),
-    }))
-    .filter(
-      (ponto) =>
-        Number.isFinite(ponto.lat) &&
-        Number.isFinite(ponto.lng) &&
-        ponto.lat >= -90 &&
-        ponto.lat <= 90 &&
-        ponto.lng >= -180 &&
-        ponto.lng <= 180
-    );
-
-  if (pontos.length === 0) return null;
-
-  const soma = pontos.reduce(
-    (total, ponto) => ({
-      lat: total.lat + ponto.lat,
-      lng: total.lng + ponto.lng,
-    }),
-    { lat: 0, lng: 0 }
-  );
-
-  return {
-    lat: soma.lat / pontos.length,
-    lng: soma.lng / pontos.length,
-  };
-}
-
 export default function ClimaBanner({ lavouras }) {
   const navigate = useNavigate();
+  const tipo = localStorage.getItem("usuarioTipo");
 
-  const listaLavouras = Array.isArray(lavouras)
-    ? lavouras
-    : [];
+  const lista = Array.isArray(lavouras) ? lavouras : [];
+  const [id, setId] = useState("");
 
-  const usuarioTipo = localStorage.getItem("usuarioTipo");
+  const selecionada =
+    lista.find(l => String(l.id) === id) || lista[0];
 
-  const [lavouraId, setLavouraId] = useState(null);
-
-  const [estadoClima, setEstadoClima] = useState({
+  const [resultado, setResultado] = useState({
     chave: "",
     clima: null,
-    carregando: false,
     erro: "",
   });
 
-  const lavouraSelecionada =
-    listaLavouras.find(
-      (lavoura) => String(lavoura.id) === String(lavouraId)
-    ) ??
-    listaLavouras[0] ??
-    null;
+  let coordenadas = selecionada?.coordenadas;
 
-  const idSelecionado = lavouraSelecionada?.id;
-  const nomeSelecionado = lavouraSelecionada?.nomeLavoura;
-
-  // Mantém a seleção válida quando a lista de lavouras muda.
-  useEffectEffect(() => {
-    if (idSelecionado == null) {
-      setLavouraId(null);
-      return;
+  if (typeof coordenadas === "string") {
+    try {
+      coordenadas = JSON.parse(coordenadas);
+    } catch {
+      coordenadas = [];
     }
+  }
 
-    setLavouraId(String(idSelecionado));
-
-    localStorage.setItem(
-      "lavouraId",
-      String(idSelecionado)
+  const pontos = (
+    Array.isArray(coordenadas) ? coordenadas : []
+  )
+    .filter(
+      p =>
+        p?.lat != null &&
+        p?.lng != null &&
+        String(p.lat).trim() &&
+        String(p.lng).trim()
+    )
+    .map(p => ({
+      lat: Number(p.lat),
+      lng: Number(p.lng),
+    }))
+    .filter(
+      p =>
+        Number.isFinite(p.lat) &&
+        Number.isFinite(p.lng) &&
+        Math.abs(p.lat) <= 90 &&
+        Math.abs(p.lng) <= 180
     );
 
-    localStorage.setItem(
-      "lavouraNome",
-      nomeSelecionado || ""
-    );
-  }, [idSelecionado, nomeSelecionado]);
+  const lat = pontos.length
+    ? pontos.reduce((s, p) => s + p.lat, 0) / pontos.length
+    : null;
 
-  const centro = centroide(
-    lavouraSelecionada?.coordenadas
-  );
+  const lng = pontos.length
+    ? pontos.reduce((s, p) => s + p.lng, 0) / pontos.length
+    : null;
 
-  const latitude = centro?.lat;
-  const longitude = centro?.lng;
+  const chave = selecionada
+    ? `${selecionada.id}:${lat}:${lng}`
+    : "";
 
-  const chaveClima =
-    idSelecionado == null
-      ? ""
-      : `${idSelecionado}:${latitude}:${longitude}`;
-
-  // Busca o clima e ignora respostas de uma seleção anterior.
   useEffect(() => {
+    if (!chave) return;
+
     let cancelado = false;
 
-    if (idSelecionado == null) return;
-
-    if (latitude == null || longitude == null) {
-      setEstadoClima({
-        chave: chaveClima,
-        clima: null,
-        carregando: false,
-        erro: "A lavoura está sem coordenadas válidas.",
-      });
-
-      return;
-    }
-
-    async function carregarClima() {
-      setEstadoClima({
-        chave: chaveClima,
-        clima: null,
-        carregando: true,
-        erro: "",
-      });
+    async function carregar() {
+      if (lat == null || lng == null) {
+        setResultado({
+          chave,
+          clima: null,
+          erro: "Lavoura sem coordenadas válidas.",
+        });
+        return;
+      }
 
       try {
-        const dados = await buscarClima(
-          latitude,
-          longitude
-        );
+        const clima = await buscarClima(lat, lng);
 
-        if (cancelado) return;
-
-        if (!dados) {
-          throw new Error(
-            "Não foi possível obter o clima desta lavoura."
-          );
+        if (!clima) {
+          throw new Error("Não foi possível carregar o clima.");
         }
 
-        setEstadoClima({
-          chave: chaveClima,
-          clima: dados,
-          carregando: false,
-          erro: "",
-        });
+        if (!cancelado) {
+          setResultado({ chave, clima, erro: "" });
+        }
       } catch (erro) {
-        if (cancelado) return;
-
-        setEstadoClima({
-          chave: chaveClima,
-          clima: null,
-          carregando: false,
-          erro:
-            erro.message ||
-            "Erro ao conectar com o serviço de clima.",
-        });
+        if (!cancelado) {
+          setResultado({
+            chave,
+            clima: null,
+            erro: erro.message,
+          });
+        }
       }
     }
 
-    carregarClima();
+    carregar();
 
     return () => {
       cancelado = true;
     };
-  }, [idSelecionado, latitude, longitude, chaveClima]);
+  }, [chave, lat, lng]);
 
-  function salvarSelecao() {
-    if (!lavouraSelecionada) return;
+  function abrir(destino) {
+    if (!selecionada) return;
 
     localStorage.setItem(
       "lavouraId",
-      String(lavouraSelecionada.id)
+      String(selecionada.id)
     );
 
     localStorage.setItem(
       "lavouraNome",
-      lavouraSelecionada.nomeLavoura || ""
+      selecionada.nomeLavoura || ""
     );
+
+    if (destino === "mapa") {
+      // Apenas este botão envia o ID que solicita o zoom.
+      navigate(
+        `/mapa?lavouraId=${encodeURIComponent(selecionada.id)}`
+      );
+    } else {
+      navigate(`/${destino}/${selecionada.id}`);
+    }
   }
 
-  function observacao() {
-    if (!lavouraSelecionada) return;
+  if (!selecionada) return null;
 
-    salvarSelecao();
-
-    navigate(
-      `/observacao/${lavouraSelecionada.id}`
-    );
-  }
-
-  function laudo() {
-    if (!lavouraSelecionada) return;
-
-    salvarSelecao();
-
-    navigate(`/laudo/${lavouraSelecionada.id}`);
-  }
-
-  function visualizarLavoura() {
-    if (!lavouraSelecionada) return;
-
-    salvarSelecao();
-
-    navigate("/mapa", {
-      state: {
-        focarLavouraId: lavouraSelecionada.id,
-      },
-    });
-  }
-
-  function editarLavoura() {
-    if (!lavouraSelecionada) return;
-
-    salvarSelecao();
-
-    navigate(`/edicao/${lavouraSelecionada.id}`);
-  }
-
-  if (!lavouraSelecionada) {
-    return null;
-  }
-
-  const climaAtual =
-    estadoClima.chave === chaveClima
-      ? estadoClima
-      : {
-          clima: null,
-          carregando: true,
-          erro: "",
-        };
-
-  const { clima, carregando, erro } = climaAtual;
+  const carregando = resultado.chave !== chave;
+  const clima = carregando ? null : resultado.clima;
+  const erro = carregando ? "" : resultado.erro;
 
   const area = Number(
-    lavouraSelecionada.areaHectares ??
-      Number(lavouraSelecionada.areaM2) / 10000
+    selecionada.areaHectares ??
+      Number(selecionada.areaM2) / 10000
   );
-
-  const areaFormatada = Number.isFinite(area)
-    ? `${area.toLocaleString("pt-BR", {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-      })} ha`
-    : "Não informada";
 
   return (
     <div className="clima-banner">
       <div className="clima-banner-topo">
-        <h3>
-          🌦️ Clima — {lavouraSelecionada.nomeLavoura}
-        </h3>
+        <h3>🌦️ Clima — {selecionada.nomeLavoura}</h3>
 
-        {listaLavouras.length > 1 && (
+        {lista.length > 1 && (
           <select
             className="clima-banner-select"
             aria-label="Selecionar lavoura"
-            value={String(lavouraSelecionada.id)}
-            onChange={(evento) => {
-              setLavouraId(evento.target.value);
-            }}
+            value={String(selecionada.id)}
+            onChange={e => setId(e.target.value)}
           >
-            {listaLavouras.map((lavoura) => (
-              <option
-                key={lavoura.id}
-                value={String(lavoura.id)}
-              >
-                {lavoura.nomeLavoura}
+            {lista.map(l => (
+              <option key={l.id} value={String(l.id)}>
+                {l.nomeLavoura}
               </option>
             ))}
           </select>
@@ -284,56 +167,49 @@ export default function ClimaBanner({ lavouras }) {
         </p>
       )}
 
-      {!carregando && erro && (
+      {erro && (
         <p
           className="clima-banner-status clima-banner-erro"
           role="alert"
         >
-          🌤️ {erro}
+          {erro}
         </p>
       )}
 
       <div className="clima-banner-dados">
-        {!carregando && !erro && clima && (
+        {clima && (
           <>
-            <span>
-              🌡️ {clima.temperatura}°C
-            </span>
-
-            <span>
-              💧 {clima.umidade}%
-            </span>
-
-            <span>
-              🌬️ {clima.vento} m/s
-            </span>
-
-            <span>
-              ☁️ {clima.condicao}
-            </span>
+            <span>🌡️ {clima.temperatura}°C</span>
+            <span>💧 {clima.umidade}%</span>
+            <span>🌬️ {clima.vento} m/s</span>
+            <span>☁️ {clima.condicao}</span>
           </>
         )}
 
         <span>
-          🌱 Área: {areaFormatada}
+          🌱 Área:{" "}
+          {Number.isFinite(area)
+            ? `${area.toLocaleString("pt-BR", {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })} ha`
+            : "Não informada"}
         </span>
 
-        {lavouraSelecionada.produtorNome && (
+        {selecionada.produtorNome && (
           <span>
-            👨‍🌾 Produtor:{" "}
-            {lavouraSelecionada.produtorNome}
+            👨‍🌾 Produtor: {selecionada.produtorNome}
           </span>
         )}
       </div>
 
-           <div className="clima-banner-acoes">
-        {usuarioTipo === "agronomo" && (
+      <div className="clima-banner-acoes">
+        {tipo === "agronomo" && (
           <>
             <button
               type="button"
               className="acao-secundaria"
-              onClick={observacao}
-              title="Adicionar observação"
+              onClick={() => abrir("observacao")}
             >
               📝 <span>Observação</span>
             </button>
@@ -341,8 +217,7 @@ export default function ClimaBanner({ lavouras }) {
             <button
               type="button"
               className="acao-secundaria"
-              onClick={laudo}
-              title="Emitir laudo"
+              onClick={() => abrir("laudo")}
             >
               📄 <span>Laudo</span>
             </button>
@@ -350,20 +225,18 @@ export default function ClimaBanner({ lavouras }) {
             <button
               type="button"
               className="acao-secundaria"
-              onClick={visualizarLavoura}
-              title="Visualizar lavoura no mapa"
+              onClick={() => abrir("mapa")}
             >
               🗺️ <span>Mapa</span>
             </button>
           </>
         )}
 
-        {usuarioTipo === "produtor" && (
+        {tipo === "produtor" && (
           <button
             type="button"
             className="acao-secundaria"
-            onClick={editarLavoura}
-            title="Editar lavoura"
+            onClick={() => abrir("edicao")}
           >
             ✏️ <span>Editar</span>
           </button>
