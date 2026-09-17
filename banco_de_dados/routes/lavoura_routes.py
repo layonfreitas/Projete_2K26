@@ -104,14 +104,18 @@ def listar_todas_lavouras():
         cursor = mysql.connection.cursor()
 
         cursor.execute(
-            """
+             """
             SELECT
-                id,
-                usuario_id,
-                nome_lavoura,
-                coordenadas,
-                area_m2
-            FROM lavouras
+                l.id,
+                l.usuario_id,
+                l.nome_lavoura,
+                l.coordenadas,
+                l.area_m2,
+                u.nome
+            FROM lavouras l
+            JOIN usuarios u
+                ON l.usuario_id = u.id
+            ORDER BY l.id
             """
         )
 
@@ -128,7 +132,8 @@ def listar_todas_lavouras():
                 "usuarioId": linha[1],
                 "nomeLavoura": linha[2],
                 "coordenadas": json.loads(linha[3]),
-                "areaM2": float(linha[4]) if linha[4] is not None else 0
+                "areaM2": float(linha[4]) if linha[4] is not None else 0,
+                "produtorNome": linha[5]
             })
 
         return jsonify(lavouras), 200
@@ -151,17 +156,18 @@ def listar_lavouras(usuario_id):
         cursor.execute(
             """
             SELECT
-            l.id,
-            l.nome_lavoura,
-            l.coordenadas,
-            l.criado_em,
-            l.usuario_id,
-            u.nome,
-            l.area_m2
-        FROM lavouras l
-        JOIN usuarios u ON l.usuario_id = u.id
-        WHERE l.usuario_id = %s
-   
+                l.id,
+                l.nome_lavoura,
+                l.coordenadas,
+                l.criado_em,
+                l.usuario_id,
+                u.nome,
+                l.area_m2
+            FROM lavouras l
+            JOIN usuarios u
+                ON l.usuario_id = u.id
+            WHERE l.usuario_id = %s
+            ORDER BY l.id
             """,
             (usuario_id,)
         )
@@ -181,7 +187,7 @@ def listar_lavouras(usuario_id):
             "criadoEm": linha[3].isoformat(),
             "usuarioId": linha[4],
             "produtorNome": linha[5],
-            "areaHectares": float(linha[6]) if linha[6] is not None else 0
+            "areaHectares": float(linha[6] / 10000) if linha[6] is not None else 0
         })
 
         return jsonify(lavouras), 200
@@ -202,14 +208,18 @@ def buscar_lavoura(lavoura_id):
         cursor = mysql.connection.cursor()
 
         cursor.execute(
-            """
+          """
             SELECT
-                id,
-                nome_lavoura,
-                coordenadas,
-                area_m2
-            FROM lavouras
-            WHERE id = %s
+                l.id,
+                l.nome_lavoura,
+                l.coordenadas,
+                l.area_m2,
+                l.usuario_id,
+                u.nome
+            FROM lavouras l
+            JOIN usuarios u
+                ON l.usuario_id = u.id
+            WHERE l.id = %s
             """,
             (lavoura_id,)
         )
@@ -226,9 +236,20 @@ def buscar_lavoura(lavoura_id):
 
         lavoura = {
             "id": linha[0],
+
             "nomeLavoura": linha[1],
+
             "coordenadas": json.loads(linha[2]),
-            "areaM2": float(linha[3]) if linha[3] is not None else 0
+
+            "areaM2": (
+                float(linha[3])
+                if linha[3] is not None
+                else 0
+            ),
+
+            "usuarioId": linha[4],
+
+            "produtorNome": linha[5]
         }
 
         return jsonify(lavoura), 200
@@ -344,14 +365,11 @@ def editar_lavoura(lavoura_id):
             "mensagem": "Erro ao atualizar lavoura",
             "erro": str(erro)
         }), 500
-
-
 @lavoura_bp.route('/lavoura/<int:lavoura_id>', methods=['DELETE'])
 def remover_lavoura(lavoura_id):
     try:
         cursor = mysql.connection.cursor()
 
-        # Verifica se a lavoura existe
         cursor.execute(
             """
             SELECT id
@@ -369,10 +387,9 @@ def remover_lavoura(lavoura_id):
                 "mensagem": "Lavoura não encontrada"
             }), 404
 
-        # Remove os registros relacionados à lavoura
         cursor.execute(
             """
-            DELETE FROM observacoes
+            DELETE FROM indices_vegetacao
             WHERE lavoura_id = %s
             """,
             (lavoura_id,)
@@ -380,7 +397,15 @@ def remover_lavoura(lavoura_id):
 
         cursor.execute(
             """
-            DELETE FROM imagens
+            DELETE FROM clima
+            WHERE lavoura_id = %s
+            """,
+            (lavoura_id,)
+        )
+
+        cursor.execute(
+            """
+            DELETE FROM observacoes
             WHERE lavoura_id = %s
             """,
             (lavoura_id,)
@@ -394,7 +419,14 @@ def remover_lavoura(lavoura_id):
             (lavoura_id,)
         )
 
-        # Remove a lavoura
+        cursor.execute(
+            """
+            DELETE FROM imagens
+            WHERE lavoura_id = %s
+            """,
+            (lavoura_id,)
+        )
+
         cursor.execute(
             """
             DELETE FROM lavouras
@@ -424,6 +456,7 @@ def remover_lavoura(lavoura_id):
         }), 500
 
 
+    
 @lavoura_bp.route('/laudo/enviar_email', methods=['POST'])
 def enviar_laudo_email():
 
