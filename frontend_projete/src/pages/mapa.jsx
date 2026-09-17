@@ -60,6 +60,21 @@ function obterPontos(valor) {
     );
 }
 
+const CORES_LAVOURAS = [
+  "#e53935",
+  "#1e88e5",
+  "#43a047",
+  "#8e24aa",
+  "#fb8c00",
+  "#00acc1",
+  "#6d4c41",
+  "#d81b60",
+  "#3949ab",
+  "#7cb342",
+  "#f4511e",
+  "#00897b",
+];
+
 export default function Mapa() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -340,6 +355,35 @@ export default function Mapa() {
           throw new Error("Lista de lavouras inválida.");
         }
 
+        let lavourasVisiveis = dados;
+
+if (tipo === "agronomo") {
+  const respostaProdutores = await fetch(
+    `${AUTH_API_URL}/agronomo/${usuarioId}/produtores`,
+    {
+      signal: controller.signal,
+      headers: {
+        "X-Usuario-Id": usuarioId,
+      },
+    }
+  );
+
+  if (!respostaProdutores.ok) {
+    throw new Error("Erro ao carregar produtores vinculados.");
+  }
+
+  const produtoresVinculados = await respostaProdutores.json();
+
+  const idsProdutores = produtoresVinculados.map(
+    produtor => String(produtor.id)
+  );
+
+  lavourasVisiveis = dados.filter(
+    lavoura =>
+      idsProdutores.includes(String(lavoura.usuarioId))
+  );
+}
+
         if (
           controller.signal.aborted ||
           mapa.current !== atual
@@ -349,7 +393,7 @@ export default function Mapa() {
 
         let selecionado = null;
 
-        for (const lavoura of dados) {
+        for (const [indice, lavoura] of lavourasVisiveis.entries()) {
           const coords = obterPontos(lavoura.coordenadas);
 
           if (coords.length < 3) continue;
@@ -359,7 +403,7 @@ export default function Mapa() {
             String(lavoura.id) === alvo;
 
           const poligono = L.polygon(coords, {
-            color: focada ? "#ffd54f" : "#ff0000",
+            color: focada ? "#ffd54f" : CORES_LAVOURAS[indice % CORES_LAVOURAS.length],
             weight: focada ? 4 : 3,
             fillOpacity: 0.25,
           }).addTo(camada);
