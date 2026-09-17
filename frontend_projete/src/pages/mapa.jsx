@@ -10,6 +10,7 @@ import BottomNav from "../components/BottomNav";
 import iconeMarcador from "leaflet/dist/images/marker-icon.png";
 import iconeMarcador2x from "leaflet/dist/images/marker-icon-2x.png";
 import iconeSombra from "leaflet/dist/images/marker-shadow.png";
+import * as turf from "@turf/turf";
 
 import { AUTH_API_URL } from "../config/api";
 
@@ -41,6 +42,7 @@ export default function Mapa() {
   const [municipios, setMunicipios] = useState([]);
   const [mostrarSugestoes, setMostrarSugestoes] = useState(false);
   const [statusMunicipios, setStatusMunicipios] = useState("Carregando cidades...");
+  const[areaHectares, setAreaHectares ] = useState(0);
 
   const normalizar = (texto) =>
     texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
@@ -191,6 +193,15 @@ export default function Mapa() {
           }
         });
 
+        function CalcularAreaHectares(pontos){
+          if(pontos.length < 3) return 0;
+
+          const coorde = pontos.map((p) => [p.lng, p.lat]);
+
+          const poligono = turf.polygon([coorde]);
+          return turf.area(poligono) / 10000;
+        }
+
         marcador.on("dragend", () => {
           const posicao = marcador.getLatLng();
 
@@ -233,6 +244,7 @@ export default function Mapa() {
     const coordenadas = postos.current.map((p) => [
       p.lat,
       p.lng,
+      setAreaHectares(CalcularAreaHectares(postos.current))
     ]);
 
     const estiloPreview = {
