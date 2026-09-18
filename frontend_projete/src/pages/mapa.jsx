@@ -26,7 +26,7 @@ L.Icon.Default.mergeOptions({
 // CALCULA A ÁREA DO CONTORNO EM HECTARES
 // =========================================================
 function calcularAreaHectares(pontos) {
-  if (pontos.length < 10000) return 0;
+  if (pontos.length < 3) return 0;
 
   const coordenadas = pontos.map((p) => [p.lng, p.lat]); // Turf usa [lng, lat]
   coordenadas.push(coordenadas[0]); // fecha o polígono
@@ -44,12 +44,12 @@ export default function Mapa() {
   const mapaRef = useRef(null);
   const map = useRef(null);
 
-  const pontosCadastro = useRef([]);
-  const desenho = useRef(null);
-  const camadaCadastro = useRef(null);
-  const marcadorCidade = useRef(null);
+  const postos = useRef([]);
+  const contadorPostos = useRef(0);
 
-  const [confirmado, setConfirmado] = useState(false);
+  const contornoLavoura = useRef(null);
+  const previewLavoura = useRef(null);
+
   const [cidade, setCidade] = useState("");
   const [contornoCriado, setContornoCriado] = useState(false);
   const [municipios, setMunicipios] = useState([]);
@@ -278,121 +278,56 @@ export default function Mapa() {
       return;
     }
 
-        let selecionado = null;
+    const coordenadas = postos.current.map((p) => [p.lat, p.lng]);
 
-        for (const [indice, lavoura] of lavourasVisiveis.entries()) {
-          const coords = obterPontos(lavoura.coordenadas);
+    setAreaHectares(calcularAreaHectares(postos.current));
 
-          if (coords.length < 3) continue;
-
-          const focada =
-            alvo != null &&
-            String(lavoura.id) === alvo;
-
-          const poligono = L.polygon(coords, {
-            color: focada ? "#ffd54f" : CORES_LAVOURAS[indice % CORES_LAVOURAS.length],
-            weight: focada ? 4 : 3,
-            fillOpacity: 0.25,
-          }).addTo(camada);
-
-          const tooltip = document.createElement("div");
-
-          const area = Number(
-            lavoura.areaHectares ??
-              Number(lavoura.areaM2) / 10000
-          );
-
-          const linhas = [
-            `Lavoura: ${lavoura.nomeLavoura || "Sem nome"}`,
-          ];
-
-          if (!ehProdutor && lavoura.produtorNome) {
-            linhas.push(
-              `Produtor: ${lavoura.produtorNome}`
-            );
-          }
-
-          if (Number.isFinite(area)) {
-            linhas.push(`Área: ${area.toFixed(2)} ha`);
-          }
-
-          linhas.forEach(linha => {
-            const div = document.createElement("div");
-            div.textContent = linha;
-            tooltip.append(div);
-          });
-
-          poligono.bindTooltip(tooltip, {
-            sticky: true,
-            direction: "top",
-          });
-
-          if (focada) {
-            selecionado = poligono;
-          }
-        }
-
-        // Nenhuma solicitação de zoom: mantém a visão geral.
-        if (!alvo) return;
-
-        if (!selecionado) {
-          setAviso(
-            "A lavoura selecionada não foi encontrada ou não tem coordenadas válidas."
-          );
-          return;
-        }
-
-        // Aguarda o próximo quadro para usar o tamanho do mapa.
-        frame = requestAnimationFrame(() => {
-          if (
-            controller.signal.aborted ||
-            mapa.current !== atual
-          ) {
-            return;
-          }
-
-          atual.invalidateSize({ pan: false });
-
-          atual.fitBounds(selecionado.getBounds(), {
-            padding: [40, 40],
-            maxZoom: 17,
-            animate: false,
-          });
-
-          selecionado.bringToFront();
-        });
-      } catch (erro) {
-        if (!controller.signal.aborted) {
-          setAviso(erro.message);
-          console.error(erro);
-        }
-      }
-    }
-
-    carregar();
-
-    return () => {
-      controller.abort();
-
-      if (frame != null) {
-        cancelAnimationFrame(frame);
-      }
-
-      if (mapa.current === atual) {
-        atual.removeLayer(camada);
-      }
+    const estiloPreview = {
+      color: "#ff0000",
+      weight: 3,
+      dashArray: "6 8",
+      fillColor: "#ff0000",
+      fillOpacity: 0.12,
     };
-  }, [
-    alvo,
-    location.key,
-    usuarioId,
-    tipo,
-    ehProdutor,
-  ]);
 
-  // ============================================================
-  // BUSCA DE CIDADE
-  // ============================================================
+    if (postos.current.length === 2) {
+      previewLavoura.current = L.polyline(
+        coordenadas,
+        estiloPreview
+      ).addTo(map.current);
+    } else {
+      previewLavoura.current = L.polygon(
+        coordenadas,
+        estiloPreview
+      ).addTo(map.current);
+    }
+  }
+
+  function removerPosto(id) {
+    const index = postos.current.findIndex(
+      (p) => p.id === id
+    );
+
+    if (index === -1) return;
+
+    map.current.removeLayer(
+      postos.current[index].marcador
+    );
+
+    postos.current.splice(index, 1);
+
+    atualizarPreview();
+
+    if (contornoLavoura.current) {
+      map.current.removeLayer(
+        contornoLavoura.current
+      );
+
+      contornoLavoura.current = null;
+
+      setContornoCriado(false);
+    }
+  }
 
   async function buscarCidade() {
     if (!cidade.trim()) return;
@@ -622,7 +557,6 @@ export default function Mapa() {
               setMostrarSugestoes(false);
             }
           }}
-
         >
           <input
             type="text"
@@ -733,6 +667,7 @@ export default function Mapa() {
       ></div>
 
       <BottomNav />
+
     </div>
   );
 }
