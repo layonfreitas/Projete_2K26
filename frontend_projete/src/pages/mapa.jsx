@@ -22,6 +22,19 @@ L.Icon.Default.mergeOptions({
   shadowUrl: iconeSombra,
 });
 
+// =========================================================
+// CALCULA A ÁREA DO CONTORNO EM HECTARES
+// =========================================================
+function calcularAreaHectares(pontos) {
+  if (pontos.length < 10000) return 0;
+
+  const coordenadas = pontos.map((p) => [p.lng, p.lat]); // Turf usa [lng, lat]
+  coordenadas.push(coordenadas[0]); // fecha o polígono
+
+  const poligono = turf.polygon([coordenadas]);
+  return turf.area(poligono) / 10000; // m² → hectares
+}
+
 export default function Mapa() {
   const navigate = useNavigate();
 
@@ -42,7 +55,7 @@ export default function Mapa() {
   const [municipios, setMunicipios] = useState([]);
   const [mostrarSugestoes, setMostrarSugestoes] = useState(false);
   const [statusMunicipios, setStatusMunicipios] = useState("Carregando cidades...");
-  const[areaHectares, setAreaHectares ] = useState(0);
+  const [areaHectares, setAreaHectares] = useState(0);
 
   const normalizar = (texto) =>
     texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
@@ -165,7 +178,12 @@ export default function Mapa() {
           }
         });
 
-        postos.current.push({
+        const indiceInsercao =
+          postos.current.length >= 2
+            ? encontrarIndiceInsercao(e.latlng)
+            : postos.current.length;
+
+        postos.current.splice(indiceInsercao, 0, {
           id,
           marcador,
           lat,
@@ -192,15 +210,6 @@ export default function Mapa() {
             atualizarPreview();
           }
         });
-
-        function CalcularAreaHectares(pontos){
-          if(pontos.length < 3) return 0;
-
-          const coorde = pontos.map((p) => [p.lng, p.lat]);
-
-          const poligono = turf.polygon([coorde]);
-          return turf.area(poligono) / 10000;
-        }
 
         marcador.on("dragend", () => {
           const posicao = marcador.getLatLng();
@@ -231,6 +240,33 @@ export default function Mapa() {
     };
   }, [ehProdutor]);
 
+  function encontrarIndiceInsercao(latlng) {
+    const pontoClique = map.current.latLngToLayerPoint(latlng);
+
+    let menorDistancia = Infinity;
+    let indiceInsercao = postos.current.length;
+
+    for (let i = 0; i < postos.current.length - 1; i++) {
+      const p1 = map.current.latLngToLayerPoint([
+        postos.current[i].lat,
+        postos.current[i].lng,
+      ]);
+      const p2 = map.current.latLngToLayerPoint([
+        postos.current[i + 1].lat,
+        postos.current[i + 1].lng,
+      ]);
+
+      const distancia = L.LineUtil.pointToSegmentDistance(pontoClique, p1, p2);
+
+      if (distancia < menorDistancia) {
+        menorDistancia = distancia;
+        indiceInsercao = i + 1;
+      }
+    }
+
+    return indiceInsercao;
+  }
+
   function atualizarPreview() {
     if (previewLavoura.current) {
       map.current.removeLayer(previewLavoura.current);
@@ -238,14 +274,13 @@ export default function Mapa() {
     }
 
     if (postos.current.length < 2) {
+      setAreaHectares(0);
       return;
     }
 
-    const coordenadas = postos.current.map((p) => [
-      p.lat,
-      p.lng,
-      setAreaHectares(CalcularAreaHectares(postos.current))
-    ]);
+    const coordenadas = postos.current.map((p) => [p.lat, p.lng]);
+
+    setAreaHectares(calcularAreaHectares(postos.current));
 
     const estiloPreview = {
       color: "#ff0000",
@@ -431,19 +466,18 @@ export default function Mapa() {
       }
     ).addTo(map.current);
 
-    const areaHectares =
-  lavoura.areaHectares ??
-  (Number(lavoura.areaM2) / 10000);
+    const areaHectaresLavoura =
+      lavoura.areaHectares ??
+      (Number(lavoura.areaM2) / 10000);
 
     poligono.bindTooltip(
-    `<b>Lavoura:</b> ${lavoura.nomeLavoura}<br>
-   ${!ehProdutor ? `<b>Produtor:</b> ${lavoura.produtorNome}<br>` : ""}
-   <b>Área:</b> ${Number(areaHectares).toFixed(2)} ha`,
-  {
-    sticky: true,
-    direction: "top",
-  }
-      
+      `<b>Lavoura:</b> ${lavoura.nomeLavoura}<br>
+       ${!ehProdutor ? `<b>Produtor:</b> ${lavoura.produtorNome}<br>` : ""}
+       <b>Área:</b> ${Number(areaHectaresLavoura).toFixed(2)} ha`,
+      {
+        sticky: true,
+        direction: "top",
+      }
     );
   }
 
@@ -456,13 +490,13 @@ export default function Mapa() {
 
     if (!usuarioId && usuarioTipo !== "agronomo") return;
 
-const url =
-  usuarioTipo === "agronomo"
-    ? `${AUTH_API_URL}/lavouras`
-    : `${AUTH_API_URL}/lavouras/${usuarioId}`;
+    const url =
+      usuarioTipo === "agronomo"
+        ? `${AUTH_API_URL}/lavouras`
+        : `${AUTH_API_URL}/lavouras/${usuarioId}`;
 
     try {
-     const resposta = await fetch(url);
+      const resposta = await fetch(url);
 
       const dados = await resposta.json();
 
@@ -480,24 +514,24 @@ const url =
         dados
       );
 
-     const lavouraIdSelecionada =
-  localStorage.getItem("lavouraId");
+      const lavouraIdSelecionada =
+        localStorage.getItem("lavouraId");
 
-if (usuarioTipo === "produtor" && lavouraIdSelecionada) {
-  const lavoura = dados.find(
-    (l) =>
-      String(l.id) ===
-      String(lavouraIdSelecionada)
-  );
+      if (usuarioTipo === "produtor" && lavouraIdSelecionada) {
+        const lavoura = dados.find(
+          (l) =>
+            String(l.id) ===
+            String(lavouraIdSelecionada)
+        );
 
-  if (lavoura) {
-    desenharLavoura(lavoura);
-  }
-} else {
-  dados.forEach((lavoura) => {
-    desenharLavoura(lavoura);
-  });
-}
+        if (lavoura) {
+          desenharLavoura(lavoura);
+        }
+      } else {
+        dados.forEach((lavoura) => {
+          desenharLavoura(lavoura);
+        });
+      }
 
     } catch (erro) {
       console.error(
@@ -506,26 +540,7 @@ if (usuarioTipo === "produtor" && lavouraIdSelecionada) {
       );
     }
   }
-function ponto_proximo(latlng)
-{
-  const pontoClick = map.current.latLngTolayerPoint(latlng);
 
-  let menordist = Infinity;
-  let IndiceInsercao = postos.current.length;
-
-  for(let i = 0; i < postos.current.length -1; i++){
-    const p1 = map.current.latLngToLayerPoint([postos.current[i].lat, postos.current[i].lng]);
-    const p2 = map.current.latLngToLayerPoint([postos.current[i + 1].lat, postos.current[i + 1].lng]);
-    
-    const distancia = L.LineUtil.pointToSegmentDistance(pontoClique, p1, p2);
-
-    if(menordist < distancia){
-      menordist = distancia;
-      IndiceInsercao = i+1;
-    }
-  }
-  return IndiceInsercao;
-}
   return (
     <div className="pagina-mapa">
 
@@ -580,7 +595,7 @@ function ponto_proximo(latlng)
               }
             }}
           />
-
+          
           {mostrarSugestoes &&
             termo.length >= 2 && (
               <ul
