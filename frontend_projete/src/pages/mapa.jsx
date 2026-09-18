@@ -97,6 +97,7 @@ export default function Mapa() {
   const camadaCadastro = useRef(null);
   const marcadorCidade = useRef(null);
 
+  const [lavourasLegenda, setLavourasLegenda] = useState([]);
   const [confirmado, setConfirmado] = useState(false);
   const [cidade, setCidade] = useState("");
   const [municipios, setMunicipios] = useState([]);
@@ -393,6 +394,10 @@ if (tipo === "agronomo") {
 
         let selecionado = null;
 
+        if (tipo === "agronomo") {
+  setLavourasLegenda([]);
+}
+
         for (const [indice, lavoura] of lavourasVisiveis.entries()) {
           const coords = obterPontos(lavoura.coordenadas);
 
@@ -402,11 +407,29 @@ if (tipo === "agronomo") {
             alvo != null &&
             String(lavoura.id) === alvo;
 
+            const cor =
+  focada
+    ? "#ffd54f"
+    : CORES_LAVOURAS[indice % CORES_LAVOURAS.length];
+
           const poligono = L.polygon(coords, {
-            color: focada ? "#ffd54f" : CORES_LAVOURAS[indice % CORES_LAVOURAS.length],
+            color: cor,
             weight: focada ? 4 : 3,
             fillOpacity: 0.25,
           }).addTo(camada);
+
+          if (tipo === "agronomo") {
+  setLavourasLegenda(prev => [
+    ...prev,
+    {
+      id: lavoura.id,
+      nome: lavoura.nomeLavoura || "Sem nome",
+      produtor: lavoura.produtorNome || "Sem produtor",
+      cor,
+      poligono
+    }
+  ]);
+}
 
           const tooltip = document.createElement("div");
 
@@ -614,6 +637,7 @@ if (tipo === "agronomo") {
               setSugestoesAbertas(false);
             }
           }}
+
         >
           <input
             type="text"
@@ -726,7 +750,45 @@ if (tipo === "agronomo") {
 
       <div ref={container} id="mapa" />
 
-      <BottomNav />
-    </div>
+{tipo === "agronomo" && lavourasLegenda.length > 0 && (
+  <div className="legenda-lavouras">
+    <strong>Lavouras</strong>
+
+    {lavourasLegenda.map(lavoura => (
+      <button
+        key={lavoura.id}
+        className="item-legenda"
+        onClick={() => {
+          mapa.current.fitBounds(
+            lavoura.poligono.getBounds(),
+            {
+              padding: [40, 40],
+              maxZoom: 17,
+              animate: true,
+            }
+          );
+
+          lavoura.poligono.bringToFront();
+        }}
+      >
+        <span
+          className="quadrado-cor"
+          style={{ backgroundColor: lavoura.cor }}
+        />
+
+        <span className="texto-legenda">
+          <strong>{lavoura.nome}</strong>
+          <small>{lavoura.produtor}</small>
+        </span>
+      </button>
+    ))}
+  </div>
+)}
+
+<BottomNav />
+
+</div>
+    
+
   );
 }
