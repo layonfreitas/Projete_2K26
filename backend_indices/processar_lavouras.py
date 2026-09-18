@@ -95,7 +95,10 @@ def processar_lavoura(lavoura, data_alvo=None, janela=30, indices=None, geometri
     alvo = data_alvo or date.today().isoformat()
     indice_nomes = indices if indices is not None else [n for i in INDICES for n in (i,f'z-score-{i}')]
     resultado = {'lavouraId':lavoura['id'],'dataAlvo':alvo,'salvos':[], 'avisos':[], 'erros':[]}
-    imagem = get_indices_image(geometria,alvo,janela,30)
+    nuvem_maxima = float(os.environ.get("NUVEM_MAXIMA_CENA", "30"))
+    if not 0 <= nuvem_maxima <= 100:
+        raise ValueError("NUVEM_MAXIMA_CENA deve estar entre 0 e 100.")
+    imagem = get_indices_image(geometria,alvo,janela,nuvem_maxima)
     if imagem is None:
         resultado['status'] = 'sem_dados'
         resultado['avisos'].append('Nenhuma cena com cobertura válida suficiente nesta janela de datas.')

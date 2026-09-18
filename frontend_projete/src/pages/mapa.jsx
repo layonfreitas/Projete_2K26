@@ -20,6 +20,51 @@ L.Icon.Default.mergeOptions({
   shadowUrl: sombra,
 });
 
+function calcularAreaHectares(coordenadas) {
+  if (!coordenadas || coordenadas.length < 3) {
+    return 0;
+  }
+
+  const R = 6371000;
+
+  const latMedia =
+    coordenadas.reduce(
+      (soma, ponto) => soma + ponto.lat,
+      0
+    ) / coordenadas.length;
+
+  const latMediaRad = (latMedia * Math.PI) / 180;
+
+  const pontos = coordenadas.map((ponto) => {
+    const x =
+      ((ponto.lng * Math.PI) / 180) *
+      R *
+      Math.cos(latMediaRad);
+
+    const y =
+      ((ponto.lat * Math.PI) / 180) *
+      R;
+
+    return { x, y };
+  });
+
+  let area = 0;
+
+  for (let i = 0; i < pontos.length; i++) {
+    const pontoAtual = pontos[i];
+    const proximoPonto =
+      pontos[(i + 1) % pontos.length];
+
+    area +=
+      pontoAtual.x * proximoPonto.y -
+      proximoPonto.x * pontoAtual.y;
+  }
+
+  const areaM2 = Math.abs(area) / 2;
+
+  return areaM2 / 10000; // converte m² para hectares
+}
+
 const BRASIL = [
   [-35, -75],
   [6, -32],
@@ -98,6 +143,7 @@ export default function Mapa() {
   const marcadorCidade = useRef(null);
 
   const [lavourasLegenda, setLavourasLegenda] = useState([]);
+  const [areaHectares, setAreaHectares] = useState(0);
   const [confirmado, setConfirmado] = useState(false);
   const [cidade, setCidade] = useState("");
   const [municipios, setMunicipios] = useState([]);
@@ -137,6 +183,7 @@ export default function Mapa() {
       p => p.marcador.getLatLng()
     );
 
+    setAreaHectares(calcularAreaHectares(coords));
     if (coords.length < 2) return;
 
     const estilo = {
@@ -242,7 +289,22 @@ export default function Mapa() {
         }).addTo(camadaCadastro.current);
 
         const ponto = { marcador };
-        pontosCadastro.current.push(ponto);
+        let inserir = pontosCadastro.current.length;
+        if (inserir >= 3) {
+          const clique = atual.latLngToLayerPoint(e.latlng);
+          let distanciaMinima = Infinity;
+          pontosCadastro.current.forEach((item, indice) => {
+            const proximo = pontosCadastro.current[(indice + 1) % pontosCadastro.current.length];
+            const distancia = L.LineUtil.pointToSegmentDistance(clique,
+              atual.latLngToLayerPoint(item.marcador.getLatLng()),
+              atual.latLngToLayerPoint(proximo.marcador.getLatLng()));
+            if (distancia < distanciaMinima) {
+              distanciaMinima = distancia;
+              inserir = indice + 1;
+            }
+          });
+        }
+        pontosCadastro.current.splice(inserir, 0, ponto);
 
         const popup = document.createElement("div");
         const texto = document.createElement("p");
@@ -316,6 +378,7 @@ export default function Mapa() {
     let frame;
 
     setAviso("");
+    setLavourasLegenda([]);
     atual.stop();
 
     // Sem ID na URL: navbar abre a visão geral.
@@ -599,8 +662,11 @@ if (tipo === "agronomo") {
   }
 
   function apagarContorno() {
+    camadaCadastro.current?.clearLayers();
+    pontosCadastro.current = [];
+    desenho.current = null;
     setConfirmado(false);
-    redesenhar();
+    setAreaHectares(0);
   }
 
   function cadastrar() {
@@ -745,6 +811,7 @@ if (tipo === "agronomo") {
           </>
         )}
 
+        {ehProdutor && <span role="status">Área do contorno: {areaHectares.toFixed(2)} ha</span>}
         {aviso && <span role="alert">{aviso}</span>}
       </div>
 
