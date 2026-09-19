@@ -240,14 +240,52 @@ def deletar_usuario(usuario_id):
             }), 404
 
         if existente[0] == "produtor":
+            lavouras_do_produtor = (
+                "SELECT id FROM lavouras WHERE usuario_id = %s"
+            )
+
+            cursor.execute(
+                f"""
+                DELETE FROM indices_vegetacao
+                WHERE lavoura_id IN ({lavouras_do_produtor})
+                """,
+                (usuario_id,)
+            )
+
+            cursor.execute(
+                f"""
+                DELETE FROM clima
+                WHERE lavoura_id IN ({lavouras_do_produtor})
+                """,
+                (usuario_id,)
+            )
+
+            cursor.execute(
+                f"""
+                DELETE FROM log_auditoria
+                WHERE lavoura_id IN ({lavouras_do_produtor})
+                """,
+                (usuario_id,)
+            )
+
             cursor.execute(
                 """
-                DELETE observacoes
-                FROM observacoes
-                JOIN lavouras
-                    ON lavouras.id = observacoes.lavoura_id
-                WHERE lavouras.usuario_id = %s
+                DELETE FROM log_auditoria
+                WHERE produtor_id = %s OR autor_id = %s
                 """,
+                (usuario_id, usuario_id)
+            )
+
+            cursor.execute(
+                f"""
+                DELETE FROM observacoes
+                WHERE lavoura_id IN ({lavouras_do_produtor})
+                """,
+                (usuario_id,)
+            )
+
+            cursor.execute(
+                "DELETE FROM observacoes WHERE autor_id = %s",
                 (usuario_id,)
             )
 
@@ -270,6 +308,17 @@ def deletar_usuario(usuario_id):
             )
 
         else:
+            cursor.execute(
+                "DELETE FROM log_auditoria WHERE autor_id = %s",
+                (usuario_id,)
+            )
+
+            # Mantém as observações que o agrônomo escreveu, só remove o autor.
+            cursor.execute(
+                "UPDATE observacoes SET autor_id = NULL WHERE autor_id = %s",
+                (usuario_id,)
+            )
+
             cursor.execute(
                 """
                 DELETE FROM vinculos_agronomo

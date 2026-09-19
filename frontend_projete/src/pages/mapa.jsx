@@ -143,7 +143,10 @@ export default function Mapa() {
   const marcadorCidade = useRef(null);
 
   const [lavourasLegenda, setLavourasLegenda] = useState([]);
-  const [areaHectares, setAreaHectares] = useState(0);
+  const [legendaAberta, setLegendaAberta] = useState(
+    () => window.innerWidth > 600
+  );
+  const [, setAreaHectares] = useState(0);
   const [confirmado, setConfirmado] = useState(false);
   const [cidade, setCidade] = useState("");
   const [municipios, setMunicipios] = useState([]);
@@ -811,48 +814,84 @@ if (tipo === "agronomo") {
           </>
         )}
 
-        {ehProdutor && <span role="status">Área do contorno: {areaHectares.toFixed(2)} ha</span>}
         {aviso && <span role="alert">{aviso}</span>}
       </div>
 
       <div ref={container} id="mapa" />
 
 {tipo === "agronomo" && lavourasLegenda.length > 0 && (
-  <div className="legenda-lavouras">
-    <strong>Lavouras</strong>
+        <div
+          className={
+            "legenda-lavouras" +
+            (legendaAberta ? "" : " recolhida")
+          }
+        >
+          <button
+            type="button"
+            className="legenda-cabecalho"
+            onClick={() => setLegendaAberta(aberta => !aberta)}
+            aria-expanded={legendaAberta}
+            aria-controls="lista-legenda"
+            title={legendaAberta ? "Recolher legenda" : "Expandir legenda"}
+          >
+            <span className="legenda-titulo">
+              Lavouras
+              <small>{lavourasLegenda.length}</small>
+            </span>
 
-    {lavourasLegenda.map(lavoura => (
-      <button
-        key={lavoura.id}
-        className="item-legenda"
-        onClick={() => {
-          mapa.current.fitBounds(
-            lavoura.poligono.getBounds(),
-            {
-              padding: [40, 40],
-              maxZoom: 17,
-              animate: true,
-            }
-          );
+            <svg
+              className="legenda-seta"
+              viewBox="0 0 24 24"
+              width="18"
+              height="18"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </button>
 
-          lavoura.poligono.bringToFront();
-        }}
-      >
-        <span
-          className="quadrado-cor"
-          style={{ backgroundColor: lavoura.cor }}
-        />
+          {legendaAberta && (
+            <div id="lista-legenda" className="legenda-lista">
+              {lavourasLegenda.map(lavoura => (
+                <button
+                  type="button"
+                  key={lavoura.id}
+                  className="item-legenda"
+                  onClick={() => {
+                    mapa.current.fitBounds(
+                      lavoura.poligono.getBounds(),
+                      {
+                        padding: [40, 40],
+                        maxZoom: 17,
+                        animate: true,
+                      }
+                    );
 
-        <span className="texto-legenda">
-          <strong>{lavoura.nome}</strong>
-          <small>{lavoura.produtor}</small>
-        </span>
-      </button>
-    ))}
-  </div>
-)}
+                    lavoura.poligono.bringToFront();
+                  }}
+                >
+                  <span
+                    className="quadrado-cor"
+                    style={{ backgroundColor: lavoura.cor }}
+                  />
 
-<BottomNav />
+                  <span className="texto-legenda">
+                    <strong>{lavoura.nome}</strong>
+                    <small>{lavoura.produtor}</small>
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      <BottomNav />
 
 </div>
     

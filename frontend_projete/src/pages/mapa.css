@@ -112,46 +112,126 @@
 @media (max-width: 600px) {
   .busca-cidade { flex: 0 0 auto; width: 100%; }
 }
+/* ============================================================
+   LEGENDA DAS LAVOURAS (agrônomo)
+   ============================================================ */
 .legenda-lavouras {
   position: absolute;
-  bottom: 20px;
-  left: 20px;
+  left: 16px;
+  width: 240px;
+  max-width: calc(100vw - 32px);
+
+  /* telas estreitas: não cabe ao lado da navbar, então fica logo acima
+     dela (16px do rodapé + 69px de altura da navbar + 10px de respiro) */
+  bottom: calc(16px + 69px + 10px + env(safe-area-inset-bottom));
   z-index: 1000;
 
-  background: white;
-  padding: 12px;
-  border-radius: 8px;
-
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
-
-  max-height: 250px;
-  overflow-y: auto;
-
-  min-width: 190px;
+  background: rgba(255, 253, 248, 0.98);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
 }
 
-.legenda-lavouras > strong {
-  display: block;
-  margin-bottom: 8px;
+/* a navbar sobe para 22px do rodapé em telas maiores */
+@media (min-width: 540px) {
+  .legenda-lavouras {
+    bottom: calc(22px + 69px + 10px + env(safe-area-inset-bottom));
+  }
+}
+
+/* telas largas: a legenda fica no canto esquerdo, na mesma linha da
+   navbar (base alinhada com a base dela, que fica a 22px do rodapé) */
+@media (min-width: 1000px) {
+  .legenda-lavouras {
+    bottom: 22px;
+  }
+}
+
+/* o botão global de <button> é branco sobre verde: aqui é sobrescrito */
+.legenda-cabecalho {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+
+  padding: 12px 16px;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  color: var(--ink);
+
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 600;
+  text-align: left;
+}
+
+.legenda-cabecalho:hover {
+  background: var(--canopy-soft);
+}
+
+.legenda-titulo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.legenda-titulo small {
+  min-width: 20px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--canopy-soft);
+  color: var(--canopy-dark);
+  font-family: var(--font-body);
+  font-size: 11.5px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.legenda-seta {
+  flex-shrink: 0;
+  color: var(--ink-soft);
+  /* aberta: seta para baixo (recolher) */
+  transition: transform 0.2s ease;
+}
+
+.legenda-lavouras.recolhida .legenda-seta {
+  /* recolhida: seta para cima (expandir) */
+  transform: rotate(180deg);
+}
+
+.legenda-lista {
+  max-height: min(240px, 35svh);
+  overflow-y: auto;
+  padding: 0 8px 8px;
+  border-top: 1px solid var(--border);
 }
 
 .item-legenda {
   width: 100%;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 
+  margin-top: 4px;
+  padding: 8px;
   border: none;
+  border-radius: 8px;
   background: transparent;
-  padding: 6px;
+  color: var(--ink);
 
+  font-size: 13.5px;
+  font-weight: 500;
   text-align: left;
-  cursor: pointer;
 }
 
-.item-legenda:hover {
-  background: #f0f0f0;
-  border-radius: 5px;
+.item-legenda:hover,
+.item-legenda:focus-visible {
+  background: var(--canopy-soft);
 }
 
 .quadrado-cor {
@@ -159,16 +239,31 @@
   height: 16px;
   min-width: 16px;
 
-  border: 1px solid #333;
-  border-radius: 3px;
+  border: 1px solid rgba(0, 0, 0, 0.45);
+  border-radius: 4px;
 }
 
 .texto-legenda {
   display: flex;
   flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.texto-legenda strong,
+.texto-legenda small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.texto-legenda strong {
+  color: var(--ink);
+  font-size: 13.5px;
+  font-weight: 600;
 }
 
 .texto-legenda small {
-  color: #666;
+  color: var(--ink-soft);
   font-size: 12px;
 }
