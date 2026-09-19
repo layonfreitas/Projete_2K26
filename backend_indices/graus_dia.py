@@ -1,31 +1,29 @@
-from datetime import date as Date
-import math
-import requests
+import openmeteo_requests
 
-
-def get_graus_dia_data(latitude, longitude, start_date, end_date=None):
-    """Aceita um único dia ou intervalo inclusivo, mantendo as duas versões."""
-    inicio = Date.fromisoformat(str(start_date))
-    fim = Date.fromisoformat(str(end_date if end_date is not None else start_date))
-    if fim < inicio:
-        raise ValueError("A data final deve ser igual ou posterior à inicial.")
+def get_graus_dia_data(latitude, longitude, date): 
+    Tb  = 10.0
+    url = "https://api.open-meteo.com/v1/forecast"
     params = {
-        "latitude": latitude, "longitude": longitude,
-        "start_date": inicio.isoformat(), "end_date": fim.isoformat(),
-        "daily": "temperature_2m_max,temperature_2m_min", "timezone": "auto",
+        "latitude": latitude,
+        "longitude": longitude,
+        "start_date": date,
+        "end_date": date,
+        "daily": "temperature_2m_max,temperature_2m_min",
+        "timezone": "auto"
     }
-    response = requests.get("https://archive-api.open-meteo.com/v1/archive", params=params, timeout=30)
-    response.raise_for_status()
-    daily = response.json().get("daily", {})
-    datas = daily.get("time", [])
-    maximas = daily.get("temperature_2m_max", [])
-    minimas = daily.get("temperature_2m_min", [])
-    esperado = (fim - inicio).days + 1
-    if len(datas) != esperado or len(maximas) != esperado or len(minimas) != esperado:
-        raise ValueError("Dados de temperatura incompletos para o período solicitado.")
-    total = 0.0
-    for dia, maxima, minima in zip(datas, maximas, minimas):
-        if maxima is None or minima is None or not all(math.isfinite(v) for v in (maxima, minima)):
-            raise ValueError(f"Temperatura indisponível em {dia}.")
-        total += max(0.0, (maxima + minima) / 2 - 10.0)
-    return total
+
+    response = openmeteo_requests.get(url, params=params)
+    if response.status_code !=200:
+        raise Exception(f"Error fetching data from Open-Meteo API: {response.status_code} - {response.text}")
+
+    data = response.json()
+    daily = data["daily"]
+
+    graus_dia = 0
+
+    for i in range(len(daily["time"])):
+        t_max = daily["temperature_2m_max"][i]
+        t_min = daily["temperature_2m_min"][i]
+        graus_dia += max(0, (t_max + t_min) / 2 - Tb)
+
+    return graus_dia

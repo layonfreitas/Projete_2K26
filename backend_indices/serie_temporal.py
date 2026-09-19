@@ -5,7 +5,7 @@ import pandas as pd
 import skfuzzy as fuzz
 import numpy as np
 from PIL import Image
-from datetime import datetime, date, timedelta
+from datetime import datetime
 from skimage.measure import label
 from scipy.ndimage import binary_dilation
 import os 
@@ -13,6 +13,7 @@ from dotenv import load_dotenv
 import cloudinary
 from  get_indices import save_image_indatabase
 from graus_dia import get_graus_dia_data
+import mysql.connector
 load_dotenv()
 
 
@@ -39,7 +40,7 @@ def add_NDRE(image):
     return image.addBands(ndre)
 
 def add_NDWI(image):
-    ndwi = image.normalizedDifference(["B8","B11"]).rename("NDWI")
+    ndwi = image.normalizedDifference(["B3","B8"]).rename("NDWI")
     return image.addBands(ndwi)
 
 
@@ -363,48 +364,62 @@ def create_zonas_de_manejo(array,usuario_id: int, lavoura_id: int,pasta_id = os.
     nome_arquivo = (
         f"zonas_de_manejo_{datetime.now().strftime('%Y-%m-%d')}.png"
     )
-
-    imagem_zonas_de_manejo = Image.fromarray(rgba)
-    return save_image_indatabase(imagem_zonas_de_manejo, nome_arquivo, pasta_id, usuario_id, lavoura_id, datetime.now().strftime("%Y-%m-%d"))
-
+    
+   
 
 def make_time_series_image(geometria, data_inicio, data_fim, usuario_id: int, lavoura_id: int):
-    """Retorna índices e graus-dia acumulados; data_fim é exclusiva, como no EE."""
-    inicio = date.fromisoformat(str(data_inicio))
-    fim = date.fromisoformat(str(data_fim))
-    if inicio >= fim:
-        raise ValueError("A data inicial deve ser anterior à data final.")
+    inicio =ee.Date(data_inicio)
+    fim = ee.Date(data_fim)
     lavoura = ee.Geometry.Polygon(geometria)
     imagens = (
         ee.ImageCollection("COPERNICUS/S2_SR_HARMONIZED")
         .filterBounds(lavoura)
-        .filterDate(str(data_inicio), str(data_fim))
+        .filterDate(inicio, fim)
         .filter(ee.Filter.lt("CLOUDY_PIXEL_PERCENTAGE", 30))
-        .sort("system:time_start")
-        .map(add_NDVI).map(add_NDRE).map(add_NDWI)
     )
-    quantidade = imagens.size().getInfo()
-    if not quantidade:
-        return []
-    colecao = imagens.toList(quantidade)
-    longitude, latitude = lavoura.centroid().coordinates().getInfo()
-    acumulado = 0.0
-    proximo_dia = inicio
+
+    imagens_com_indices = imagens.map(add_NDVI).map(add_NDRE).map(add_NDWI)
+    colecao_com_indices = imagens_com_indices.toList(imagens_com_indices.size())
+
+    graus_dia = 0
     resultados = []
-    for i in range(quantidade):
-        imagem = ee.Image(colecao.get(i))
-        data_imagem = imagem.date().format("YYYY-MM-dd").getInfo()
-        dia = date.fromisoformat(data_imagem)
-        # Inclui os dias entre cenas e não conta duas vezes cenas do mesmo dia.
-        if dia >= proximo_dia:
-            acumulado += get_graus_dia_data(latitude, longitude, proximo_dia.isoformat(), data_imagem)
-            proximo_dia = dia + timedelta(days=1)
+    for i in range (colecao_com_indices.size().getInfo()):
+        imagem = ee.Image(colecao_com_indices.get(i))
+        graus_dia += get_graus_dia_data(lavoura.centroid().coordinates().get(1).getInfo(), lavoura.centroid().coordinates().get(0).getInfo(), imagem.date().format('YYYY-MM-dd').getInfo())
         valores = imagem.reduceRegion(
-            reducer=ee.Reducer.mean(), geometry=lavoura, scale=10, maxPixels=1e8
-        ).getInfo()
+            reducer=ee.Reducer.mean(),
+            geometry=lavoura,
+            scale=10
+        )
+
         for indice in indices:
             resultados.append({
-                "data": data_imagem, "indice": indice,
-                "valor": valores.get(indice), "graus_dia": acumulado,
+                "data": imagem.date().format('YYYY-MM-dd').getInfo(),
+                "indice": indice,
+                "valor": valores.get(indice).getInfo(),
+                "graus_dia": graus_dia  
             })
-    return resultados
+
+
+    
+
+            
+            
+
+        
+
+
+        
+    
+
+
+
+
+
+
+
+
+
+
+    imagem_zonas_de_manejo = Image.fromarray(rgba)
+    save_image_indatabase(imagem_zonas_de_manejo, nome_arquivo, pasta_id, usuario_id, lavoura_id, datetime.now().strftime('%Y-%m-%d'))
