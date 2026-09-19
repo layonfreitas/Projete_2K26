@@ -13,7 +13,8 @@ from dotenv import load_dotenv
 import cloudinary
 from  get_indices import save_image_indatabase
 from graus_dia import get_graus_dia_data
-import mysql.connector
+import json
+import requests
 load_dotenv()
 
 
@@ -367,7 +368,7 @@ def create_zonas_de_manejo(array,usuario_id: int, lavoura_id: int,pasta_id = os.
     
    
 
-def make_time_series_image(geometria, data_inicio, data_fim, usuario_id: int, lavoura_id: int):
+def make_time_series(geometria, data_inicio, data_fim, usuario_id: int, lavoura_id: int):
     inicio =ee.Date(data_inicio)
     fim = ee.Date(data_fim)
     lavoura = ee.Geometry.Polygon(geometria)
@@ -394,11 +395,21 @@ def make_time_series_image(geometria, data_inicio, data_fim, usuario_id: int, la
 
         for indice in indices:
             resultados.append({
-                "data": imagem.date().format('YYYY-MM-dd').getInfo(),
-                "indice": indice,
+                "dataReferencia": imagem.date().format('YYYY-MM-dd').getInfo(),
+                "tipoIndice": indice,
                 "valor": valores.get(indice).getInfo(),
-                "graus_dia": graus_dia  
+                "grausDia": graus_dia ,
+                "lavouraId": lavoura_id
             })
+
+    dados = json.dumps(resultados)
+    resposta = requests.post(url=api_url('/create_serie_temporal'), json=dados, timeout=(15,60))
+    resposta.raise_for_status()
+    print(resposta.json())
+    return resposta.json()
+
+
+    
 
 
     
