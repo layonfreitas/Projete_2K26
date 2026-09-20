@@ -1,82 +1,173 @@
-.upload-card {
-  background: var(--surface);
+.upl-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 22px;
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  padding: 32px 28px;
+  background: var(--surface);
   box-shadow: var(--shadow-sm);
 }
 
-.titulo-upload h3 {
-  margin-bottom: 6px;
+.upl-titulo h3 {
+  margin-bottom: 4px;
 }
 
-.titulo-upload p {
-  font-size: 13.5px;
+.upl-titulo p {
+  font-size: 14px;
 }
 
-.preview-vazio {
-  margin-top: 20px;
+.upl-area {
   display: flex;
   flex-direction: column;
   align-items: center;
-  text-align: center;
-  gap: 8px;
-  padding: 36px 20px;
+  gap: 6px;
+  padding: 32px 20px;
   border: 1.5px dashed var(--border-strong);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
+  background: var(--parchment);
+  color: var(--ink-soft);
+  font-size: 13.5px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.upl-area strong {
+  color: var(--ink);
+  font-size: 15px;
+}
+
+.upl-area:hover,
+.upl-area-ativa {
+  border-color: var(--canopy);
+  background: var(--canopy-soft);
+}
+
+.upl-area-icone {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  margin-bottom: 4px;
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--canopy-dark);
+  box-shadow: var(--shadow-sm);
+}
+
+.upl-dicas {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.upl-dicas li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  color: var(--ink-soft);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.upl-dicas svg {
+  margin-top: 1px;
+  color: var(--gold);
+}
+
+.upl-preview {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
   background: var(--parchment);
 }
 
-.preview-vazio .icone {
-  font-size: 30px;
-  margin-bottom: 6px;
-}
-
-.preview-vazio h4 {
-  font-family: var(--font-body);
-  font-weight: 600;
-  font-size: 14px;
-  color: var(--ink);
-  margin: 0;
-}
-
-.preview-vazio span {
-  font-size: 12.5px;
-  color: var(--ink-soft);
-}
-
-.preview {
-  margin-top: 20px;
-  display: flex;
-  justify-content: center;
-}
-
-.preview img {
+.upl-preview img {
+  display: block;
   width: 100%;
-  max-height: 260px;
+  max-height: 320px;
   object-fit: cover;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border);
 }
 
-.botoes {
-  display: flex;
-  gap: 12px;
-  margin-top: 20px;
-  flex-wrap: wrap;
+.upl-remover {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border-radius: 50%;
+  background: rgba(36, 28, 21, 0.72);
+  color: #fff;
 }
 
-.botoes .botao-upload,
-.botoes button {
-  flex: 1;
-  min-width: 150px;
-  justify-content: center;
-}
-
-.botoes button:not(.botao-upload) {
+.upl-remover:hover {
   background: var(--ink);
 }
 
-.botoes button:not(.botao-upload):hover {
-  background: #3a2f22;
+.upl-analisando {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: rgba(36, 28, 21, 0.6);
+  color: #fff;
+  font-size: 14.5px;
+  font-weight: 600;
+}
+
+.upl-arquivo {
+  margin-top: -6px;
+  overflow: hidden;
+  font-size: 12.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.upl-botoes {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+@media (min-width: 420px) {
+  .upl-botoes {
+    flex-direction: row;
+  }
+  .upl-botoes > * {
+    flex: 1;
+  }
+}
+
+.upl-botoes .botao-upload {
+  min-height: 52px;
+}
+
+.upl-botoes .botao-upload:hover {
+  transform: none;
+}
+
+/* "Trocar imagem" é ação secundária */
+.upl-trocar {
+  border: 1.5px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.upl-trocar:hover {
+  background: var(--canopy-soft);
+}
+
+.upl-trocar[aria-disabled="true"] {
+  opacity: 0.55;
+  pointer-events: none;
 }

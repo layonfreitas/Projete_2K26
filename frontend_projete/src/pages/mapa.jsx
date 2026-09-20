@@ -6,64 +6,15 @@ import "leaflet/dist/leaflet.css";
 import "./mapa.css";
 
 import BottomNav from "../components/BottomNav";
+import Button from "../components/ui/Button";
+import Icon from "../components/ui/Icon";
+import { useToast } from "../components/ui/toastContext";
 import { AUTH_API_URL } from "../config/api";
+import { calcularAreaHectares, formatarHectares } from "../utils/geo";
+import { mensagemDeErro } from "../services/erros";
+import { contar } from "../utils/texto";
 
-import icone from "leaflet/dist/images/marker-icon.png";
-import icone2x from "leaflet/dist/images/marker-icon-2x.png";
-import sombra from "leaflet/dist/images/marker-shadow.png";
-
-delete L.Icon.Default.prototype._getIconUrl;
-
-L.Icon.Default.mergeOptions({
-  iconUrl: icone,
-  iconRetinaUrl: icone2x,
-  shadowUrl: sombra,
-});
-
-function calcularAreaHectares(coordenadas) {
-  if (!coordenadas || coordenadas.length < 3) {
-    return 0;
-  }
-
-  const R = 6371000;
-
-  const latMedia =
-    coordenadas.reduce(
-      (soma, ponto) => soma + ponto.lat,
-      0
-    ) / coordenadas.length;
-
-  const latMediaRad = (latMedia * Math.PI) / 180;
-
-  const pontos = coordenadas.map((ponto) => {
-    const x =
-      ((ponto.lng * Math.PI) / 180) *
-      R *
-      Math.cos(latMediaRad);
-
-    const y =
-      ((ponto.lat * Math.PI) / 180) *
-      R;
-
-    return { x, y };
-  });
-
-  let area = 0;
-
-  for (let i = 0; i < pontos.length; i++) {
-    const pontoAtual = pontos[i];
-    const proximoPonto =
-      pontos[(i + 1) % pontos.length];
-
-    area +=
-      pontoAtual.x * proximoPonto.y -
-      proximoPonto.x * pontoAtual.y;
-  }
-
-  const areaM2 = Math.abs(area) / 2;
-
-  return areaM2 / 10000; // converte m² para hectares
-}
+import "../utils/leafletIcons";
 
 const BRASIL = [
   [-35, -75],
@@ -123,6 +74,7 @@ const CORES_LAVOURAS = [
 export default function Mapa() {
   const navigate = useNavigate();
   const location = useLocation();
+  const toast = useToast();
 
   // SOMENTE a URL solicita zoom.
   // Não usa localStorage nem location.state para escolher o alvo.
@@ -146,7 +98,8 @@ export default function Mapa() {
   const [legendaAberta, setLegendaAberta] = useState(
     () => window.innerWidth > 600
   );
-  const [, setAreaHectares] = useState(0);
+  const [areaHectares, setAreaHectares] = useState(0);
+  const [totalPontos, setTotalPontos] = useState(0);
   const [confirmado, setConfirmado] = useState(false);
   const [cidade, setCidade] = useState("");
   const [municipios, setMunicipios] = useState([]);
@@ -187,6 +140,7 @@ export default function Mapa() {
     );
 
     setAreaHectares(calcularAreaHectares(coords));
+    setTotalPontos(coords.length);
     if (coords.length < 2) return;
 
     const estilo = {
@@ -282,7 +236,6 @@ export default function Mapa() {
 
     camadaCadastro.current = L.layerGroup().addTo(atual);
     pontosCadastro.current = [];
-    setConfirmado(false);
 
     if (ehProdutor) {
       atual.on("click", e => {
@@ -311,6 +264,7 @@ export default function Mapa() {
 
         const popup = document.createElement("div");
         const texto = document.createElement("p");
+        texto.className = "mapa-popup-texto";
 
         const atualizarTexto = () => {
           const p = marcador.getLatLng();
@@ -324,6 +278,7 @@ export default function Mapa() {
 
         const remover = document.createElement("button");
         remover.type = "button";
+        remover.className = "mapa-popup-remover";
         remover.textContent = "Remover ponto";
 
         remover.onclick = () => {
@@ -619,7 +574,7 @@ if (tipo === "agronomo") {
       if (mapa.current !== atual) return;
 
       if (!dados.length) {
-        alert("Cidade não encontrada.");
+        toast.info("Cidade não encontrada. Confira o nome e tente de novo.");
         return;
       }
 
@@ -645,7 +600,7 @@ if (tipo === "agronomo") {
         .openPopup();
     } catch (erro) {
       if (mapa.current === atual) {
-        alert(erro.message);
+        toast.erro(mensagemDeErro(erro, "Não foi possível buscar a cidade."));
       }
     }
   }
@@ -656,7 +611,7 @@ if (tipo === "agronomo") {
 
   function confirmarContorno() {
     if (pontosCadastro.current.length < 3) {
-      alert("Marque pelo menos 3 pontos.");
+      toast.info("Marque pelo menos 3 pontos no mapa.");
       return;
     }
 
@@ -670,6 +625,7 @@ if (tipo === "agronomo") {
     desenho.current = null;
     setConfirmado(false);
     setAreaHectares(0);
+    setTotalPontos(0);
   }
 
   function cadastrar() {
@@ -694,20 +650,25 @@ if (tipo === "agronomo") {
   // TELA
   // ============================================================
 
+  const instrucao = confirmado
+    ? "Contorno confirmado! Continue para dar um nome à lavoura."
+    : totalPontos < 3
+      ? "Toque no mapa para marcar os cantos da lavoura (mínimo de 3 pontos)."
+      : "Arraste os pontos para ajustar o contorno e confirme quando estiver certo.";
+
   return (
     <div className="pagina-mapa">
       <div className="barra-superior">
         <div
           className="busca-cidade"
           onBlur={e => {
-            if (
-              !e.currentTarget.contains(e.relatedTarget)
-            ) {
+            if (!e.currentTarget.contains(e.relatedTarget)) {
               setSugestoesAbertas(false);
             }
           }}
-
         >
+          <Icon nome="busca" tamanho={18} />
+
           <input
             type="text"
             aria-label="Pesquisar cidade"
@@ -731,11 +692,9 @@ if (tipo === "agronomo") {
               }
 
               if (e.key === "ArrowDown") {
-                const botao =
-                  e.currentTarget.parentElement
-                    .querySelector(
-                      ".sugestoes-cidades button"
-                    );
+                const botao = e.currentTarget.parentElement.querySelector(
+                  ".sugestoes-cidades button"
+                );
 
                 if (botao) {
                   e.preventDefault();
@@ -763,69 +722,69 @@ if (tipo === "agronomo") {
 
               {!sugestoes.length && (
                 <li className="aviso-cidades">
-                  {statusCidades ||
-                    "Nenhuma cidade encontrada."}
+                  {statusCidades || "Nenhuma cidade encontrada."}
                 </li>
               )}
             </ul>
           )}
 
-          <span
-            id="status-cidades"
-            className="status-cidades"
-            role="status"
-          >
+          <span id="status-cidades" className="status-cidades" role="status">
             {statusCidades}
           </span>
         </div>
 
-        <button
-          type="button"
-          onClick={buscarCidade}
-        >
+        <Button variant="glass" icon="busca" onClick={buscarCidade}>
           Buscar
-        </button>
-
-        {ehProdutor && (
-          <>
-            <button
-              type="button"
-              onClick={confirmarContorno}
-            >
-              Confirmar Contorno
-            </button>
-
-            <button
-              type="button"
-              onClick={apagarContorno}
-            >
-              Apagar Contorno
-            </button>
-
-            {confirmado && (
-              <button
-                type="button"
-                className="botao-confirmar-cadastro"
-                onClick={cadastrar}
-              >
-                Confirmar Cadastro
-              </button>
-            )}
-          </>
-        )}
-
-        {aviso && <span role="alert">{aviso}</span>}
+        </Button>
       </div>
+
+      {aviso && (
+        <div className="mapa-aviso" role="alert">
+          <Icon nome="alertaCirculo" tamanho={18} />
+          {aviso}
+        </div>
+      )}
 
       <div ref={container} id="mapa" />
 
-{tipo === "agronomo" && lavourasLegenda.length > 0 && (
-        <div
-          className={
-            "legenda-lavouras" +
-            (legendaAberta ? "" : " recolhida")
-          }
-        >
+      {ehProdutor && (
+        <section className="mapa-painel" aria-label="Cadastro da lavoura">
+          <div className="mapa-painel-topo">
+            <strong>Cadastrar lavoura</strong>
+            <div className="mapa-chips" aria-live="polite">
+              <span>{contar(totalPontos, "ponto", "pontos")}</span>
+              {totalPontos >= 3 && <span>{formatarHectares(areaHectares)}</span>}
+            </div>
+          </div>
+
+          <p className="mapa-painel-texto">{instrucao}</p>
+
+          <div className="mapa-painel-botoes">
+            <Button
+              variant="secondary"
+              size="sm"
+              icon="lixeira"
+              onClick={apagarContorno}
+              disabled={totalPontos === 0}
+            >
+              Apagar
+            </Button>
+
+            {confirmado ? (
+              <Button variant="gold" size="sm" icon="avancar" onClick={cadastrar}>
+                Continuar cadastro
+              </Button>
+            ) : (
+              <Button size="sm" icon="check" onClick={confirmarContorno} disabled={totalPontos < 3}>
+                Confirmar contorno
+              </Button>
+            )}
+          </div>
+        </section>
+      )}
+
+      {tipo === "agronomo" && lavourasLegenda.length > 0 && (
+        <div className={"legenda-lavouras" + (legendaAberta ? "" : " recolhida")}>
           <button
             type="button"
             className="legenda-cabecalho"
@@ -839,20 +798,7 @@ if (tipo === "agronomo") {
               <small>{lavourasLegenda.length}</small>
             </span>
 
-            <svg
-              className="legenda-seta"
-              viewBox="0 0 24 24"
-              width="18"
-              height="18"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <polyline points="6 9 12 15 18 9" />
-            </svg>
+            <Icon nome="setaBaixo" className="legenda-seta" />
           </button>
 
           {legendaAberta && (
@@ -863,22 +809,16 @@ if (tipo === "agronomo") {
                   key={lavoura.id}
                   className="item-legenda"
                   onClick={() => {
-                    mapa.current.fitBounds(
-                      lavoura.poligono.getBounds(),
-                      {
-                        padding: [40, 40],
-                        maxZoom: 17,
-                        animate: true,
-                      }
-                    );
+                    mapa.current.fitBounds(lavoura.poligono.getBounds(), {
+                      padding: [40, 40],
+                      maxZoom: 17,
+                      animate: true,
+                    });
 
                     lavoura.poligono.bringToFront();
                   }}
                 >
-                  <span
-                    className="quadrado-cor"
-                    style={{ backgroundColor: lavoura.cor }}
-                  />
+                  <span className="quadrado-cor" style={{ backgroundColor: lavoura.cor }} />
 
                   <span className="texto-legenda">
                     <strong>{lavoura.nome}</strong>
@@ -892,9 +832,6 @@ if (tipo === "agronomo") {
       )}
 
       <BottomNav />
-
-</div>
-    
-
+    </div>
   );
 }

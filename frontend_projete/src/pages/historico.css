@@ -1,534 +1,71 @@
-/* =========================================================
-   PÁGINA
-========================================================= */
-
-.historico {
+.hist {
   width: 100%;
   min-height: 100svh;
   background: var(--parchment);
-  position: relative;
-  padding-bottom: 120px;
+  padding-bottom: calc(120px + env(safe-area-inset-bottom, 0px));
 }
 
-
-/* =========================================================
-   CONTEÚDO
-========================================================= */
-
-.historico-conteudo {
+.hist-conteudo {
   max-width: 1280px;
   margin: 0 auto;
-  padding: 40px 24px 32px;
+  padding: 24px 20px 32px;
 }
 
-
-/* =========================================================
-   CABEÇALHO
-========================================================= */
-
-.historico-cabecalho {
-  margin-bottom: 28px;
+@media (min-width: 720px) {
+  .hist-conteudo {
+    padding: 32px 40px 40px;
+  }
 }
 
-.historico-cabecalho h1 {
-  margin: 0 0 6px;
-  font-size: 28px;
+@media (min-width: 1100px) {
+  .hist-conteudo {
+    padding: 36px 56px 48px;
+  }
 }
 
-.historico-cabecalho p {
-  margin: 0;
+.hist-cabecalho {
+  margin-bottom: 20px;
+}
+
+.hist-cabecalho h1 {
+  margin: 0 0 4px;
+  font-size: 26px;
+}
+
+.hist-cabecalho p {
   font-size: 14px;
   line-height: 1.6;
 }
 
-
-/* =========================================================
-   ABAS
-========================================================= */
-
-.historico-abas {
+.hist-abas {
   display: flex;
-  align-items: center;
   gap: 4px;
-
+  margin-bottom: 20px;
   border-bottom: 1px solid var(--border-strong);
-
-  margin-bottom: 24px;
+  overflow-x: auto;
 }
 
-.historico-aba {
-  appearance: none;
-  border: none;
-  background: transparent;
-
-  padding: 12px 20px;
-
-  font-family: inherit;
-  font-size: 14px;
-  font-weight: 600;
-
-  color: inherit;
-
-  cursor: pointer;
-
-  border-bottom: 3px solid transparent;
-
+.hist-aba {
   margin-bottom: -1px;
-
-  transition:
-    background 0.2s ease,
-    border-color 0.2s ease,
-    opacity 0.2s ease;
-}
-
-.historico-aba:hover {
-  background: var(--surface);
-}
-
-.historico-aba ativa {
-  display: block;
-    width: 100%;
-    padding: 10px 12px;
-    border: none;
-    border-radius: var(--radius-sm);
-    background: var(--canopy);
-    color: #fff;
-    text-align: left;
-    font-family: inherit;
-    cursor: pointer;
-    transition: background 0.18s ease;
-}
-
-
-/* =========================================================
-   PAINEL
-========================================================= */
-
-.historico-painel {
-  width: 100%;
-}
-
-/* =========================================================
-   MAPAS
-========================================================= */
-
-.mapas-container {
-  width: 100%;
-}
-
-
-/* =========================================================
-   SELETOR DE LAVOURA
-========================================================= */
-
-.mapas-lavoura {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-
-  margin-bottom: 18px;
-}
-
-.mapas-lavoura label {
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.mapas-lavoura select {
-  min-width: 220px;
-
-  padding: 9px 12px;
-
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-md);
-
-  background: var(--surface);
-
-  font-family: inherit;
-  font-size: 14px;
-
-  cursor: pointer;
-}
-
-
-/* =========================================================
-   ÁREA PRINCIPAL
-========================================================= */
-
-.mapas-area {
-  display: grid;
-
-  grid-template-columns:
-    280px
-    minmax(0, 1fr);
-
-  gap: 20px;
-
-  min-height: 650px;
-}
-
-
-/* =========================================================
-   COLUNA DE DATAS
-========================================================= */
-
-.mapas-datas {
-  background: var(--surface);
-
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-md);
-
-  padding: 16px;
-
-  overflow-y: auto;
-}
-
-.mapas-datas-titulo {
- border: none;
-    border-radius: 9px;
-
-    padding: 12px 20px;
-
-    font-family: inherit;
-    font-size: 14px;
-    font-weight: 600;
-
-    cursor: pointer;
-
-    transition:
-        transform 0.15s ease,
-        opacity 0.15s ease,
-        box-shadow 0.15s ease;
-}
-
-.mapa-data-titulo {
-  display: block;
-
-  margin: 0 0 14px;
-
-  font-size: 13px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-
-  color: var(--ink-soft, inherit);
-
-  border-bottom: 1px solid var(--border-strong);
-  padding-bottom: 10px;
-}
-
-
-/* =========================================================
-   ITEM DE DATA
-========================================================= */
-
-.mapa-data {
-  border: 1px solid transparent;
-  border-radius: var(--radius-md);
-
-  padding: 8px;
-
-  margin-bottom: 8px;
-
-  transition:
-    background 0.2s ease,
-    border-color 0.2s ease;
-}
-
-.mapa-data:hover {
-  background: var(--parchment);
-}
-
-.mapa-data.ativa {
-  background: var(--parchment);
-  border-color: var(--border-strong);
-}
-
-
-/* =========================================================
-   BOTÃO DA DATA
-========================================================= */
-
-.mapa-data-botao {
-  display: block;
-
-  width: 100%;
-
-  padding: 10px 12px;
-
-  border: none;
-  border-radius: var(--radius-sm);
-  background: var(--canopy);
-  color: #fff;
-
-  text-align: left;
-
-  font-family: inherit;
-
-  cursor: pointer;
-
-  transition: background 0.18s ease;
-}
-
-.mapa-data-botao:hover {
-  background: var(--canopy-dark);
-}
-
-.mapa-data.ativa .mapa-data-botao {
-  background: var(--canopy-dark);
-}
-
-.mapa-data-texto {
-  font-size: 14px;
-  font-weight: 600;
-  color: inherit;
-}
-
-
-/* =========================================================
-   SELECT DO ÍNDICE
-========================================================= */
-
-.mapa-data select {
-  width: 100%;
-
-  padding: 7px 9px;
-
-  border: 1px solid var(--border-strong);
-  border-radius: 6px;
-
-  background: var(--surface);
-
-  font-family: inherit;
-  font-size: 13px;
-
-  cursor: pointer;
-}
-
-
-/* =========================================================
-   MAPA
-========================================================= */
-
-.mapas-mapa-container {
-  position: relative;
-
-  min-width: 0;
-  min-height: 650px;
-
-  overflow: hidden;
-
-  border-radius: var(--radius-md);
-
-  border: 1px solid var(--border-strong);
-
-  background: var(--surface);
-}
-
-.mapas-mapa {
-  width: 100%;
-  height: 100%;
-  min-height: 650px;
-}
-
-/* =========================================================
-   CONTROLE ÍNDICE / Z-SCORE
-========================================================= */
-
-.mapas-mapa .leaflet-top.leaflet-left .leaflet-control-zoom {
-  margin-top: 14px;
-  margin-left: 14px;
-}
-
-.mapas-controle {
-  position: absolute;
-  z-index: 1000;
-  top: 14px;
-
-  /* Reserva espaço para o zoom e deixa distância dos botões. */
-  left: 70px;
-  right: 14px;
-  max-width: 220px;
-
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 4px;
-  padding: 4px;
-
-  background: var(--surface);
-  border: 1px solid var(--border-strong);
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-}
-
-.mapas-controle button {
-  appearance: none;
-  min-width: 0;
-  min-height: 40px;
-
-  border: none;
-  border-radius: 5px;
-  padding: 9px 10px;
-
-  background: var(--canopy);
-  color: #fff;
-
-  font-family: inherit;
-  font-size: 14px;
-  font-weight: 600;
-  line-height: 1.4;
+  padding: 12px 20px;
+  border-bottom: 3px solid transparent;
+  border-radius: 8px 8px 0 0;
+  background: transparent;
+  color: var(--ink-soft);
+  font-size: 14.5px;
   white-space: nowrap;
-
-  cursor: pointer;
-  transition: background 0.18s ease, box-shadow 0.18s ease;
 }
 
-.mapas-controle button:hover,
-.mapas-controle button.ativo {
-  background: var(--canopy-dark);
-}
-
-.mapas-controle button.ativo {
-  box-shadow: inset 0 -3px 0 rgba(255, 255, 255, 0.85);
-}
-
-.mapas-controle button:focus-visible {
-  outline: 2px solid var(--canopy-dark);
-  outline-offset: 2px;
-}
-
-/* =========================================================
-   ERRO
-========================================================= */
-
-.mapas-erro {
-  position: absolute;
-
-  z-index: 1001;
-
-  left: 50%;
-  top: 50%;
-
-  transform: translate(-50%, -50%);
-
-  padding: 14px 18px;
-
+.hist-aba:hover {
   background: var(--surface);
-
-  border: 1px solid var(--border-strong);
-
-  border-radius: var(--radius-md);
-
-  font-size: 14px;
-
-  text-align: center;
+  color: var(--canopy-dark);
 }
 
-
-/* =========================================================
-   SEM IMAGENS
-========================================================= */
-
-.mapas-sem-imagens {
-  padding: 20px 8px;
-
-  font-size: 13px;
-  line-height: 1.5;
-
-  opacity: 0.7;
+.hist-aba[aria-selected="true"] {
+  border-bottom-color: var(--canopy);
+  color: var(--canopy-dark);
 }
 
-
-/* =========================================================
-   RESPONSIVIDADE
-========================================================= */
-
-@media (min-width: 720px) {
-
-  .historico-conteudo {
-    padding: 48px 40px 40px;
-  }
-
+.hist-painel {
+  width: 100%;
 }
-
-
-@media (min-width: 1100px) {
-
-  .historico-conteudo {
-    padding: 56px 56px 48px;
-  }
-
-}
-
-
-@media (max-width: 800px) {
-
-  .mapas-area {
-    grid-template-columns: 1fr;
-  }
-
-  .mapas-datas {
-    max-height: 300px;
-  }
-
-  .mapas-mapa-container {
-    min-height: 500px;
-  }
-
-  .mapas-mapa {
-    min-height: 500px;
-  }
-
-}
-
-
-@media (max-width: 500px) {
-
-  .historico-cabecalho h1 {
-    font-size: 24px;
-  }
-
-  .historico-abas {
-    overflow-x: auto;
-  }
-
-  .historico-aba {
-    white-space: nowrap;
-  }
-
-  .mapas-lavoura {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .mapas-lavoura select {
-    width: 100%;
-  }
-
-}
-/* Histórico: controles e legenda fora do mapa para funcionar também no celular. */
-.historico-aba.ativa { border-bottom-color: var(--canopy); font-weight: 700; }
-.historico-visualizacao { min-width: 0; }
-.historico-filtros { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
-.historico-filtros select, .historico-filtros button, .historico-atualizar, .mapas-erro button { padding: 9px 12px; border-radius: 6px; border: 1px solid var(--border-strong); font: inherit; background: var(--surface, #fff); color: var(--ink, #163025); cursor: pointer; }
-.historico-filtros button[aria-pressed="true"] { background: var(--canopy, #28533c); color: white; }
-.historico-filtros button:disabled { opacity: .45; cursor: default; }
-.historico-status { position: absolute; z-index: 800; top: 15px; right: 15px; background: white; color: #163025; padding: 12px; border-radius: 8px; }
-.mapas-erro { width: min(85%, 400px); }
-.mapas-erro button { display: block; margin: 12px auto 0; }
-.mapa-data small { display: block; margin-top: 8px; color: var(--ink-soft, #496554); }
-.historico-legenda { display: flex; flex-direction: column; gap: 10px; background: var(--surface, #fff); border: 1px solid var(--border-strong, #cad6ce); padding: 16px; border-radius: 10px; margin-top: 12px; font-size: 13px; }
-.historico-legenda label { display: flex; align-items: center; gap: 12px; }
-.historico-cores { display: flex; flex-wrap: wrap; gap: 10px 18px; }
-.historico-cores span { display: inline-flex; align-items: center; gap: 6px; }
-.historico-cores i { display: inline-block; width: 14px; height: 14px; border: 1px solid #0002; border-radius: 3px; }
-.historico-escala { display: flex; align-items: center; gap: 10px; max-width: 300px; }
-.historico-escala div { height: 12px; border-radius: 4px; flex: 1; }
-@media (max-width: 800px) {
-  .historico-conteudo { padding-left: 16px; padding-right: 16px; }
-  .mapas-mapa, .mapas-mapa-container { min-height: 420px; height: 420px; }
-  .mapas-datas { max-height: 200px; }
-}
-
-.historico-atualizar { white-space: nowrap; flex-shrink: 0; }
-.historico-legenda input[type="range"] { max-width: 300px; }

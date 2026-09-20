@@ -1,106 +1,103 @@
-
 import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams } from "react-router-dom";
 
 import { AUTH_API_URL } from "../config/api";
+import AppBar from "../components/ui/AppBar";
+import Icon from "../components/ui/Icon";
+import { EmptyState, ErrorState, Skeleton } from "../components/ui/States";
+import { mensagemDeErro } from "../services/erros";
+import { contar } from "../utils/texto";
 import "./observacao_produtor.css";
 
 export default function Observacoes() {
-
   const { id } = useParams();
-  const navigate = useNavigate();
+  const lavouraNome = localStorage.getItem("lavouraNome");
 
-  const [observacoes, setObservacoes] = useState([]);
+  const [tentativa, setTentativa] = useState(0);
+  const [consulta, setConsulta] = useState({ chave: "", observacoes: [], erro: "" });
+
+  const chave = `${id}:${tentativa}`;
 
   useEffect(() => {
+    let cancelado = false;
 
     async function carregarObservacoes() {
-
       try {
-
-        const resposta = await fetch(
-          `${AUTH_API_URL}/observacoes/${id}`
-        );
-
+        const resposta = await fetch(`${AUTH_API_URL}/observacoes/${id}`);
         const dados = await resposta.json();
 
-        
-
         if (!resposta.ok) {
-          throw new Error(
-            dados.erro || "Erro ao buscar observações."
-          );
+          throw new Error(dados.erro || "Erro ao buscar observações.");
         }
 
-        setObservacoes(dados);
-
+        if (!cancelado) setConsulta({ chave, observacoes: dados, erro: "" });
       } catch (erro) {
-
-        console.error(
-          "Erro ao carregar observações:",
-          erro
-        );
-
+        if (!cancelado) {
+          setConsulta({
+            chave,
+            observacoes: [],
+            erro: mensagemDeErro(erro, "Erro ao buscar observações."),
+          });
+        }
       }
     }
 
     carregarObservacoes();
 
-  }, [id]);
+    return () => {
+      cancelado = true;
+    };
+  }, [id, chave]);
 
-  function voltar() {
-    navigate(-1);
-  }
+  const carregando = consulta.chave !== chave;
+  // as mais recentes primeiro
+  const observacoes = consulta.chave === chave ? [...consulta.observacoes].sort((a, b) => b.id - a.id) : [];
+  const erro = consulta.chave === chave ? consulta.erro : "";
 
   return (
-    <div className="observacoes-page">
+    <div className="ui-coluna ui-coluna--sem-nav">
+      <AppBar
+        titulo="Observações"
+        subtitulo={lavouraNome || "Registradas para esta lavoura"}
+        para="/home"
+      />
 
-      <div className="observacoes-card">
+      <main className="ui-conteudo">
+        {carregando && (
+          <div aria-busy="true">
+            <Skeleton linhas={3} altura={96} />
+          </div>
+        )}
 
-        <h1>Observações da lavoura</h1>
+        {!carregando && erro && (
+          <ErrorState mensagem={erro} aoTentar={() => setTentativa((n) => n + 1)} />
+        )}
 
-        <p>
-          Aqui estão as observações registradas para esta lavoura.
-        </p>
+        {!carregando && !erro && observacoes.length === 0 && (
+          <EmptyState
+            icone="mensagem"
+            titulo="Nenhuma observação ainda"
+            texto="Quando o seu agrônomo registrar observações sobre esta lavoura, elas aparecem aqui."
+          />
+        )}
 
-        <div className="lista-observacoes">
+        {observacoes.length > 0 && (
+          <>
+            <p className="obsl-resumo">{contar(observacoes.length, "observação", "observações")}</p>
 
-          {observacoes.length === 0 ? (
-
-            <p className="sem-observacoes">
-              Nenhuma observação cadastrada.
-            </p>
-
-          ) : (
-
-            observacoes.map((observacao) => (
-
-              <div
-                className="observacao-item"
-                key={observacao.id}
-              >
-                <p>
-                  {observacao.texto}
-                </p>
-              </div>
-
-            ))
-
-          )}
-
-        </div>
-
-        <div className="observacoes-acoes">
-
-          <button onClick={voltar}>
-            Voltar
-          </button>
-
-        </div>
-
-      </div>
-
+            <ul className="obsl-lista">
+              {observacoes.map((observacao) => (
+                <li className="obsl-item" key={observacao.id}>
+                  <span className="obsl-icone" aria-hidden="true">
+                    <Icon nome="mensagem" tamanho={18} />
+                  </span>
+                  <p>{observacao.texto}</p>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+      </main>
     </div>
   );
 }
-

@@ -2,91 +2,169 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AUTH_API_URL } from "../config/api";
 import BottomNav from "../components/BottomNav";
+import AppBar from "../components/ui/AppBar";
+import Avatar from "../components/ui/Avatar";
+import Icon from "../components/ui/Icon";
+import { TextField } from "../components/ui/Field";
+import { Badge, EmptyState, ErrorState, Skeleton } from "../components/ui/States";
+import { mensagemDeErro } from "../services/erros";
+import { contar, normalizar } from "../utils/texto";
 import "./agronomo.css";
 
 function Agronomo() {
   const navigate = useNavigate();
 
-  const [produtores, setProdutores] = useState([]);
-  const [carregando, setCarregando] = useState(true);
-  const [erro, setErro] = useState("");
+  const agronomoId = localStorage.getItem("usuarioId");
+  const selecionadoId = localStorage.getItem("produtorSelecionadoId");
+
+  const [tentativa, setTentativa] = useState(0);
+  const [consulta, setConsulta] = useState({ chave: "", produtores: [], erro: "" });
+  const [busca, setBusca] = useState("");
+
+  const chave = agronomoId ? `${agronomoId}:${tentativa}` : "";
 
   useEffect(() => {
+    if (!chave) return undefined;
+
+    let cancelado = false;
+
     async function buscarProdutores() {
-      const agronomoId = localStorage.getItem("usuarioId");
-
-      if (!agronomoId) {
-        setErro("Usuário não identificado.");
-        setCarregando(false);
-        return;
-      }
-
       try {
-        const resposta = await fetch(
-          `${AUTH_API_URL}/agronomo/${agronomoId}/produtores`
-        );
+        const resposta = await fetch(`${AUTH_API_URL}/agronomo/${agronomoId}/produtores`);
         const dados = await resposta.json();
 
-        if (resposta.ok) {
-          setProdutores(dados);
-        } else {
-          setErro(dados.mensagem || "Erro ao buscar produtores.");
+        if (!resposta.ok) {
+          throw new Error(dados.mensagem || "Erro ao buscar produtores.");
         }
-      } catch (erroRequisicao) {
-        setErro("Erro ao conectar com o servidor.");
-        //console.error(erroRequisicao);
-      } finally {
-        setCarregando(false);
+
+        if (!cancelado) setConsulta({ chave, produtores: dados, erro: "" });
+      } catch (erro) {
+        if (!cancelado) {
+          setConsulta({
+            chave,
+            produtores: [],
+            erro: mensagemDeErro(erro, "Erro ao buscar produtores."),
+          });
+        }
       }
     }
 
     buscarProdutores();
-  }, []);
+
+    return () => {
+      cancelado = true;
+    };
+  }, [chave, agronomoId]);
+
+  const carregando = Boolean(chave) && consulta.chave !== chave;
+  const produtores = consulta.chave === chave ? consulta.produtores : [];
+  const erro = !agronomoId
+    ? "Usuário não identificado."
+    : consulta.chave === chave
+      ? consulta.erro
+      : "";
+
+  const termo = normalizar(busca.trim());
+  const filtrados = termo
+    ? produtores.filter((p) => normalizar(`${p.nome} ${p.email}`).includes(termo))
+    : produtores;
 
   function selecionarProdutor(produtor) {
     localStorage.setItem("produtorSelecionadoId", produtor.id);
     localStorage.setItem("produtorSelecionadoNome", produtor.nome);
-    
+    // a lavoura em foco era do produtor anterior
+    localStorage.removeItem("lavouraId");
+    localStorage.removeItem("lavouraNome");
+
     navigate("/home");
   }
 
-  function pegarIniciais(nome) {
-    if (!nome) return "?";
-    const partes = nome.trim().split(" ");
-    if (partes.length === 1) return partes[0].substring(0, 2).toUpperCase();
-    return (partes[0][0] + partes[partes.length - 1][0]).toUpperCase();
-  }
-
   return (
-    <div className="agronomo-page">
-      <div className="agronomo-cabecalho">
-        <h1>Meus produtores</h1>
-        <p>Selecione um produtor para acompanhar a lavoura dele.</p>
-      </div>
+    <div className="ui-coluna">
+      <AppBar
+        titulo="Meus produtores"
+        subtitulo="Escolha quem você vai acompanhar."
+        semVoltar
+      />
 
-      {carregando && <p className="agronomo-status">Carregando produtores...</p>}
+      <main className="ui-conteudo">
+        {carregando && (
+          <div aria-busy="true">
+            <Skeleton linhas={4} altura={76} />
+          </div>
+        )}
 
-      {!carregando && erro && <p className="agronomo-status agronomo-erro">{erro}</p>}
+        {!carregando && erro && (
+          <ErrorState
+            mensagem={erro}
+            aoTentar={agronomoId ? () => setTentativa((n) => n + 1) : undefined}
+          />
+        )}
 
-      {!carregando && !erro && produtores.length === 0 && (
-        <p className="agronomo-status">Nenhum produtor cadastrado ainda.</p>
-      )}
+        {!carregando && !erro && produtores.length === 0 && (
+          <EmptyState
+            icone="usuarios"
+            titulo="Nenhum produtor por aqui ainda"
+            texto="Quando a cooperativa vincular produtores a você, eles aparecem nesta lista."
+          />
+        )}
 
-      <div className="agronomo-lista">
-        {produtores.map((produtor) => (
-          <button
-            key={produtor.id}
-            className="agronomo-card"
-            onClick={() => selecionarProdutor(produtor)}
-          >
-            <div className="agronomo-avatar">{pegarIniciais(produtor.nome)}</div>
-            <div className="agronomo-info">
-              <span className="agronomo-nome">{produtor.nome}</span>
-              <span className="agronomo-email">{produtor.email}</span>
-            </div>
-          </button>
-        ))}
-      </div>
+        {produtores.length > 5 && (
+          <TextField
+            label="Buscar produtor"
+            type="search"
+            icone="busca"
+            placeholder="Nome ou e-mail"
+            autoComplete="off"
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+          />
+        )}
+
+        {produtores.length > 0 && (
+          <p className="agro-resumo" aria-live="polite">
+            {contar(filtrados.length, "produtor", "produtores")}
+          </p>
+        )}
+
+        <ul className="agro-lista">
+          {filtrados.map((produtor) => {
+            const ativo = String(produtor.id) === String(selecionadoId);
+            return (
+              <li key={produtor.id}>
+                <button
+                  type="button"
+                  className={`agro-cartao ${ativo ? "agro-cartao-ativo" : ""}`}
+                  onClick={() => selecionarProdutor(produtor)}
+                  aria-current={ativo ? "true" : undefined}
+                >
+                  <Avatar nome={produtor.nome} tamanho={46} />
+                  <span className="agro-info">
+                    <span className="agro-nome">{produtor.nome}</span>
+                    <span className="agro-email">{produtor.email}</span>
+                  </span>
+                  {ativo ? (
+                    <Badge tom="ok">
+                      <Icon nome="check" tamanho={13} espessura={2.4} />
+                      Selecionado
+                    </Badge>
+                  ) : (
+                    <Icon nome="setaDireita" />
+                  )}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+
+        {produtores.length > 0 && filtrados.length === 0 && (
+          <EmptyState
+            icone="busca"
+            titulo="Ninguém encontrado"
+            texto="Tente outro nome ou e-mail."
+          />
+        )}
+      </main>
 
       <BottomNav />
     </div>

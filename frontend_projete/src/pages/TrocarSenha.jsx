@@ -1,30 +1,44 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AUTH_API_URL } from "../config/api";
-import "./TrocarSenha.css";
+import AppBar from "../components/ui/AppBar";
+import Button from "../components/ui/Button";
+import { PasswordField } from "../components/ui/Field";
+import { Notice } from "../components/ui/States";
+import { useToast } from "../components/ui/toastContext";
+import { mensagemDeErro } from "../services/erros";
 
 function TrocarSenha() {
   const navigate = useNavigate();
+  const toast = useToast();
+
   const [senhaAtual, setSenhaAtual] = useState("");
   const [novaSenha, setNovaSenha] = useState("");
   const [confirmaSenha, setConfirmaSenha] = useState("");
-  const [mensagem, setMensagem] = useState("");
+  const [erro, setErro] = useState("");
   const [carregando, setCarregando] = useState(false);
+
+  const senhaCurta = novaSenha.length > 0 && novaSenha.length < 6;
+  const naoConfere = confirmaSenha.length > 0 && novaSenha !== confirmaSenha;
 
   async function handleSalvar(event) {
     event.preventDefault();
 
     if (!senhaAtual || !novaSenha || !confirmaSenha) {
-      setMensagem("Preencha todos os campos.");
+      setErro("Preencha todos os campos.");
+      return;
+    }
+    if (senhaCurta) {
+      setErro("A nova senha precisa ter pelo menos 6 caracteres.");
       return;
     }
     if (novaSenha !== confirmaSenha) {
-      setMensagem("A nova senha e a confirmação não coincidem.");
+      setErro("A nova senha e a confirmação não coincidem.");
       return;
     }
 
     setCarregando(true);
-    setMensagem("");
+    setErro("");
 
     try {
       const usuarioId = localStorage.getItem("usuarioId");
@@ -36,59 +50,67 @@ function TrocarSenha() {
       const dados = await resposta.json();
 
       if (resposta.ok) {
-        setMensagem("Senha alterada com sucesso!");
-        setTimeout(() => navigate("/perfil"), 1500);
+        toast.sucesso("Senha alterada com sucesso!");
+        navigate("/perfil");
       } else {
-        setMensagem(dados.mensagem || "Erro ao trocar senha.");
+        setErro(dados.mensagem || "Erro ao trocar senha.");
       }
-    } catch (erro) {
-      setMensagem("Erro ao conectar com o servidor.");
-      console.error(erro);
+    } catch (erroRequisicao) {
+      setErro(mensagemDeErro(erroRequisicao, "Erro ao conectar com o servidor."));
     } finally {
       setCarregando(false);
     }
   }
-  function handleVoltar() {
-    navigate("/perfil");
-  }
 
   return (
-    <div className="trocar-page">
-      <div className="trocar-card">
-        <h1>Trocar senha</h1>
+    <div className="ui-coluna ui-coluna--sem-nav">
+      <AppBar
+        titulo="Trocar senha"
+        subtitulo="Escolha uma senha nova para a sua conta."
+        para="/perfil"
+      />
 
-        <form onSubmit={handleSalvar}>
-          <label>Senha atual</label>
-          <input
-            type="password"
+      <form className="ui-conteudo" onSubmit={handleSalvar} noValidate>
+        <div className="ui-cartao ui-formulario">
+          <PasswordField
+            label="Senha atual"
+            name="senhaAtual"
+            autoComplete="current-password"
             value={senhaAtual}
             onChange={(e) => setSenhaAtual(e.target.value)}
           />
 
-          <label>Nova senha</label>
-          <input
-            type="password"
+          <PasswordField
+            label="Nova senha"
+            name="novaSenha"
+            autoComplete="new-password"
+            hint="Use pelo menos 6 caracteres."
+            error={senhaCurta ? "A senha precisa ter pelo menos 6 caracteres." : ""}
             value={novaSenha}
             onChange={(e) => setNovaSenha(e.target.value)}
           />
 
-          <label>Confirmar nova senha</label>
-          <input
-            type="password"
+          <PasswordField
+            label="Confirmar nova senha"
+            name="confirmaSenha"
+            autoComplete="new-password"
+            error={naoConfere ? "As senhas não coincidem." : ""}
             value={confirmaSenha}
             onChange={(e) => setConfirmaSenha(e.target.value)}
           />
 
-          {mensagem && <span className="trocar-mensagem">{mensagem}</span>}
+          {erro && <Notice tipo="erro">{erro}</Notice>}
+        </div>
 
-          <button type="submit" disabled={carregando}>
-            {carregando ? "Salvando..." : "Salvar nova senha"}
-          </button>
-          <button type="button" onClick={handleVoltar}>
-            Voltar
-          </button>
-        </form>
-      </div>
+        <div className="ui-acoes-pagina">
+          <Button type="submit" size="lg" block loading={carregando}>
+            {carregando ? "Salvando…" : "Salvar nova senha"}
+          </Button>
+          <Button variant="secondary" block onClick={() => navigate("/perfil")}>
+            Cancelar
+          </Button>
+        </div>
+      </form>
     </div>
   );
 }

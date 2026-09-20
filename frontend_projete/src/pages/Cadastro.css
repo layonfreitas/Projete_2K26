@@ -1,97 +1,50 @@
-.cadastro-container {
-  min-height: 100svh;
+.cad-resumo {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24px 18px;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.cad-contorno {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 200px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--canopy-soft);
+}
+
+.cad-contorno polygon {
+  fill: rgba(46, 125, 50, 0.25);
+  stroke: var(--canopy-dark);
+  stroke-width: 2.5;
+  stroke-linejoin: round;
+}
+
+.cad-numeros {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr;
+  gap: 10px;
+  margin: 0;
+}
+
+.cad-numeros > div {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 2px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
   background: var(--parchment);
 }
 
-.cadastro-card {
-  width: 100%;
-  max-width: 420px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: 30px 26px;
-  box-shadow: var(--shadow-md);
-}
-
-.cadastro-header {
-  margin-bottom: 22px;
-}
-
-.cadastro-header h1 {
-  font-size: 22px;
-}
-
-.cadastro-header p {
-  font-size: 13.5px;
-}
-
-.formulario {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.campo {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.campo label {
-  font-size: 12.5px;
-  font-weight: 600;
+.cad-numeros dt {
   color: var(--ink-soft);
+  font-size: 12.5px;
 }
 
-.info-poligono {
-  background: var(--canopy-soft);
-  color: var(--canopy-dark);
-  border-radius: var(--radius-sm);
-  padding: 12px 14px;
-  font-size: 13px;
-  line-height: 1.5;
-}
-
-.mensagem-cadastro {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--cherry);
-  margin: -4px 0 0;
-}
-
-.cadastro-card .botoes {
-  display: flex;
-  gap: 12px;
-  margin-top: 8px;
-}
-
-.botao-voltar,
-.botao-salvar {
-  flex: 1;
-  min-height: 46px;
-  padding: 12px 14px;
-  font-family: inherit;
-  font-size: 14px;
-  font-weight: 600;
-  color: #fff;
-  background: var(--canopy);
-  border: 1.5px solid var(--canopy);
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  transition: 0.2s ease;
-}
-
-.botao-voltar:hover,
-.botao-salvar:hover:not(:disabled) {
-  background: var(--canopy-dark);
-  border-color: var(--canopy-dark);
-}
-
-.botao-salvar:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
+.cad-numeros dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font: 600 19px/1.2 var(--font-display);
 }
