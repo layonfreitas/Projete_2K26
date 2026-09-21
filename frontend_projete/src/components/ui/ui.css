@@ -1,0 +1,697 @@
+/* =========================================================
+   Componentes compartilhados (prefixo "ui-")
+   Usa SOMENTE os tokens de index.css. Nenhuma cor nova.
+
+   Nota sobre <button>: index.css estiliza qualquer <button> (fundo
+   verde, hover escuro). Aqui cada variação define as próprias cores
+   por variáveis (--b-bg, --b-bg-h, --b-fg, --b-bd) e o próprio hover,
+   com especificidade maior que o hover global.
+   ========================================================= */
+
+.ui-icone {
+  flex: none;
+}
+
+/* ---------- Botões ---------- */
+
+.ui-btn {
+  --b-bg: var(--canopy);
+  --b-bg-h: var(--canopy-dark);
+  --b-fg: #fff;
+  --b-bd: transparent;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 46px;
+  padding: 10px 18px;
+  border: 1.5px solid var(--b-bd);
+  border-radius: var(--radius-sm);
+  background: var(--b-bg);
+  color: var(--b-fg);
+  font: 600 14.5px/1.2 var(--font-body);
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.ui-btn:hover:not(:disabled) {
+  background: var(--b-bg-h);
+}
+
+.ui-btn[aria-busy="true"] {
+  cursor: progress;
+}
+
+.ui-btn--secondary {
+  --b-bg: var(--surface);
+  --b-bg-h: var(--canopy-soft);
+  --b-fg: var(--ink);
+  --b-bd: var(--border-strong);
+}
+
+.ui-btn--ghost {
+  --b-bg: transparent;
+  --b-bg-h: var(--parchment);
+  --b-fg: var(--ink-soft);
+}
+
+.ui-btn--danger {
+  --b-bg: var(--cherry);
+  --b-bg-h: #a91f1f;
+}
+
+.ui-btn--danger-soft {
+  --b-bg: transparent;
+  --b-bg-h: var(--cherry-soft);
+  --b-fg: var(--cherry);
+}
+
+.ui-btn--gold {
+  --b-bg: var(--gold);
+  --b-bg-h: #b6842f;
+  --b-fg: var(--ink);
+}
+
+/* para usar sobre fundos verdes (header, banner de clima, barra do mapa) */
+.ui-btn--glass {
+  --b-bg: rgba(255, 255, 255, 0.14);
+  --b-bg-h: rgba(255, 255, 255, 0.26);
+  --b-fg: #fff;
+  --b-bd: rgba(255, 255, 255, 0.28);
+}
+
+.ui-btn--sm {
+  min-height: 40px;
+  padding: 7px 14px;
+  font-size: 13.5px;
+}
+
+.ui-btn--lg {
+  min-height: 52px;
+  padding: 12px 22px;
+  font-size: 15.5px;
+}
+
+.ui-btn--block {
+  width: 100%;
+}
+
+.ui-btn--icon {
+  width: 42px;
+  min-height: 42px;
+  padding: 0;
+  border-radius: 12px;
+  flex: none;
+}
+
+.ui-spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: ui-girar 0.7s linear infinite;
+}
+
+.ui-spinner--grande {
+  width: 28px;
+  height: 28px;
+  border-width: 3px;
+  color: var(--canopy);
+}
+
+@keyframes ui-girar {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ---------- Campos ---------- */
+
+.ui-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.ui-field > label {
+  color: var(--ink);
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.ui-field input,
+.ui-field select,
+.ui-field textarea {
+  min-height: 48px;
+  font-size: 15.5px; /* ≥16px evita o zoom automático do iOS */
+}
+
+.ui-field textarea {
+  min-height: 130px;
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.ui-field [aria-invalid="true"] {
+  border-color: var(--cherry);
+}
+
+.ui-field [aria-invalid="true"]:focus {
+  border-color: var(--cherry);
+  box-shadow: 0 0 0 3px var(--cherry-soft);
+}
+
+.ui-dica {
+  color: var(--ink-soft);
+  font-size: 12.5px;
+}
+
+.ui-erro-texto {
+  color: var(--cherry);
+  font-size: 12.5px;
+  font-weight: 500;
+}
+
+.ui-campo-rodape {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.ui-contador {
+  margin-left: auto;
+}
+
+.ui-senha {
+  position: relative;
+}
+
+.ui-senha input {
+  padding-right: 52px;
+}
+
+.ui-senha .ui-btn {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  bottom: 3px;
+  width: 42px;
+  min-height: 0;
+}
+
+.ui-input-icone {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.ui-input-icone .ui-icone {
+  position: absolute;
+  left: 14px;
+  color: var(--ink-soft);
+  pointer-events: none;
+}
+
+.ui-input-icone input {
+  padding-left: 42px;
+}
+
+.ui-formulario {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.ui-acoes-pagina {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ---------- Cartões, selos, avisos ---------- */
+
+.ui-cartao {
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.ui-selo {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+
+.ui-selo--neutro {
+  border: 1px solid var(--border-strong);
+  color: var(--ink-soft);
+}
+.ui-selo--ok {
+  background: var(--canopy-soft);
+  color: var(--canopy-dark);
+}
+.ui-selo--atencao {
+  background: var(--gold-soft);
+  color: #7a5b1c;
+}
+.ui-selo--critico {
+  background: var(--cherry-soft);
+  color: var(--cherry);
+}
+
+.ui-aviso {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 13.5px;
+  font-weight: 500;
+  line-height: 1.45;
+}
+
+.ui-aviso .ui-icone {
+  margin-top: 1px;
+}
+
+.ui-aviso--info {
+  background: var(--parchment);
+  color: var(--ink-soft);
+  border: 1px solid var(--border);
+}
+.ui-aviso--sucesso {
+  background: var(--canopy-soft);
+  color: var(--canopy-dark);
+}
+.ui-aviso--erro {
+  background: var(--cherry-soft);
+  color: var(--cherry);
+}
+.ui-aviso--aviso {
+  background: var(--gold-soft);
+  color: #7a5b1c;
+}
+
+/* ---------- Estados: carregando, vazio, falha ---------- */
+
+.ui-esqueleto {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ui-esqueleto span {
+  display: block;
+  border-radius: var(--radius-md);
+  background: linear-gradient(90deg, var(--border) 0%, var(--parchment) 50%, var(--border) 100%);
+  background-size: 200% 100%;
+  animation: ui-brilho 1.4s ease-in-out infinite;
+}
+
+@keyframes ui-brilho {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+.ui-carregando {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 48px 20px;
+  color: var(--ink-soft);
+  font-size: 14px;
+}
+
+.ui-vazio {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 36px 24px;
+  border: 1.5px dashed var(--border-strong);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  text-align: center;
+}
+
+.ui-vazio-icone {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  margin-bottom: 4px;
+  border-radius: 50%;
+  background: var(--canopy-soft);
+  color: var(--canopy-dark);
+}
+
+.ui-vazio strong {
+  font: 600 16.5px/1.3 var(--font-display);
+}
+
+.ui-vazio p {
+  max-width: 36ch;
+  font-size: 14px;
+}
+
+.ui-vazio-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.ui-falha {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 12px;
+  align-items: start;
+  padding: 16px;
+  border: 1px solid var(--cherry-soft);
+  border-radius: var(--radius-md);
+  background: var(--cherry-soft);
+  color: var(--cherry);
+}
+
+.ui-falha strong {
+  display: block;
+  color: #7a2c1e;
+  font-size: 15px;
+}
+
+.ui-falha p {
+  color: #7a2c1e;
+  font-size: 14px;
+}
+
+.ui-falha .ui-btn {
+  grid-column: 1 / -1;
+  justify-self: start;
+  margin-top: 8px;
+}
+
+/* ---------- Estrutura de página ---------- */
+
+/* coluna central para telas de formulário/lista (celular: tela toda;
+   desktop: folha centralizada sobre o fundo de grãos) */
+.ui-coluna {
+  width: 100%;
+  max-width: 560px;
+  min-height: 100svh;
+  margin: 0 auto;
+  background: var(--parchment);
+  padding-bottom: calc(120px + env(safe-area-inset-bottom, 0px));
+}
+
+.ui-coluna--larga {
+  max-width: 880px;
+}
+
+/* telas de formulário não têm a barra de navegação flutuante */
+.ui-coluna--sem-nav {
+  padding-bottom: calc(40px + env(safe-area-inset-bottom, 0px));
+}
+
+@media (min-width: 800px) {
+  .ui-coluna {
+    box-shadow: var(--shadow-lg);
+  }
+}
+
+.ui-conteudo {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 8px 20px 0;
+}
+
+.ui-barra {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: calc(14px + env(safe-area-inset-top, 0px)) 14px 12px 12px;
+  background: rgba(243, 237, 224, 0.94);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+}
+
+.ui-barra--sem-voltar {
+  padding-left: 20px;
+}
+
+.ui-barra-texto {
+  flex: 1;
+  min-width: 0;
+}
+
+.ui-barra-texto h1 {
+  margin: 0;
+  font-size: 20px;
+  line-height: 1.2;
+}
+
+.ui-barra-texto p {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+}
+
+.ui-barra-acoes {
+  display: flex;
+  gap: 8px;
+}
+
+/* o body/html têm overflow-x:hidden (index.css), o que quebra o
+   position:sticky. "clip" corta igual, sem criar rolagem própria. */
+html:has(.ui-barra),
+body:has(.ui-barra) {
+  overflow-x: clip;
+}
+
+.ui-avatar {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-family: var(--font-display);
+  font-weight: 600;
+  line-height: 1;
+}
+
+.ui-avatar--canopy {
+  background: var(--canopy-soft);
+  color: var(--canopy-dark);
+}
+
+.ui-avatar--gold {
+  background: var(--gold-soft);
+  color: #7a5b1c;
+}
+
+.ui-avatar--solid {
+  background: var(--canopy);
+  color: #fff;
+}
+
+/* ---------- Painel (bottom sheet / janela) ---------- */
+
+html:has(.ui-painel[open]) {
+  overflow: hidden;
+}
+
+.ui-painel {
+  width: 100%;
+  max-width: 520px;
+  max-height: min(92svh, 760px);
+  margin: auto auto 0;
+  padding: 0;
+  border: 0;
+  border-radius: 24px 24px 0 0;
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--shadow-lg);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.ui-painel::backdrop {
+  background: rgba(36, 28, 21, 0.55);
+}
+
+.ui-painel[open] {
+  animation: ui-subir 0.22s ease-out;
+}
+
+@keyframes ui-subir {
+  from {
+    opacity: 0;
+    transform: translateY(28px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (min-width: 600px) {
+  .ui-painel {
+    margin: auto;
+    border-radius: 20px;
+  }
+}
+
+.ui-painel-corpo {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 20px 20px calc(24px + env(safe-area-inset-bottom, 0px));
+}
+
+.ui-painel-topo {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.ui-painel-topo h2 {
+  margin: 0;
+  font-size: 20px;
+  line-height: 1.25;
+}
+
+.ui-painel-topo p {
+  margin-top: 4px;
+  font-size: 14px;
+}
+
+.ui-painel-topo .ui-btn {
+  margin: -6px -8px 0 0;
+}
+
+.ui-painel-botoes {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 8px;
+}
+
+.ui-painel-botoes .ui-btn {
+  width: 100%;
+}
+
+@media (min-width: 480px) {
+  .ui-painel-botoes {
+    flex-direction: row;
+    justify-content: flex-end;
+  }
+  .ui-painel-botoes .ui-btn {
+    width: auto;
+  }
+}
+
+/* ---------- Toasts ---------- */
+
+.ui-toasts {
+  position: fixed;
+  top: calc(12px + env(safe-area-inset-top, 0px));
+  left: 50%;
+  z-index: 3000;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: calc(100% - 24px);
+  max-width: 440px;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.ui-toast {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 8px 12px 16px;
+  border-radius: 14px;
+  background: var(--ink);
+  color: var(--parchment);
+  box-shadow: var(--shadow-lg);
+  pointer-events: auto;
+  animation: ui-descer 0.2s ease-out;
+}
+
+.ui-toast p {
+  flex: 1;
+  color: var(--parchment);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.ui-toast--sucesso > .ui-icone {
+  color: var(--canopy-soft);
+}
+.ui-toast--erro > .ui-icone {
+  color: var(--cherry-soft);
+}
+.ui-toast--info > .ui-icone {
+  color: var(--gold-soft);
+}
+
+.ui-toast-fechar {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--parchment);
+}
+
+.ui-toast-fechar:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+@keyframes ui-descer {
+  from {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* fallback de carregamento das telas (Suspense) */
+.carregando-tela {
+  min-height: 100svh;
+  display: grid;
+  place-items: center;
+  background: var(--parchment);
+}

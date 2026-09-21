@@ -12,7 +12,9 @@ import os
 from dotenv import load_dotenv
 import cloudinary
 from  get_indices import save_image_indatabase
-
+from graus_dia import get_graus_dia_data
+import json
+import requests
 load_dotenv()
 
 
@@ -28,10 +30,20 @@ from gee_auth import obter_credenciais
 credentials, project_id = obter_credenciais()
 ee.Initialize(credentials, project="projete2k26")
 
+indices = ["NDVI", "NDRE", "NDWI"]
 
 def add_NDVI(image):
     ndvi = image.normalizedDifference(["B8","B4"]).rename("NDVI")
     return image.addBands(ndvi)
+
+def add_NDRE(image):
+    ndre = image.normalizedDifference(["B8","B5"]).rename("NDRE")
+    return image.addBands(ndre)
+
+def add_NDWI(image):
+    ndwi = image.normalizedDifference(["B3","B8"]).rename("NDWI")
+    return image.addBands(ndwi)
+
 
 
 def Imagem_para_zona_de_manejo(geometria, data_inicio, data_fim):
@@ -354,8 +366,71 @@ def create_zonas_de_manejo(array,usuario_id: int, lavoura_id: int,pasta_id = os.
         f"zonas_de_manejo_{datetime.now().strftime('%Y-%m-%d')}.png"
     )
     
+   
+
+def make_time_series(geometria, data_inicio, data_fim, usuario_id: int, lavoura_id: int):
+    inicio =ee.Date(data_inicio)
+    fim = ee.Date(data_fim)
+    lavoura = ee.Geometry.Polygon(geometria)
+    imagens = (
+        ee.ImageCollection("COPERNICUS/S2_SR_HARMONIZED")
+        .filterBounds(lavoura)
+        .filterDate(inicio, fim)
+        .filter(ee.Filter.lt("CLOUDY_PIXEL_PERCENTAGE", 30))
+    )
+
+    imagens_com_indices = imagens.map(add_NDVI).map(add_NDRE).map(add_NDWI)
+    colecao_com_indices = imagens_com_indices.toList(imagens_com_indices.size())
+
+    graus_dia = 0
+    resultados = []
+    for i in range (colecao_com_indices.size().getInfo()):
+        imagem = ee.Image(colecao_com_indices.get(i))
+        graus_dia += get_graus_dia_data(lavoura.centroid().coordinates().get(1).getInfo(), lavoura.centroid().coordinates().get(0).getInfo(), imagem.date().format('YYYY-MM-dd').getInfo())
+        valores = imagem.reduceRegion(
+            reducer=ee.Reducer.mean(),
+            geometry=lavoura,
+            scale=10
+        )
+
+        for indice in indices:
+            resultados.append({
+                "dataReferencia": imagem.date().format('YYYY-MM-dd').getInfo(),
+                "tipoIndice": indice,
+                "valor": valores.get(indice).getInfo(),
+                "grausDia": graus_dia ,
+                "lavouraId": lavoura_id
+            })
+
+    dados = json.dumps(resultados)
+    resposta = requests.post(url=api_url('/create_serie_temporal'), json=dados, timeout=(15,60))
+    resposta.raise_for_status()
+    print(resposta.json())
+    return resposta.json()
+
+
     
 
 
-    image_timeseries = Image.fromarray(rgba)
-    save_image_indatabase(image_timeseries, nome_arquivo, pasta_id, usuario_id, lavoura_id, datetime.now().strftime('%Y-%m-%d'))
+    
+
+            
+            
+
+        
+
+
+        
+    
+
+
+
+
+
+
+
+
+
+
+    imagem_zonas_de_manejo = Image.fromarray(rgba)
+    save_image_indatabase(imagem_zonas_de_manejo, nome_arquivo, pasta_id, usuario_id, lavoura_id, datetime.now().strftime('%Y-%m-%d'))

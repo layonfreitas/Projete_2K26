@@ -3,9 +3,13 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { AUTH_API_URL } from '../config/api';
 import { buscarJson, validarMapa, indicesDaData, selecionarRegistro } from '../services/historicoAPI';
+import Button from './ui/Button';
+import Icon from './ui/Icon';
+import './historicoMapas.css';
 
 const estilo = { color: '#2f4a33', weight: 2, fill: false };
 const formatarData = data => data ? data.slice(0, 10).split('-').reverse().join('/') : '';
+const INDICES = ['NDVI', 'NDRE', 'NDWI'];
 
 export default function HistoricoMapas() {
   const container = useRef(null);
@@ -141,48 +145,67 @@ export default function HistoricoMapas() {
   const vis = meta?.visualizacao;
   const erro = !usuarioId ? 'Selecione um produtor ou entre novamente na sua conta.' : (consultaLavouras.chave === chaveLavouras ? consultaLavouras.erro : '') || (historicoAtual ? historico.erro : '') || exibicao.erro;
   const carregando = Boolean(usuarioId) && (consultaLavouras.chave !== chaveLavouras || (Boolean(lavouraId) && !historicoAtual) || exibicao.carregando);
+  const semLavouras = Boolean(usuarioId) && consultaLavouras.chave === chaveLavouras && !consultaLavouras.erro && lavouras.length === 0;
+  const indicesDoRegistro = indicesDaData(registro);
   return (
-    <div className="mapas-container">
-      <div className="mapas-lavoura">
-        <label htmlFor="historico-lavoura">Lavoura</label>
-        <select id="historico-lavoura" value={lavouraId} onChange={e => { setLavouraId(e.target.value); setSelecao({ data: '', indice: '', modo: 'indice' }); }} disabled={!lavouras.length}>
-          {!lavouras.length && <option value="">Nenhuma lavoura cadastrada</option>}
-          {lavouras.map(l => <option key={l.id} value={l.id}>{l.nomeLavoura}</option>)}
-        </select>
-        <button className="historico-atualizar" onClick={() => setAtualizacao(n => n + 1)}>Atualizar histórico</button>
+    <div className="hm">
+      <div className="hm-barra">
+        <div className="ui-field hm-lavoura">
+          <label htmlFor="historico-lavoura">Lavoura</label>
+          <select id="historico-lavoura" value={lavouraId} onChange={e => { setLavouraId(e.target.value); setSelecao({ data: '', indice: '', modo: 'indice' }); }} disabled={!lavouras.length}>
+            {!lavouras.length && <option value="">Nenhuma lavoura cadastrada</option>}
+            {lavouras.map(l => <option key={l.id} value={l.id}>{l.nomeLavoura}</option>)}
+          </select>
+        </div>
+        <Button variant="secondary" size="sm" icon="atualizar" className="ui-btn--icon hm-atualizar" aria-label="Atualizar histórico" title="Atualizar histórico" onClick={() => setAtualizacao(n => n + 1)} />
       </div>
-      <div className="mapas-area">
-        <aside className="mapas-datas" aria-label="Datas disponíveis">
-          <div className="mapa-data-titulo">Imagens disponíveis</div>
-          {!itens.length && !carregando && <p className="mapas-sem-imagens">Nenhuma imagem disponível para esta lavoura.</p>}
-          {itens.map(item => <div key={item.data} className={`mapa-data ${item.data === selecao.data ? 'ativa' : ''}`}>
-            <button className="mapa-data-botao" aria-pressed={item.data === selecao.data} onClick={() => setSelecao(a => selecionarRegistro(item, a))}>
-              {formatarData(item.data)}
-            </button>
-            <small>{indicesDaData(item).join(' · ')}</small>
-          </div>)}
+
+      <div className="hm-area">
+        <aside className="hm-datas" aria-label="Datas disponíveis">
+          <h3 className="hm-datas-titulo"><Icon nome="calendario" tamanho={16} /> Imagens disponíveis</h3>
+          {!itens.length && !carregando && <p className="hm-sem-imagens">{semLavouras ? 'Nenhuma lavoura cadastrada ainda.' : 'Nenhuma imagem disponível para esta lavoura.'}</p>}
+          <ul className="hm-datas-lista">
+            {itens.map(item => <li key={item.data}>
+              <button className={`hm-data ${item.data === selecao.data ? 'ativa' : ''}`} aria-pressed={item.data === selecao.data} onClick={() => setSelecao(a => selecionarRegistro(item, a))}>
+                <strong>{formatarData(item.data)}</strong>
+                <span className="hm-data-indices">{indicesDaData(item).map(i => <i key={i}>{i}</i>)}</span>
+              </button>
+            </li>)}
+          </ul>
         </aside>
-        <div className="historico-visualizacao">
-          <div className="historico-filtros">
-            <label htmlFor="historico-indice">Índice</label>
-            <select id="historico-indice" value={selecao.indice} disabled={!registro} onChange={e => setSelecao(a => selecionarRegistro(registro, { ...a, indice: e.target.value }))}>
-              {!registro && <option value="">Selecione uma data</option>}
-              {indicesDaData(registro).map(i => <option key={i}>{i}</option>)}
-            </select>
-            <button aria-pressed={selecao.modo === 'indice'} disabled={!registro?.indicesDisponiveis.includes(selecao.indice)} onClick={() => setSelecao(a => ({ ...a, modo: 'indice' }))}>Índice</button>
-            <button aria-pressed={selecao.modo === 'zscore'} disabled={!registro?.indicesDisponiveis.includes(`z-score-${selecao.indice}`)} onClick={() => setSelecao(a => ({ ...a, modo: 'zscore' }))}>Z-score</button>
+
+        <div className="hm-visao">
+          <div className="hm-controles">
+            <div className="hm-segmentos" role="group" aria-label="Índice de vegetação">
+              {INDICES.map(i => <button key={i} aria-pressed={selecao.indice === i} disabled={!registro || !indicesDoRegistro.includes(i)} onClick={() => setSelecao(a => selecionarRegistro(registro, { ...a, indice: i }))}>{i}</button>)}
+            </div>
+            <div className="hm-segmentos" role="group" aria-label="Modo de exibição">
+              <button aria-pressed={selecao.modo === 'indice'} disabled={!registro?.indicesDisponiveis.includes(selecao.indice)} onClick={() => setSelecao(a => ({ ...a, modo: 'indice' }))}>Índice</button>
+              <button aria-pressed={selecao.modo === 'zscore'} disabled={!registro?.indicesDisponiveis.includes(`z-score-${selecao.indice}`)} onClick={() => setSelecao(a => ({ ...a, modo: 'zscore' }))}>Z-score</button>
+            </div>
           </div>
-          <div className="mapas-mapa-container">
-            <div ref={container} className="mapas-mapa" aria-label="Mapa da lavoura" />
-            {carregando && <div className="historico-status" role="status">Carregando histórico...</div>}
-            {erro && <div className="mapas-erro" role="alert">{erro}<button onClick={() => setAtualizacao(n => n + 1)}>Tentar novamente</button></div>}
+
+          <div className="hm-mapa-caixa">
+            <div ref={container} className="hm-mapa" aria-label="Mapa da lavoura" />
+            {carregando && <div className="hm-status" role="status"><span className="ui-spinner" aria-hidden="true" /> Carregando histórico…</div>}
+            {erro && <div className="hm-erro" role="alert">
+              <Icon nome="alertaCirculo" tamanho={22} />
+              <p>{erro}</p>
+              {usuarioId && <Button variant="secondary" size="sm" icon="atualizar" onClick={() => setAtualizacao(n => n + 1)}>Tentar novamente</Button>}
+            </div>}
           </div>
-          {meta && <div className="historico-legenda" aria-label="Legenda do mapa">
+
+          {meta && <div className="hm-legenda" aria-label="Legenda do mapa">
             <strong>{selecao.indice}{selecao.modo === 'zscore' ? ' · Z-score robusto' : ''} · {formatarData(selecao.data)}</strong>
             {Number.isFinite(meta.coberturaValida) && <span>Cobertura válida: {(meta.coberturaValida * 100).toFixed(0)}% da lavoura</span>}
-            {vis?.tipo === 'zscore' ? <div className="historico-cores">{vis.palette.map((cor, i) => <span key={cor}><i style={{ background: `#${cor}` }} />{vis.rotulos[i]}</span>)}</div>
-              : vis?.palette && <div className="historico-escala"><span>{vis.min}</span><div style={{ background: `linear-gradient(to right, ${vis.palette.map(c => `#${c}`).join(',')})` }} /><span>{vis.max}</span></div>}
+            {vis?.tipo === 'zscore' ? <div className="hm-cores">{vis.palette.map((cor, i) => <span key={cor}><i style={{ background: `#${cor}` }} />{vis.rotulos[i]}</span>)}</div>
+              : vis?.palette && <div className="hm-escala"><span>{vis.min}</span><div style={{ background: `linear-gradient(to right, ${vis.palette.map(c => `#${c}`).join(',')})` }} /><span>{vis.max}</span></div>}
             {selecao.modo === 'indice' && exibicao.dados.valor_indice != null && <span>Média na área válida: {Number(exibicao.dados.valor_indice).toFixed(3)}</span>}
+            <label className="hm-opacidade">
+              <span>Opacidade da imagem</span>
+              <input type="range" min="0.2" max="1" step="0.05" value={opacidade} onChange={e => setOpacidade(Number(e.target.value))} />
+              <output>{Math.round(opacidade * 100)}%</output>
+            </label>
           </div>}
         </div>
       </div>

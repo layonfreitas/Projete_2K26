@@ -1,143 +1,238 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import "./mapa.css";
 
 import BottomNav from "../components/BottomNav";
-
-import iconeMarcador from "leaflet/dist/images/marker-icon.png";
-import iconeMarcador2x from "leaflet/dist/images/marker-icon-2x.png";
-import iconeSombra from "leaflet/dist/images/marker-shadow.png";
-import * as turf from "@turf/turf";
-
+import Button from "../components/ui/Button";
+import Icon from "../components/ui/Icon";
+import { useToast } from "../components/ui/toastContext";
 import { AUTH_API_URL } from "../config/api";
+import { calcularAreaHectares, formatarHectares } from "../utils/geo";
+import { mensagemDeErro } from "../services/erros";
+import { contar } from "../utils/texto";
 
-delete L.Icon.Default.prototype._getIconUrl;
+import "../utils/leafletIcons";
 
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: iconeMarcador2x,
-  iconUrl: iconeMarcador,
-  shadowUrl: iconeSombra,
-});
+const BRASIL = [
+  [-35, -75],
+  [6, -32],
+];
 
+<<<<<<< HEAD
 // =========================================================
 // CALCULA A ÁREA DO CONTORNO EM HECTARES
 // =========================================================
 function calcularAreaHectares(pontos) {
   if (pontos.length < 10000) return 0;
+=======
+const normalizar = texto =>
+  String(texto || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+>>>>>>> 6e57f4877ff84b071ce52406ba9a7cb38d54613a
 
-  const coordenadas = pontos.map((p) => [p.lng, p.lat]); // Turf usa [lng, lat]
-  coordenadas.push(coordenadas[0]); // fecha o polígono
+function obterPontos(valor) {
+  if (typeof valor === "string") {
+    try {
+      valor = JSON.parse(valor);
+    } catch {
+      return [];
+    }
+  }
 
-  const poligono = turf.polygon([coordenadas]);
-  return turf.area(poligono) / 10000; // m² → hectares
+  if (!Array.isArray(valor)) return [];
+
+  return valor
+    .filter(
+      p =>
+        p?.lat != null &&
+        p?.lng != null &&
+        String(p.lat).trim() &&
+        String(p.lng).trim()
+    )
+    .map(p => [Number(p.lat), Number(p.lng)])
+    .filter(
+      ([lat, lng]) =>
+        Number.isFinite(lat) &&
+        Number.isFinite(lng) &&
+        Math.abs(lat) <= 90 &&
+        Math.abs(lng) <= 180
+    );
 }
+
+const CORES_LAVOURAS = [
+  "#e53935",
+  "#1e88e5",
+  "#43a047",
+  "#8e24aa",
+  "#fb8c00",
+  "#00acc1",
+  "#6d4c41",
+  "#d81b60",
+  "#3949ab",
+  "#7cb342",
+  "#f4511e",
+  "#00897b",
+];
 
 export default function Mapa() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const toast = useToast();
 
-  const usuarioTipo = localStorage.getItem("usuarioTipo");
-  const ehProdutor = usuarioTipo === "produtor";
+  // SOMENTE a URL solicita zoom.
+  // Não usa localStorage nem location.state para escolher o alvo.
+  const alvo = new URLSearchParams(location.search).get(
+    "lavouraId"
+  );
 
-  const mapaRef = useRef(null);
-  const map = useRef(null);
+  const usuarioId = localStorage.getItem("usuarioId");
+  const tipo = localStorage.getItem("usuarioTipo");
+  const ehProdutor = tipo === "produtor";
 
-  const postos = useRef([]);
-  const contadorPostos = useRef(0);
+  const container = useRef(null);
+  const mapa = useRef(null);
 
-  const contornoLavoura = useRef(null);
-  const previewLavoura = useRef(null);
+  const pontosCadastro = useRef([]);
+  const desenho = useRef(null);
+  const camadaCadastro = useRef(null);
+  const marcadorCidade = useRef(null);
 
-  const [cidade, setCidade] = useState("");
-  const [contornoCriado, setContornoCriado] = useState(false);
-  const [municipios, setMunicipios] = useState([]);
-  const [mostrarSugestoes, setMostrarSugestoes] = useState(false);
-  const [statusMunicipios, setStatusMunicipios] = useState("Carregando cidades...");
+  const [lavourasLegenda, setLavourasLegenda] = useState([]);
+  const [legendaAberta, setLegendaAberta] = useState(
+    () => window.innerWidth > 600
+  );
   const [areaHectares, setAreaHectares] = useState(0);
+  const [totalPontos, setTotalPontos] = useState(0);
+  const [confirmado, setConfirmado] = useState(false);
+  const [cidade, setCidade] = useState("");
+  const [municipios, setMunicipios] = useState([]);
 
-  const normalizar = (texto) =>
-    texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  const [sugestoesAbertas, setSugestoesAbertas] =
+    useState(false);
+
+  const [statusCidades, setStatusCidades] = useState(
+    "Carregando cidades..."
+  );
+
+  const [aviso, setAviso] = useState("");
 
   const termo = normalizar(cidade.trim());
 
   const sugestoes =
     termo.length >= 2
       ? municipios
-          .filter((item) => item.busca.includes(termo))
+          .filter(m => m.busca.includes(termo))
           .slice(0, 8)
       : [];
+
+  // ============================================================
+  // DESENHO DO CADASTRO
+  // ============================================================
+
+  function redesenhar(finalizado = false) {
+    if (!mapa.current || !camadaCadastro.current) return;
+
+    if (desenho.current) {
+      camadaCadastro.current.removeLayer(desenho.current);
+    }
+
+    desenho.current = null;
+
+    const coords = pontosCadastro.current.map(
+      p => p.marcador.getLatLng()
+    );
+
+    setAreaHectares(calcularAreaHectares(coords));
+    setTotalPontos(coords.length);
+    if (coords.length < 2) return;
+
+    const estilo = {
+      color: finalizado ? "#2f4a33" : "#ff0000",
+      weight: 3,
+      fillOpacity: 0.2,
+      dashArray: finalizado ? undefined : "6 8",
+    };
+
+    desenho.current = (
+      coords.length >= 3
+        ? L.polygon(coords, estilo)
+        : L.polyline(coords, estilo)
+    ).addTo(camadaCadastro.current);
+  }
+
+  // ============================================================
+  // MUNICÍPIOS
+  // ============================================================
 
   useEffect(() => {
     const controller = new AbortController();
 
-    async function carregarMunicipios() {
+    async function carregar() {
       try {
-        const resposta = await fetch(
+        const r = await fetch(
           "https://servicodados.ibge.gov.br/api/v1/localidades/municipios?orderBy=nome",
           { signal: controller.signal }
         );
 
-        if (!resposta.ok) {
-          throw new Error("Falha ao carregar municípios");
-        }
+        if (!r.ok) throw new Error();
 
-        const dados = await resposta.json();
+        const dados = await r.json();
+
+        if (controller.signal.aborted) return;
 
         setMunicipios(
-          dados.map((item) => {
+          dados.map(m => {
             const uf =
-              item.microrregiao?.mesorregiao?.UF?.sigla ??
-              item["regiao-imediata"]?.["regiao-intermediaria"]?.UF?.sigla;
+              m.microrregiao?.mesorregiao?.UF?.sigla ??
+              m["regiao-imediata"]?.["regiao-intermediaria"]
+                ?.UF?.sigla;
 
-            const nome = uf ? `${item.nome}, ${uf}` : item.nome;
+            const nome = uf ? `${m.nome}, ${uf}` : m.nome;
 
             return {
-              id: item.id,
+              id: m.id,
               nome,
-              busca: nome
-                .normalize("NFD")
-                .replace(/[\u0300-\u036f]/g, "")
-                .toLowerCase(),
+              busca: normalizar(nome),
             };
           })
         );
 
-        setStatusMunicipios("");
-      } catch (erro) {
-        if (erro.name !== "AbortError") {
-          setStatusMunicipios(
+        setStatusCidades("");
+      } catch {
+        if (!controller.signal.aborted) {
+          setStatusCidades(
             "Sugestões indisponíveis. Digite a cidade e clique em Buscar."
           );
         }
       }
     }
 
-    carregarMunicipios();
+    carregar();
 
     return () => controller.abort();
   }, []);
 
+  // ============================================================
+  // INICIALIZAÇÃO DO MAPA
+  // ============================================================
+
   useEffect(() => {
-    if (map.current) return;
-
-    const limitesBrasil = L.latLngBounds(
-      [-35.0, -75.0],
-      [6.0, -32.0]
-    );
-
-    map.current = L.map(mapaRef.current, {
-      center: [-14.2350, -51.9253],
+    const atual = L.map(container.current, {
+      center: [-14.235, -51.9253],
       zoom: 4,
       minZoom: 4,
       maxZoom: 17,
-      maxBounds: limitesBrasil,
-      maxBoundsViscosity: 1.0,
-      zoomControl: true,
+      maxBounds: BRASIL,
+      maxBoundsViscosity: 1,
     });
 
-    map.current.fitBounds(limitesBrasil);
+    mapa.current = atual;
+    atual.fitBounds(BRASIL);
 
     L.tileLayer(
       "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
@@ -145,419 +240,443 @@ export default function Mapa() {
         attribution: "Tiles © Esri",
         maxZoom: 17,
       }
-    ).addTo(map.current);
+    ).addTo(atual);
 
-    carregarLavouras();
+    camadaCadastro.current = L.layerGroup().addTo(atual);
+    pontosCadastro.current = [];
 
     if (ehProdutor) {
-      map.current.on("click", (e) => {
-        contadorPostos.current++;
-
-        const lat = e.latlng.lat;
-        const lng = e.latlng.lng;
-
-        const marcador = L.marker([lat, lng], {
+      atual.on("click", e => {
+        const marcador = L.marker(e.latlng, {
           draggable: true,
           autoPan: true,
-        }).addTo(map.current);
+        }).addTo(camadaCadastro.current);
 
-        const id = contadorPostos.current;
+        const ponto = { marcador };
+        let inserir = pontosCadastro.current.length;
+        if (inserir >= 3) {
+          const clique = atual.latLngToLayerPoint(e.latlng);
+          let distanciaMinima = Infinity;
+          pontosCadastro.current.forEach((item, indice) => {
+            const proximo = pontosCadastro.current[(indice + 1) % pontosCadastro.current.length];
+            const distancia = L.LineUtil.pointToSegmentDistance(clique,
+              atual.latLngToLayerPoint(item.marcador.getLatLng()),
+              atual.latLngToLayerPoint(proximo.marcador.getLatLng()));
+            if (distancia < distanciaMinima) {
+              distanciaMinima = distancia;
+              inserir = indice + 1;
+            }
+          });
+        }
+        pontosCadastro.current.splice(inserir, 0, ponto);
 
-        marcador.bindPopup(`
-          <b>Posto ${id}</b><br>
-          Lat: ${lat.toFixed(6)}<br>
-          Lng: ${lng.toFixed(6)}<br>
-          <button id="remover-${id}">Remover</button>
-        `);
+        const popup = document.createElement("div");
+        const texto = document.createElement("p");
+        texto.className = "mapa-popup-texto";
 
-        marcador.on("popupopen", () => {
-          const botao = document.getElementById(`remover-${id}`);
+        const atualizarTexto = () => {
+          const p = marcador.getLatLng();
 
-          if (botao) {
-            botao.onclick = () => removerPosto(id);
-          }
+          texto.textContent =
+            `Lat: ${p.lat.toFixed(6)} | ` +
+            `Lng: ${p.lng.toFixed(6)}`;
+        };
+
+        atualizarTexto();
+
+        const remover = document.createElement("button");
+        remover.type = "button";
+        remover.className = "mapa-popup-remover";
+        remover.textContent = "Remover ponto";
+
+        remover.onclick = () => {
+          camadaCadastro.current.removeLayer(marcador);
+
+          pontosCadastro.current =
+            pontosCadastro.current.filter(p => p !== ponto);
+
+          setConfirmado(false);
+          redesenhar();
+        };
+
+        popup.append(texto, remover);
+        marcador.bindPopup(popup);
+
+        marcador.on("dragstart", () => {
+          marcador.closePopup();
         });
-
-        const indiceInsercao =
-          postos.current.length >= 2
-            ? encontrarIndiceInsercao(e.latlng)
-            : postos.current.length;
-
-        postos.current.splice(indiceInsercao, 0, {
-          id,
-          marcador,
-          lat,
-          lng,
-        });
-
-        marcador.on("dragstart", () => marcador.closePopup());
 
         marcador.on("drag", () => {
-          const ponto = postos.current.find((p) => p.id === id);
-
-          if (!ponto) return;
-
-          const posicao = marcador.getLatLng();
-
-          ponto.lat = posicao.lat;
-          ponto.lng = posicao.lng;
-
-          if (contornoLavoura.current) {
-            contornoLavoura.current.setLatLngs(
-              postos.current.map((p) => [p.lat, p.lng])
-            );
-          } else {
-            atualizarPreview();
-          }
+          setConfirmado(false);
+          redesenhar();
         });
 
-        marcador.on("dragend", () => {
-          const posicao = marcador.getLatLng();
+        marcador.on("dragend", atualizarTexto);
 
-          marcador.setPopupContent(`
-            <b>Posto ${id}</b><br>
-            Lat: ${posicao.lat.toFixed(6)}<br>
-            Lng: ${posicao.lng.toFixed(6)}<br>
-            <button id="remover-${id}">Remover</button>
-          `);
-        });
-
-        if (contornoLavoura.current) {
-          contornoLavoura.current.setLatLngs(
-            postos.current.map((p) => [p.lat, p.lng])
-          );
-        } else {
-          atualizarPreview();
-        }
+        setConfirmado(false);
+        redesenhar();
       });
     }
 
     return () => {
-      if (map.current) {
-        map.current.remove();
-        map.current = null;
-      }
+      atual.remove();
+
+      mapa.current = null;
+      camadaCadastro.current = null;
+      pontosCadastro.current = [];
+      desenho.current = null;
+      marcadorCidade.current = null;
     };
   }, [ehProdutor]);
 
-  function encontrarIndiceInsercao(latlng) {
-    const pontoClique = map.current.latLngToLayerPoint(latlng);
+  // ============================================================
+  // LAVOURAS E ZOOM
+  // ============================================================
 
-    let menorDistancia = Infinity;
-    let indiceInsercao = postos.current.length;
+  useEffect(() => {
+    const atual = mapa.current;
 
-    for (let i = 0; i < postos.current.length - 1; i++) {
-      const p1 = map.current.latLngToLayerPoint([
-        postos.current[i].lat,
-        postos.current[i].lng,
-      ]);
-      const p2 = map.current.latLngToLayerPoint([
-        postos.current[i + 1].lat,
-        postos.current[i + 1].lng,
-      ]);
+    if (!atual) return;
 
-      const distancia = L.LineUtil.pointToSegmentDistance(pontoClique, p1, p2);
+    const controller = new AbortController();
+    const camada = L.layerGroup().addTo(atual);
 
-      if (distancia < menorDistancia) {
-        menorDistancia = distancia;
-        indiceInsercao = i + 1;
-      }
+    let frame;
+
+    setAviso("");
+    setLavourasLegenda([]);
+    atual.stop();
+
+    // Sem ID na URL: navbar abre a visão geral.
+    if (!alvo) {
+      atual.fitBounds(BRASIL, { animate: false });
     }
 
-    return indiceInsercao;
-  }
-
-  function atualizarPreview() {
-    if (previewLavoura.current) {
-      map.current.removeLayer(previewLavoura.current);
-      previewLavoura.current = null;
-    }
-
-    if (postos.current.length < 2) {
-      setAreaHectares(0);
-      return;
-    }
-
-    const coordenadas = postos.current.map((p) => [p.lat, p.lng]);
-
-    setAreaHectares(calcularAreaHectares(postos.current));
-
-    const estiloPreview = {
-      color: "#ff0000",
-      weight: 3,
-      dashArray: "6 8",
-      fillColor: "#ff0000",
-      fillOpacity: 0.12,
-    };
-
-    if (postos.current.length === 2) {
-      previewLavoura.current = L.polyline(
-        coordenadas,
-        estiloPreview
-      ).addTo(map.current);
-    } else {
-      previewLavoura.current = L.polygon(
-        coordenadas,
-        estiloPreview
-      ).addTo(map.current);
-    }
-  }
-
-  function removerPosto(id) {
-    const index = postos.current.findIndex(
-      (p) => p.id === id
-    );
-
-    if (index === -1) return;
-
-    map.current.removeLayer(
-      postos.current[index].marcador
-    );
-
-    postos.current.splice(index, 1);
-
-    atualizarPreview();
-
-    if (contornoLavoura.current) {
-      map.current.removeLayer(
-        contornoLavoura.current
-      );
-
-      contornoLavoura.current = null;
-
-      setContornoCriado(false);
-    }
-  }
-
-  async function buscarCidade() {
-    if (!cidade.trim()) return;
-
-    try {
-      const url =
-        `https://nominatim.openstreetmap.org/search` +
-        `?format=json` +
-        `&countrycodes=br` +
-        `&q=${encodeURIComponent(cidade)}`;
-
-      const response = await fetch(url);
-
-      const dados = await response.json();
-
-      if (dados.length === 0) {
-        alert("Cidade não encontrada");
+    async function carregar() {
+      if (!usuarioId) {
+        setAviso(
+          "Entre na sua conta para carregar as lavouras."
+        );
         return;
       }
 
-      const lat = parseFloat(dados[0].lat);
-      const lng = parseFloat(dados[0].lon);
+      try {
+        const url =
+          tipo === "agronomo"
+            ? `${AUTH_API_URL}/lavouras`
+            : `${AUTH_API_URL}/lavouras/${usuarioId}`;
 
-      map.current.setView([lat, lng], 12);
+        const r = await fetch(url, {
+          signal: controller.signal,
+          headers: {
+            "X-Usuario-Id": usuarioId,
+          },
+        });
 
-      L.marker([lat, lng])
-        .addTo(map.current)
-        .bindPopup(dados[0].display_name)
+        if (!r.ok) {
+          throw new Error(
+            `Erro ao carregar lavouras (${r.status}).`
+          );
+        }
+
+        const dados = await r.json();
+
+        if (!Array.isArray(dados)) {
+          throw new Error("Lista de lavouras inválida.");
+        }
+
+        let lavourasVisiveis = dados;
+
+if (tipo === "agronomo") {
+  const respostaProdutores = await fetch(
+    `${AUTH_API_URL}/agronomo/${usuarioId}/produtores`,
+    {
+      signal: controller.signal,
+      headers: {
+        "X-Usuario-Id": usuarioId,
+      },
+    }
+  );
+
+  if (!respostaProdutores.ok) {
+    throw new Error("Erro ao carregar produtores vinculados.");
+  }
+
+  const produtoresVinculados = await respostaProdutores.json();
+
+  const idsProdutores = produtoresVinculados.map(
+    produtor => String(produtor.id)
+  );
+
+  lavourasVisiveis = dados.filter(
+    lavoura =>
+      idsProdutores.includes(String(lavoura.usuarioId))
+  );
+}
+
+        if (
+          controller.signal.aborted ||
+          mapa.current !== atual
+        ) {
+          return;
+        }
+
+        let selecionado = null;
+
+        if (tipo === "agronomo") {
+  setLavourasLegenda([]);
+}
+
+        for (const [indice, lavoura] of lavourasVisiveis.entries()) {
+          const coords = obterPontos(lavoura.coordenadas);
+
+          if (coords.length < 3) continue;
+
+          const focada =
+            alvo != null &&
+            String(lavoura.id) === alvo;
+
+            const cor =
+  focada
+    ? "#ffd54f"
+    : CORES_LAVOURAS[indice % CORES_LAVOURAS.length];
+
+          const poligono = L.polygon(coords, {
+            color: cor,
+            weight: focada ? 4 : 3,
+            fillOpacity: 0.25,
+          }).addTo(camada);
+
+          if (tipo === "agronomo") {
+  setLavourasLegenda(prev => [
+    ...prev,
+    {
+      id: lavoura.id,
+      nome: lavoura.nomeLavoura || "Sem nome",
+      produtor: lavoura.produtorNome || "Sem produtor",
+      cor,
+      poligono
+    }
+  ]);
+}
+
+          const tooltip = document.createElement("div");
+
+          const area = Number(
+            lavoura.areaHectares ??
+              Number(lavoura.areaM2) / 10000
+          );
+
+          const linhas = [
+            `Lavoura: ${lavoura.nomeLavoura || "Sem nome"}`,
+          ];
+
+          if (!ehProdutor && lavoura.produtorNome) {
+            linhas.push(
+              `Produtor: ${lavoura.produtorNome}`
+            );
+          }
+
+          if (Number.isFinite(area)) {
+            linhas.push(`Área: ${area.toFixed(2)} ha`);
+          }
+
+          linhas.forEach(linha => {
+            const div = document.createElement("div");
+            div.textContent = linha;
+            tooltip.append(div);
+          });
+
+          poligono.bindTooltip(tooltip, {
+            sticky: true,
+            direction: "top",
+          });
+
+          if (focada) {
+            selecionado = poligono;
+          }
+        }
+
+        // Nenhuma solicitação de zoom: mantém a visão geral.
+        if (!alvo) return;
+
+        if (!selecionado) {
+          setAviso(
+            "A lavoura selecionada não foi encontrada ou não tem coordenadas válidas."
+          );
+          return;
+        }
+
+        // Aguarda o próximo quadro para usar o tamanho do mapa.
+        frame = requestAnimationFrame(() => {
+          if (
+            controller.signal.aborted ||
+            mapa.current !== atual
+          ) {
+            return;
+          }
+
+          atual.invalidateSize({ pan: false });
+
+          atual.fitBounds(selecionado.getBounds(), {
+            padding: [40, 40],
+            maxZoom: 17,
+            animate: false,
+          });
+
+          selecionado.bringToFront();
+        });
+      } catch (erro) {
+        if (!controller.signal.aborted) {
+          setAviso(erro.message);
+          console.error(erro);
+        }
+      }
+    }
+
+    carregar();
+
+    return () => {
+      controller.abort();
+
+      if (frame != null) {
+        cancelAnimationFrame(frame);
+      }
+
+      if (mapa.current === atual) {
+        atual.removeLayer(camada);
+      }
+    };
+  }, [
+    alvo,
+    location.key,
+    usuarioId,
+    tipo,
+    ehProdutor,
+  ]);
+
+  // ============================================================
+  // BUSCA DE CIDADE
+  // ============================================================
+
+  async function buscarCidade() {
+    const atual = mapa.current;
+
+    if (!cidade.trim() || !atual) return;
+
+    setSugestoesAbertas(false);
+
+    try {
+      const r = await fetch(
+        "https://nominatim.openstreetmap.org/search" +
+          "?format=json&countrycodes=br&limit=1" +
+          `&q=${encodeURIComponent(cidade.trim())}`
+      );
+
+      if (!r.ok) {
+        throw new Error("Erro ao buscar cidade.");
+      }
+
+      const dados = await r.json();
+
+      if (mapa.current !== atual) return;
+
+      if (!dados.length) {
+        toast.info("Cidade não encontrada. Confira o nome e tente de novo.");
+        return;
+      }
+
+      const lat = Number(dados[0].lat);
+      const lng = Number(dados[0].lon);
+
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+        throw new Error("Coordenadas inválidas.");
+      }
+
+      atual.setView([lat, lng], 12);
+
+      if (marcadorCidade.current) {
+        atual.removeLayer(marcadorCidade.current);
+      }
+
+      const texto = document.createElement("div");
+      texto.textContent = dados[0].display_name;
+
+      marcadorCidade.current = L.marker([lat, lng])
+        .addTo(atual)
+        .bindPopup(texto)
         .openPopup();
-
     } catch (erro) {
-      console.error("Erro ao buscar cidade:", erro);
-      alert("Erro ao buscar cidade.");
+      if (mapa.current === atual) {
+        toast.erro(mensagemDeErro(erro, "Não foi possível buscar a cidade."));
+      }
     }
   }
 
+  // ============================================================
+  // CONFIRMAÇÃO DO CADASTRO
+  // ============================================================
+
   function confirmarContorno() {
-    if (postos.current.length < 3) {
-      alert("Marque pelo menos 3 pontos.");
+    if (pontosCadastro.current.length < 3) {
+      toast.info("Marque pelo menos 3 pontos no mapa.");
       return;
     }
 
-    if (contornoLavoura.current) {
-      map.current.removeLayer(
-        contornoLavoura.current
-      );
-    }
-
-    if (previewLavoura.current) {
-      map.current.removeLayer(
-        previewLavoura.current
-      );
-
-      previewLavoura.current = null;
-    }
-
-    const coordenadas = postos.current.map((p) => [
-      p.lat,
-      p.lng,
-    ]);
-
-    contornoLavoura.current = L.polygon(
-      coordenadas,
-      {
-        color: "#2f4a33",
-        weight: 3,
-        fillColor: "#2f4a33",
-        fillOpacity: 0.3,
-      }
-    ).addTo(map.current);
-
-    setContornoCriado(true);
+    redesenhar(true);
+    setConfirmado(true);
   }
 
   function apagarContorno() {
-    if (!contornoLavoura.current) {
-      alert("Nenhum contorno desenhado.");
-      return;
-    }
-
-    map.current.removeLayer(
-      contornoLavoura.current
-    );
-
-    contornoLavoura.current = null;
-
-    setContornoCriado(false);
-
-    atualizarPreview();
+    camadaCadastro.current?.clearLayers();
+    pontosCadastro.current = [];
+    desenho.current = null;
+    setConfirmado(false);
+    setAreaHectares(0);
+    setTotalPontos(0);
   }
 
-  function confirmarCadastro() {
+  function cadastrar() {
     if (
-      !contornoLavoura.current ||
-      postos.current.length < 3
+      !confirmado ||
+      pontosCadastro.current.length < 3
     ) {
-      alert(
-        "Nenhum contorno desenhado ou pontos insuficientes para cadastro."
-      );
-
       return;
     }
 
-    const coordenadas = postos.current.map((p) => ({
-      lat: p.lat,
-      lng: p.lng,
-    }));
+    const coordenadas = pontosCadastro.current.map(p => {
+      const { lat, lng } = p.marcador.getLatLng();
+      return { lat, lng };
+    });
 
     navigate("/cadastro", {
-      state: {
-        coordenadas,
-      },
+      state: { coordenadas },
     });
   }
 
-  function desenharLavoura(lavoura) {
-    if (
-      !map.current ||
-      !lavoura?.coordenadas?.length
-    ) {
-      return;
-    }
+  // ============================================================
+  // TELA
+  // ============================================================
 
-    const pontos = lavoura.coordenadas.map((p) => [
-      p.lat,
-      p.lng,
-    ]);
-
-    const poligono = L.polygon(
-      pontos,
-      {
-        color: "#ff0000",
-        weight: 3,
-        fillColor: "#ff0000",
-        fillOpacity: 0.3,
-      }
-    ).addTo(map.current);
-
-    const areaHectaresLavoura =
-      lavoura.areaHectares ??
-      (Number(lavoura.areaM2) / 10000);
-
-    poligono.bindTooltip(
-      `<b>Lavoura:</b> ${lavoura.nomeLavoura}<br>
-       ${!ehProdutor ? `<b>Produtor:</b> ${lavoura.produtorNome}<br>` : ""}
-       <b>Área:</b> ${Number(areaHectaresLavoura).toFixed(2)} ha`,
-      {
-        sticky: true,
-        direction: "top",
-      }
-    );
-  }
-
-  async function carregarLavouras() {
-    const usuarioId =
-      localStorage.getItem("usuarioId");
-
-    const usuarioTipo =
-      localStorage.getItem("usuarioTipo");
-
-    if (!usuarioId && usuarioTipo !== "agronomo") return;
-
-    const url =
-      usuarioTipo === "agronomo"
-        ? `${AUTH_API_URL}/lavouras`
-        : `${AUTH_API_URL}/lavouras/${usuarioId}`;
-
-    try {
-      const resposta = await fetch(url);
-
-      const dados = await resposta.json();
-
-      if (!resposta.ok) {
-        console.error(
-          "Erro ao buscar lavouras:",
-          dados
-        );
-
-        return;
-      }
-
-      console.log(
-        "Lavouras cadastradas:",
-        dados
-      );
-
-      const lavouraIdSelecionada =
-        localStorage.getItem("lavouraId");
-
-      if (usuarioTipo === "produtor" && lavouraIdSelecionada) {
-        const lavoura = dados.find(
-          (l) =>
-            String(l.id) ===
-            String(lavouraIdSelecionada)
-        );
-
-        if (lavoura) {
-          desenharLavoura(lavoura);
-        }
-      } else {
-        dados.forEach((lavoura) => {
-          desenharLavoura(lavoura);
-        });
-      }
-
-    } catch (erro) {
-      console.error(
-        "Erro ao carregar lavouras:",
-        erro
-      );
-    }
-  }
+  const instrucao = confirmado
+    ? "Contorno confirmado! Continue para dar um nome à lavoura."
+    : totalPontos < 3
+      ? "Toque no mapa para marcar os cantos da lavoura (mínimo de 3 pontos)."
+      : "Arraste os pontos para ajustar o contorno e confirme quando estiver certo.";
 
   return (
     <div className="pagina-mapa">
-
       <div className="barra-superior">
-
         <div
           className="busca-cidade"
-          onBlur={(e) => {
-            if (
-              !e.currentTarget.contains(
-                e.relatedTarget
-              )
-            ) {
-              setMostrarSugestoes(false);
+          onBlur={e => {
+            if (!e.currentTarget.contains(e.relatedTarget)) {
+              setSugestoesAbertas(false);
             }
           }}
         >
+          <Icon nome="busca" tamanho={18} />
+
           <input
             type="text"
             aria-label="Pesquisar cidade"
@@ -565,109 +684,162 @@ export default function Mapa() {
             placeholder="Digite uma cidade..."
             autoComplete="off"
             value={cidade}
-            onFocus={() =>
-              setMostrarSugestoes(true)
-            }
-            onChange={(e) => {
+            onFocus={() => setSugestoesAbertas(true)}
+            onChange={e => {
               setCidade(e.target.value);
-              setMostrarSugestoes(true);
+              setSugestoesAbertas(true);
             }}
-            onKeyDown={(e) => {
+            onKeyDown={e => {
               if (e.key === "Escape") {
-                setMostrarSugestoes(false);
-              }
-
-              if (e.key === "ArrowDown") {
-                const primeira =
-                  e.currentTarget.parentElement.querySelector(
-                    ".sugestoes-cidades button"
-                  );
-
-                if (primeira) {
-                  e.preventDefault();
-                  primeira.focus();
-                }
+                setSugestoesAbertas(false);
               }
 
               if (e.key === "Enter") {
-                setMostrarSugestoes(false);
+                e.preventDefault();
                 buscarCidade();
+              }
+
+              if (e.key === "ArrowDown") {
+                const botao = e.currentTarget.parentElement.querySelector(
+                  ".sugestoes-cidades button"
+                );
+
+                if (botao) {
+                  e.preventDefault();
+                  botao.focus();
+                }
               }
             }}
           />
-          
-          {mostrarSugestoes &&
-            termo.length >= 2 && (
-              <ul
-                className="sugestoes-cidades"
-                aria-label="Sugestões de cidades"
-              >
-                {sugestoes.map((item) => (
-                  <li key={item.id}>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setCidade(item.nome);
-                        setMostrarSugestoes(false);
-                      }}
-                    >
-                      {item.nome}
-                    </button>
-                  </li>
-                ))}
 
-                {sugestoes.length === 0 && (
-                  <li className="aviso-cidades">
-                    {statusMunicipios ||
-                      "Nenhuma cidade encontrada."}
-                  </li>
-                )}
-              </ul>
-            )}
+          {sugestoesAbertas && termo.length >= 2 && (
+            <ul className="sugestoes-cidades">
+              {sugestoes.map(m => (
+                <li key={m.id}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCidade(m.nome);
+                      setSugestoesAbertas(false);
+                    }}
+                  >
+                    {m.nome}
+                  </button>
+                </li>
+              ))}
 
-          <span
-            id="status-cidades"
-            className="status-cidades"
-            role="status"
-          >
-            {statusMunicipios}
+              {!sugestoes.length && (
+                <li className="aviso-cidades">
+                  {statusCidades || "Nenhuma cidade encontrada."}
+                </li>
+              )}
+            </ul>
+          )}
+
+          <span id="status-cidades" className="status-cidades" role="status">
+            {statusCidades}
           </span>
         </div>
 
-        <button onClick={buscarCidade}>
+        <Button variant="glass" icon="busca" onClick={buscarCidade}>
           Buscar
-        </button>
-
-        {ehProdutor && (
-          <>
-            <button onClick={confirmarContorno}>
-              Confirmar Contorno
-            </button>
-
-            <button onClick={apagarContorno}>
-              Apagar Contorno
-            </button>
-
-            {contornoCriado && (
-              <button
-                className="botao-confirmar-cadastro"
-                onClick={confirmarCadastro}
-              >
-                Confirmar Cadastro
-              </button>
-            )}
-          </>
-        )}
-
+        </Button>
       </div>
 
-      <div
-        ref={mapaRef}
-        id="mapa"
-      ></div>
+      {aviso && (
+        <div className="mapa-aviso" role="alert">
+          <Icon nome="alertaCirculo" tamanho={18} />
+          {aviso}
+        </div>
+      )}
+
+      <div ref={container} id="mapa" />
+
+      {ehProdutor && (
+        <section className="mapa-painel" aria-label="Cadastro da lavoura">
+          <div className="mapa-painel-topo">
+            <strong>Cadastrar lavoura</strong>
+            <div className="mapa-chips" aria-live="polite">
+              <span>{contar(totalPontos, "ponto", "pontos")}</span>
+              {totalPontos >= 3 && <span>{formatarHectares(areaHectares)}</span>}
+            </div>
+          </div>
+
+          <p className="mapa-painel-texto">{instrucao}</p>
+
+          <div className="mapa-painel-botoes">
+            <Button
+              variant="secondary"
+              size="sm"
+              icon="lixeira"
+              onClick={apagarContorno}
+              disabled={totalPontos === 0}
+            >
+              Apagar
+            </Button>
+
+            {confirmado ? (
+              <Button variant="gold" size="sm" icon="avancar" onClick={cadastrar}>
+                Continuar cadastro
+              </Button>
+            ) : (
+              <Button size="sm" icon="check" onClick={confirmarContorno} disabled={totalPontos < 3}>
+                Confirmar contorno
+              </Button>
+            )}
+          </div>
+        </section>
+      )}
+
+      {tipo === "agronomo" && lavourasLegenda.length > 0 && (
+        <div className={"legenda-lavouras" + (legendaAberta ? "" : " recolhida")}>
+          <button
+            type="button"
+            className="legenda-cabecalho"
+            onClick={() => setLegendaAberta(aberta => !aberta)}
+            aria-expanded={legendaAberta}
+            aria-controls="lista-legenda"
+            title={legendaAberta ? "Recolher legenda" : "Expandir legenda"}
+          >
+            <span className="legenda-titulo">
+              Lavouras
+              <small>{lavourasLegenda.length}</small>
+            </span>
+
+            <Icon nome="setaBaixo" className="legenda-seta" />
+          </button>
+
+          {legendaAberta && (
+            <div id="lista-legenda" className="legenda-lista">
+              {lavourasLegenda.map(lavoura => (
+                <button
+                  type="button"
+                  key={lavoura.id}
+                  className="item-legenda"
+                  onClick={() => {
+                    mapa.current.fitBounds(lavoura.poligono.getBounds(), {
+                      padding: [40, 40],
+                      maxZoom: 17,
+                      animate: true,
+                    });
+
+                    lavoura.poligono.bringToFront();
+                  }}
+                >
+                  <span className="quadrado-cor" style={{ backgroundColor: lavoura.cor }} />
+
+                  <span className="texto-legenda">
+                    <strong>{lavoura.nome}</strong>
+                    <small>{lavoura.produtor}</small>
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       <BottomNav />
-
     </div>
   );
 }

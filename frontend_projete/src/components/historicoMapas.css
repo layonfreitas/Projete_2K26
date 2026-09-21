@@ -1,0 +1,343 @@
+/* Histórico de mapas (prefixo hm-) */
+.hm {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+}
+
+.hm-barra {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.hm-lavoura {
+  flex: 1;
+  max-width: 420px;
+}
+
+.hm-area {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+
+/* ---------- datas ---------- */
+
+.hm-datas {
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  max-height: 640px;
+  overflow-y: auto;
+}
+
+.hm-datas-titulo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 12px;
+  font-size: 14.5px;
+}
+
+.hm-sem-imagens {
+  padding: 8px 0;
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+
+.hm-datas-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.hm-data {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--ink);
+  text-align: left;
+  font-weight: 400;
+}
+
+.hm-data strong {
+  font-size: 14.5px;
+}
+
+.hm-data:hover {
+  border-color: var(--canopy);
+  background: var(--canopy-soft);
+}
+
+.hm-data.ativa {
+  border-color: var(--canopy);
+  background: var(--canopy);
+  color: #fff;
+}
+
+.hm-data.ativa:hover {
+  background: var(--canopy-dark);
+}
+
+.hm-data-indices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.hm-data-indices i {
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--canopy-soft);
+  color: var(--canopy-dark);
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 700;
+}
+
+.hm-data.ativa .hm-data-indices i {
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+}
+
+/* ---------- visualização ---------- */
+
+.hm-visao {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.hm-controles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.hm-segmentos {
+  display: inline-flex;
+  padding: 4px;
+  gap: 4px;
+  border: 1.5px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+}
+
+.hm-segmentos button {
+  min-width: 64px;
+  min-height: 40px;
+  padding: 6px 14px;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--ink-soft);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.hm-segmentos button:hover:not(:disabled) {
+  background: var(--canopy-soft);
+  color: var(--canopy-dark);
+}
+
+.hm-segmentos button[aria-pressed="true"] {
+  background: var(--canopy);
+  color: #fff;
+}
+
+.hm-segmentos button[aria-pressed="true"]:hover:not(:disabled) {
+  background: var(--canopy-dark);
+  color: #fff;
+}
+
+.hm-segmentos button:disabled {
+  opacity: 0.4;
+}
+
+.hm-mapa-caixa {
+  position: relative;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+
+.hm-mapa {
+  width: 100%;
+  height: clamp(340px, 62svh, 640px);
+}
+
+.hm-status {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 800;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  box-shadow: var(--shadow-md);
+  color: var(--ink);
+  font-size: 13.5px;
+  font-weight: 500;
+}
+
+.hm-status .ui-spinner {
+  color: var(--canopy);
+}
+
+.hm-erro {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 1001;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: min(85%, 380px);
+  padding: 18px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-lg);
+  color: var(--cherry);
+  text-align: center;
+  transform: translate(-50%, -50%);
+}
+
+.hm-erro p {
+  color: var(--ink);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.hm-legenda {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  font-size: 13.5px;
+}
+
+.hm-legenda strong {
+  font-size: 14.5px;
+}
+
+.hm-cores {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+}
+
+.hm-cores span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.hm-cores i {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 1px solid rgba(36, 28, 21, 0.2);
+  border-radius: 4px;
+}
+
+.hm-escala {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 320px;
+}
+
+.hm-escala div {
+  flex: 1;
+  height: 12px;
+  border-radius: 4px;
+}
+
+.hm-opacidade {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) 3.5ch;
+  align-items: center;
+  gap: 12px;
+  max-width: 420px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.hm-opacidade input[type="range"] {
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  accent-color: var(--canopy);
+}
+
+.hm-opacidade input[type="range"]:focus {
+  box-shadow: none;
+}
+
+.hm-opacidade output {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+/* ---------- celular: datas viram uma faixa rolável ---------- */
+
+@media (max-width: 800px) {
+  .hm-area {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .hm-datas {
+    max-height: none;
+    padding: 12px;
+    overflow: visible;
+  }
+
+  .hm-datas-lista {
+    flex-direction: row;
+    padding-bottom: 4px;
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+  }
+
+  .hm-datas-lista li {
+    flex: none;
+    scroll-snap-align: start;
+  }
+
+  .hm-data {
+    min-width: 128px;
+  }
+
+  .hm-lavoura {
+    max-width: none;
+  }
+}
+
+.hm-atualizar {
+  width: 48px;
+  min-height: 48px;
+}

@@ -1,69 +1,91 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./perfil.css";
 import BottomNav from "../components/BottomNav";
+import Avatar from "../components/ui/Avatar";
+import Button from "../components/ui/Button";
+import Icon from "../components/ui/Icon";
+import Sheet from "../components/ui/Sheet";
+import { Badge } from "../components/ui/States";
+import { encerrarSessao } from "../services/sessao";
+import { ROTULO_TIPO } from "../utils/texto";
 
 function Perfil() {
   const navigate = useNavigate();
+  const [confirmandoSaida, setConfirmandoSaida] = useState(false);
 
   const nomeUsuario = localStorage.getItem("usuarioNome");
   const emailUsuario = localStorage.getItem("usuarioEmail");
-
-  function pegarIniciais(nome) {
-    if (!nome) return "CV";
-    const partes = nome.trim().split(" ");
-    if (partes.length === 1) return partes[0].substring(0, 2).toUpperCase();
-    return (partes[0][0] + partes[partes.length - 1][0]).toUpperCase();
-  }
-  function editarteste(){
-    navigate("/home");
-  }
+  const tipoUsuario = localStorage.getItem("usuarioTipo");
 
   function handleSair() {
-    localStorage.removeItem("autenticado");
-    localStorage.removeItem("usuarioId");
-    localStorage.removeItem("usuarioNome");
-    localStorage.removeItem("usuarioEmail");
+    encerrarSessao();
     navigate("/login");
   }
 
   return (
-    <div className="perfil-page">
-      <div className="perfil-card">
-        <div className="perfil-header-gradient"></div>
-        
-        <div className="perfil-avatar">{pegarIniciais(nomeUsuario)}</div>
+    <div className="ui-coluna">
+      <main className="perfil">
+        <section className="perfil-capa">
+          <Avatar nome={nomeUsuario} tamanho={88} tom="gold" className="perfil-avatar" />
+          <h1>{nomeUsuario || "Usuário"}</h1>
+          <p>{emailUsuario}</p>
+          {tipoUsuario && <Badge tom="ok">{ROTULO_TIPO[tipoUsuario] || tipoUsuario}</Badge>}
+        </section>
 
-        <h2 className="perfil-nome">{nomeUsuario || "Usuário"}</h2>
-        <p className="perfil-email">{emailUsuario}</p>
+        <section className="ui-cartao perfil-secao" aria-labelledby="perfil-conta">
+          <h2 id="perfil-conta">Dados da conta</h2>
+          <dl className="perfil-dados">
+            <div>
+              <dt>Nome</dt>
+              <dd>{nomeUsuario || "Não informado"}</dd>
+            </div>
+            <div>
+              <dt>E-mail</dt>
+              <dd>{emailUsuario || "Não informado"}</dd>
+            </div>
+            <div>
+              <dt>Tipo de conta</dt>
+              <dd>{ROTULO_TIPO[tipoUsuario] || "Não informado"}</dd>
+            </div>
+          </dl>
+        </section>
 
-        <div className="perfil-info">
-          <div className="perfil-linha">
-            <span className="perfil-label">Nome:</span>
-            <span className="perfil-valor">{nomeUsuario || "Não informado"}</span>
-          </div>
-          <div className="perfil-linha">
-            <span className="perfil-label">Email:</span>
-            <span className="perfil-valor">{emailUsuario || "Não informado"}</span>     
-          </div>
-        </div>
-
-        <div className="perfil-botoes">
-          <button 
-            className="perfil-btn perfil-btn-primario" 
-            onClick={() => navigate("/trocar-senha")}
-          >
-            Trocar senha
+        <section className="ui-cartao perfil-secao" aria-labelledby="perfil-seguranca">
+          <h2 id="perfil-seguranca">Segurança</h2>
+          <button type="button" className="perfil-linha-acao" onClick={() => navigate("/trocar-senha")}>
+            <span className="perfil-linha-icone" aria-hidden="true">
+              <Icon nome="chave" />
+            </span>
+            <span className="perfil-linha-texto">
+              <strong>Trocar senha</strong>
+              <small>Atualize a senha de acesso</small>
+            </span>
+            <Icon nome="setaDireita" />
           </button>
+        </section>
 
-          <button 
-            className="perfil-btn perfil-btn-secundario" 
-            onClick={handleSair}
-          >
-            Sair da conta
-          </button>
+        <Button variant="danger-soft" size="lg" block icon="sair" onClick={() => setConfirmandoSaida(true)}>
+          Sair da conta
+        </Button>
+      </main>
+
+      <Sheet
+        aberto={confirmandoSaida}
+        aoFechar={() => setConfirmandoSaida(false)}
+        titulo="Sair da conta?"
+        descricao="Você precisará entrar novamente para ver suas lavouras."
+      >
+        <div className="ui-painel-botoes">
+          <Button variant="secondary" data-foco onClick={() => setConfirmandoSaida(false)}>
+            Continuar no app
+          </Button>
+          <Button variant="danger" icon="sair" onClick={handleSair}>
+            Sair
+          </Button>
         </div>
-      </div>
-      
+      </Sheet>
+
       <BottomNav />
     </div>
   );

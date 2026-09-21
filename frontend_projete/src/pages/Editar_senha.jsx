@@ -2,47 +2,45 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AUTH_API_URL } from "../config/api";
 import { fetchAutenticado } from "../services/apiAutenticado";
-import "./Editar_senha.css";
-import BottomNav from "../components/BottomNav";
+import { mensagemDeErro } from "../services/erros";
+import AppBar from "../components/ui/AppBar";
+import Button from "../components/ui/Button";
+import { PasswordField } from "../components/ui/Field";
+import { EmptyState, Notice } from "../components/ui/States";
+import { useToast } from "../components/ui/toastContext";
 
-function editar_senha() {
+// A cooperativa define a senha de outro usuário (a tela Cooperativa guarda
+// o id/nome dele no localStorage antes de navegar para cá).
+function EditarSenha() {
   const navigate = useNavigate();
+  const toast = useToast();
 
   const [novaSenha, setNovaSenha] = useState("");
   const [confirmarSenha, setConfirmarSenha] = useState("");
   const [enviando, setEnviando] = useState(false);
-  const [mensagem, setMensagem] = useState("");
+  const [erro, setErro] = useState("");
 
-  // Pega o id do usuário sendo editado (setado antes de navegar pra cá)
   const usuarioId = localStorage.getItem("editarSenhaUsuarioId");
+  const usuarioNome = localStorage.getItem("editarSenhaUsuarioNome");
 
   // ---------- Validação em tempo real ----------
   const senhasPreenchidas = novaSenha.length > 0 && confirmarSenha.length > 0;
   const senhasConferem = novaSenha === confirmarSenha;
   const senhaCurta = novaSenha.length > 0 && novaSenha.length < 6;
+  const naoConfere = senhasPreenchidas && !senhasConferem;
 
-  let statusConfirmacao = null;
-  if (senhasPreenchidas) {
-    statusConfirmacao = senhasConferem ? "ok" : "erro";
-  }
-
-  const podeSalvar =
-    senhasPreenchidas && senhasConferem && !senhaCurta && !enviando;
+  const podeSalvar = senhasPreenchidas && senhasConferem && !senhaCurta && !enviando;
 
   async function handleSalvarSenha(event) {
     event.preventDefault();
-    setMensagem("");
+    setErro("");
 
     if (senhaCurta) {
-      setMensagem("A senha precisa ter pelo menos 6 caracteres.");
+      setErro("A senha precisa ter pelo menos 6 caracteres.");
       return;
     }
     if (!senhasConferem) {
-      setMensagem("As senhas não coincidem.");
-      return;
-    }
-    if (!usuarioId) {
-      setMensagem("Usuário não identificado. Volte e tente novamente.");
+      setErro("As senhas não coincidem.");
       return;
     }
 
@@ -59,92 +57,88 @@ function editar_senha() {
       const dados = await resposta.json();
 
       if (resposta.ok) {
-        setMensagem("Senha atualizada com sucesso!");
         localStorage.removeItem("editarSenhaUsuarioId");
-        setNovaSenha("");
-        setConfirmarSenha("");
-        setTimeout(() => navigate("/cooperativa"), 1200);
+        localStorage.removeItem("editarSenhaUsuarioNome");
+        toast.sucesso(
+          usuarioNome ? `Senha de ${usuarioNome} atualizada.` : "Senha atualizada com sucesso!"
+        );
+        navigate("/cooperativa");
       } else {
-        setMensagem(dados.mensagem || "Erro ao atualizar senha.");
+        setErro(dados.mensagem || "Erro ao atualizar senha.");
       }
     } catch (erroRequisicao) {
-      setMensagem("Erro ao conectar com o servidor.");
-      console.error(erroRequisicao);
+      setErro(mensagemDeErro(erroRequisicao, "Erro ao conectar com o servidor."));
     } finally {
       setEnviando(false);
     }
   }
 
+  if (!usuarioId) {
+    return (
+      <div className="ui-coluna ui-coluna--sem-nav">
+        <AppBar titulo="Editar senha" para="/cooperativa" />
+        <div className="ui-conteudo">
+          <EmptyState
+            icone="cadeado"
+            titulo="Usuário não identificado"
+            texto="Volte para a lista de pessoas e escolha de quem você quer alterar a senha."
+          >
+            <Button onClick={() => navigate("/cooperativa")}>Voltar para a Cooperativa</Button>
+          </EmptyState>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="perfil-page">
-      <div className="perfil-card">
-        <div className="perfil-header-gradient"></div>
+    <div className="ui-coluna ui-coluna--sem-nav">
+      <AppBar
+        titulo="Editar senha"
+        subtitulo={usuarioNome ? `Definindo a senha de ${usuarioNome}` : undefined}
+        para="/cooperativa"
+      />
 
-        <h1>Editar senha</h1>
-
-        <form className="editar-senha-form" onSubmit={handleSalvarSenha}>
-          <label htmlFor="novaSenha">Nova senha</label>
-          <input
-            id="novaSenha"
-            type="password"
+      <form className="ui-conteudo" onSubmit={handleSalvarSenha} noValidate>
+        <div className="ui-cartao ui-formulario">
+          <PasswordField
+            label="Nova senha"
+            name="novaSenha"
+            autoComplete="new-password"
             placeholder="Digite a nova senha"
+            hint="Use pelo menos 6 caracteres."
+            error={senhaCurta ? "A senha precisa ter pelo menos 6 caracteres." : ""}
             value={novaSenha}
             onChange={(e) => setNovaSenha(e.target.value)}
-            required
           />
 
-          <label htmlFor="confirmarSenha">Confirmar senha</label>
-          <input
-            id="confirmarSenha"
-            type="password"
+          <PasswordField
+            label="Confirmar senha"
+            name="confirmarSenha"
+            autoComplete="new-password"
             placeholder="Digite a senha novamente"
+            error={naoConfere ? "As senhas não coincidem." : ""}
             value={confirmarSenha}
             onChange={(e) => setConfirmarSenha(e.target.value)}
-            className={
-              statusConfirmacao === "ok"
-                ? "editar-senha-input-ok"
-                : statusConfirmacao === "erro"
-                ? "editar-senha-input-erro"
-                : ""
-            }
-            required
           />
 
-          {statusConfirmacao === "erro" && (
-            <span className="editar-senha-feedback editar-senha-feedback-erro">
-              As senhas não coincidem.
-            </span>
-          )}
-          {statusConfirmacao === "ok" && (
-            <span className="editar-senha-feedback editar-senha-feedback-ok">
-              As senhas coincidem.
-            </span>
+          {senhasPreenchidas && senhasConferem && !senhaCurta && (
+            <Notice tipo="sucesso">As senhas coincidem.</Notice>
           )}
 
-          {mensagem && <span className="editar-senha-mensagem">{mensagem}</span>}
+          {erro && <Notice tipo="erro">{erro}</Notice>}
+        </div>
 
-          <div className="perfil-botoes">
-            <button
-              type="submit"
-              className="perfil-btn perfil-btn-primario"
-              disabled={!podeSalvar}
-            >
-              {enviando ? "Salvando..." : "Salvar nova senha"}
-            </button>
-            <button
-              type="button"
-              className="perfil-btn perfil-btn-secundario"
-              onClick={() => navigate("/cooperativa")}
-            >
-              Cancelar
-            </button>
-          </div>
-        </form>
-      </div>
-
-      <BottomNav />
+        <div className="ui-acoes-pagina">
+          <Button type="submit" size="lg" block disabled={!podeSalvar} loading={enviando}>
+            {enviando ? "Salvando…" : "Salvar nova senha"}
+          </Button>
+          <Button variant="secondary" block onClick={() => navigate("/cooperativa")}>
+            Cancelar
+          </Button>
+        </div>
+      </form>
     </div>
   );
 }
 
-export default editar_senha;
+export default EditarSenha;

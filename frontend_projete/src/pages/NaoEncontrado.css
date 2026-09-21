@@ -1,46 +1,50 @@
-.nao-encontrado-page {
+.nf-pagina {
   min-height: 100svh;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--parchment);
   padding: 24px;
+  background: var(--parchment);
 }
 
-.nao-encontrado-card {
-  max-width: 360px;
+.nf-cartao {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
   width: 100%;
-  text-align: center;
-  background: var(--surface);
+  max-width: 380px;
+  padding: 36px 28px 28px;
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
+  background: var(--surface);
   box-shadow: var(--shadow-lg);
-  padding: 40px 28px;
+  text-align: center;
 }
 
-.nao-encontrado-codigo {
-  display: block;
-  font-family: var(--font-display);
-  font-size: 52px;
-  font-weight: 700;
+.nf-icone {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  margin-bottom: 8px;
+  border-radius: 50%;
+  background: var(--canopy-soft);
+  color: var(--canopy-dark);
+}
+
+.nf-codigo {
   color: var(--canopy);
-  line-height: 1;
-  margin-bottom: 10px;
+  font: 700 52px/1 var(--font-display);
 }
 
-.nao-encontrado-card h1 {
-  font-size: 18px;
-  margin: 0 0 10px 0;
-  color: var(--ink);
+.nf-cartao h1 {
+  margin: 8px 0 4px;
+  font-size: 19px;
 }
 
-.nao-encontrado-card p {
-  font-size: 13.5px;
-  color: var(--ink-soft);
-  margin: 0 0 24px 0;
+.nf-cartao p {
+  margin-bottom: 22px;
+  font-size: 14px;
   line-height: 1.5;
-}
-
-.nao-encontrado-card button {
-  width: 100%;
 }

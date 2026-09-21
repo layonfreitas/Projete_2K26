@@ -1,6 +1,6 @@
 .bottom-nav {
   position: fixed;
-  bottom: 16px;
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
   left: 50%;
   transform: translateX(-50%);
   width: calc(100% - 28px);
@@ -8,8 +8,8 @@
   display: flex;
   justify-content: space-around;
   align-items: stretch;
-  gap: 4px;
-  padding: 9px 8px calc(9px + env(safe-area-inset-bottom));
+  gap: 2px;
+  padding: 6px;
   background: rgba(255, 253, 248, 0.98);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
@@ -21,39 +21,51 @@
 
 .nav-item {
   flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 3px;
-  background: transparent;
-  color: var(--ink-soft);
+  min-height: 54px;
+  padding: 7px 2px 6px;
   border-radius: 14px;
-  padding: 8px 4px 7px;
-  font-size: 10.5px;
+  color: var(--ink-soft);
+  font-size: 11px;
   font-weight: 600;
-  letter-spacing: 0.01em;
-  transition: background 0.15s ease, color 0.15s ease, transform 0.12s ease;
+  letter-spacing: 0;
+  text-decoration: none;
+  transition: background 0.15s ease, color 0.15s ease;
 }
 
 .nav-item:hover {
   background: var(--canopy-soft);
   color: var(--canopy-dark);
-  transform: translateY(-1px);
-}
-
-.nav-item .icon {
-  font-size: 19px;
-  line-height: 1;
 }
 
 .nav-item.active {
-  color: var(--canopy);
   background: var(--canopy-soft);
+  color: var(--canopy-dark);
+}
+
+.nav-item.active svg {
+  stroke-width: 2.2;
+}
+
+.nav-item:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 1px;
+}
+
+.nav-item span {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 @media (min-width: 540px) {
   .bottom-nav {
-    bottom: 22px;
+    bottom: calc(22px + env(safe-area-inset-bottom, 0px));
   }
 }

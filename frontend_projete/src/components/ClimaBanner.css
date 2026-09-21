@@ -1,113 +1,164 @@
 .clima-banner {
-  background: linear-gradient(135deg, var(--canopy) 0%, var(--canopy-dark) 100%);
-  color: #fff;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 22px;
   border-radius: var(--radius-md);
-  padding: 26px 26px;
-  box-shadow: var(--shadow-sm);
+  background: linear-gradient(135deg, var(--canopy) 0%, var(--canopy-dark) 100%);
+  box-shadow: var(--shadow-md);
+  color: #fff;
 }
 
 .clima-banner-topo {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  gap: 12px;
   flex-wrap: wrap;
-  margin-bottom: 8px;
+  gap: 12px;
+}
+
+.clima-banner-titulo {
+  min-width: 0;
+}
+
+.clima-banner-rotulo {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 12.5px;
+  font-weight: 500;
 }
 
 .clima-banner-topo h3 {
+  margin: 2px 0 0;
   color: #fff;
-  font-size: 15.5px;
-  margin: 0;
+  font-size: 18px;
+  overflow-wrap: anywhere;
 }
 
 .clima-banner-select {
   width: auto;
-  background: rgba(255, 255, 255, 0.14);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  color: #fff;
-  font-size: 12.5px;
+  max-width: 100%;
+  min-height: 40px;
   padding: 8px 12px;
-}
-
-/* corrige o texto invisível dentro da lista suspensa (fundo do dropdown
-   nativo é branco, então as opções precisam de cor escura) */
-.clima-banner-select option {
-  color: var(--ink, #1a1a1a);
-  background: #fff;
-}
-
-.clima-banner-erro {
-  color: var(--gold-soft);
-}
-
-.clima-banner-dados {
-  margin-top: 16px;
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 10px;
-}
-
-.clima-banner-dados span {
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: var(--radius-sm);
-  padding: 12px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
   font-size: 13px;
+}
+
+/* o menu nativo abre com fundo branco: as opções precisam de texto escuro */
+.clima-banner-select option {
+  background: #fff;
+  color: var(--ink);
+}
+
+.clima-banner-select:focus {
+  border-color: #fff;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.25);
+}
+
+.clima-banner-principal {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.clima-banner-carregando {
+  gap: 10px;
+  min-height: 56px;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 14px;
+}
+
+.clima-banner-temperatura {
+  display: block;
+  font: 600 40px/1 var(--font-display);
+  letter-spacing: -0.02em;
+}
+
+.clima-banner-temperatura small {
+  margin-left: 2px;
+  font-size: 20px;
   font-weight: 500;
 }
 
-.clima-banner-dados button {
+.clima-banner-condicao {
+  display: block;
+  margin-top: 4px;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 14px;
+}
+
+.clima-banner-erro {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--gold-soft);
+  font-size: 14px;
+}
+
+.clima-banner-dados {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+}
+
+.clima-banner-dados > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  padding: 12px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* um tile sozinho na última linha ocupa a largura toda */
+.clima-banner-dados > div:last-child:nth-child(odd) {
   grid-column: 1 / -1;
 }
 
-@media (max-width: 380px) {
-  .clima-banner {
-    padding: 20px 18px;
-  }
-
-  .clima-banner-dados {
-    grid-template-columns: 1fr;
-  }
-
-  .clima-banner-acoes {
-    flex-wrap: wrap;
-  }
+.clima-banner-dados dt {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 12px;
 }
 
-.clima-banner-dados button {
-  background: var(--gold);
-  color: var(--ink);
-  font-size: 12.5px;
-  font-weight: 700;
-  padding: 12px 14px;
-  margin-top: 4px;
-}
-
-.clima-banner-dados button:hover {
-  background: #b6842f;
+.clima-banner-dados dd {
+  margin: 0;
+  overflow: hidden;
+  font-size: 15px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .clima-banner-acoes {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
-  margin-top: 8px;
 }
 
-.acao-secundaria {
-  border: 1px solid rgba(0, 0, 0, 0.15);
-  background: transparent;
-  padding: 6px 10px;
-  border-radius: 6px;
-  font-size: 13px;
-  cursor: pointer;
-  transition: 0.2s;
+.clima-banner-acoes:empty {
+  display: none;
 }
 
-.acao-secundaria:hover {
-  background: rgba(0, 0, 0, 0.06);
+.clima-banner-acoes .ui-btn {
+  flex: 1 1 auto;
 }
 
-.acao-secundaria span {
-  margin-left: 3px;
+@media (max-width: 380px) {
+  .clima-banner {
+    padding: 18px;
+  }
 }

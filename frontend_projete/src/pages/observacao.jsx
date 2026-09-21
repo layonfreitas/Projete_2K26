@@ -2,29 +2,36 @@ import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 
 import { AUTH_API_URL } from "../config/api";
-import "./observacao.css";
+import AppBar from "../components/ui/AppBar";
+import Button from "../components/ui/Button";
+import { TextAreaField } from "../components/ui/Field";
+import { useToast } from "../components/ui/toastContext";
+import { mensagemDeErro } from "../services/erros";
 
 export default function Observacao() {
-
   const { id } = useParams();
-
   const navigate = useNavigate();
+  const toast = useToast();
+
+  const lavouraNome = localStorage.getItem("lavouraNome");
+  const produtorNome = localStorage.getItem("produtorSelecionadoNome");
 
   const [texto, setTexto] = useState("");
+  const [erro, setErro] = useState("");
+  const [salvando, setSalvando] = useState(false);
 
-  function Sair() {
-    navigate("/home");
-  }
-
-  async function salvarObservacao() {
+  async function salvarObservacao(evento) {
+    evento.preventDefault();
 
     if (!texto.trim()) {
-      alert("Digite uma observação antes de salvar.");
+      setErro("Digite uma observação antes de salvar.");
       return;
     }
 
-    try {
+    setErro("");
+    setSalvando(true);
 
+    try {
       const resposta = await fetch(`${AUTH_API_URL}/observacoes`, {
         method: "POST",
 
@@ -41,54 +48,56 @@ export default function Observacao() {
       const dados = await resposta.json();
 
       if (!resposta.ok) {
-        throw new Error(
-          dados.erro || "Erro ao salvar observação."
-        );
+        throw new Error(dados.erro || "Erro ao salvar observação.");
       }
 
-      alert("Observação salva com sucesso!");
+      toast.sucesso("Observação salva com sucesso!");
 
       setTexto("");
-
     } catch (error) {
-
-      console.log("Erro ao salvar observação:", error);
-
-      alert("Erro ao salvar observação. Tente novamente.");
+      toast.erro(mensagemDeErro(error, "Erro ao salvar observação. Tente novamente."));
+    } finally {
+      setSalvando(false);
     }
   }
 
+  const contexto = [lavouraNome, produtorNome].filter(Boolean).join(" — ");
+
   return (
-    <div className="observacao-page">
+    <div className="ui-coluna ui-coluna--sem-nav">
+      <AppBar titulo="Nova observação" subtitulo={contexto || undefined} para="/home" />
 
-      <div className="observacao-card">
-
-        <h1>Observação da lavoura</h1>
-
-        <p>
-          Escreva aqui informações importantes sobre sua lavoura.
-        </p>
-
-        <textarea
-          value={texto}
-          onChange={(e) => setTexto(e.target.value)}
-          placeholder="Digite sua observação..."
-        />
-
-        <div className="observacao-acoes">
-
-          <button onClick={Sair}>
-            Sair
-          </button>
-
-          <button onClick={salvarObservacao}>
-            Salvar observação
-          </button>
-
+      <form className="ui-conteudo" onSubmit={salvarObservacao} noValidate>
+        <div className="ui-cartao">
+          <TextAreaField
+            label="O que você observou na lavoura?"
+            placeholder="Digite sua observação…"
+            hint="O produtor poderá ler esta observação."
+            error={erro}
+            contador={`${texto.length} caracteres`}
+            rows={8}
+            value={texto}
+            onChange={(e) => {
+              setTexto(e.target.value);
+              if (erro) setErro("");
+            }}
+          />
         </div>
 
-      </div>
-
+        <div className="ui-acoes-pagina">
+          <Button type="submit" size="lg" block icon="check" loading={salvando}>
+            {salvando ? "Salvando…" : "Salvar observação"}
+          </Button>
+          <Button
+            variant="secondary"
+            block
+            icon="mensagem"
+            onClick={() => navigate(`/observacao_produtor/${id}`)}
+          >
+            Ver observações anteriores
+          </Button>
+        </div>
+      </form>
     </div>
   );
 }

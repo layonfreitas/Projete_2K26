@@ -1,0 +1,112 @@
+.auth-pagina {
+  min-height: 100svh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: calc(24px + env(safe-area-inset-top, 0px)) 18px calc(24px + env(safe-area-inset-bottom, 0px));
+  background:
+    linear-gradient(160deg, rgba(27, 94, 32, 0.82), rgba(28, 22, 16, 0.86)),
+    url("/cafe-grao-torrado.jpg");
+  background-size: cover;
+  background-position: center;
+}
+
+.auth-cartao {
+  width: 100%;
+  max-width: 400px;
+  padding: 28px 26px 26px;
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-lg);
+}
+
+.auth-marca {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 22px;
+  text-align: center;
+}
+
+.auth-logo {
+  width: 132px;
+  height: 132px;
+  margin-bottom: 8px;
+  overflow: hidden;
+  border-radius: 28px;
+  box-shadow: 0 0 0 1px var(--border);
+}
+
+/* o PNG tem muita margem ao redor da marca: amplia e centraliza */
+.auth-logo img {
+  display: block;
+  width: 168px;
+  height: 168px;
+  max-width: none;
+  margin: -12px 0 0 -18px;
+}
+
+.auth-marca h1 {
+  margin-bottom: 4px;
+  font-size: 22px;
+}
+
+.auth-marca p {
+  max-width: 32ch;
+  font-size: 14px;
+}
+
+.auth-formulario {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.auth-link {
+  align-self: center;
+  padding: 8px 12px;
+  margin: -4px 0;
+  border-radius: 8px;
+  color: var(--canopy-dark);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.auth-link:hover {
+  background: var(--canopy-soft);
+}
+
+.auth-rodape {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px dashed var(--border-strong);
+  color: var(--ink-soft);
+  font-size: 13px;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.auth-passos {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 18px;
+}
+
+.auth-passos span {
+  flex: 1;
+  height: 5px;
+  border-radius: 999px;
+  background: var(--border);
+}
+
+.auth-passos span.feito {
+  background: var(--canopy);
+}
+
+.auth-acoes-secundarias {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 8px;
+}

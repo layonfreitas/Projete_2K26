@@ -1,4 +1,5 @@
 .pagina-mapa {
+  position: relative;
   width: 100%;
   height: 100svh;
   display: flex;
@@ -7,49 +8,116 @@
   background: var(--ink);
 }
 
+/* ---------- barra de busca ---------- */
+
 .barra-superior {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  padding: 14px;
-  background: var(--canopy-dark);
-  border-bottom: 1px solid rgba(255, 25, 25, 0.1);
   position: relative;
   z-index: 500;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: calc(12px + env(safe-area-inset-top, 0px)) 12px 12px;
+  background: var(--canopy-dark);
 }
 
-.barra-superior input {
-  flex: 1 1 200px;
+.busca-cidade {
+  position: relative;
+  flex: 1 1 auto;
   min-width: 0;
+}
+
+.busca-cidade > .ui-icone {
+  position: absolute;
+  top: 15px;
+  left: 14px;
+  z-index: 1;
+  color: var(--ink-soft);
+  pointer-events: none;
+}
+
+.busca-cidade input {
+  min-height: 48px;
+  padding-left: 42px;
+  border: 0;
   background: rgba(255, 255, 255, 0.96);
-  border: none;
+  font-size: 15.5px;
+}
+
+.barra-superior > .ui-btn {
+  flex: none;
+  min-height: 48px;
+}
+
+.sugestoes-cidades {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  left: 0;
+  z-index: 1;
+  max-height: 260px;
+  margin: 6px 0 0;
+  padding: 6px;
+  overflow-y: auto;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  box-shadow: var(--shadow-lg);
+  list-style: none;
+}
+
+.sugestoes-cidades button {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ink);
+  font-size: 14.5px;
+  font-weight: 500;
+  text-align: left;
+  white-space: normal;
+}
+
+.sugestoes-cidades button:hover,
+.sugestoes-cidades button:focus-visible {
+  background: var(--canopy-soft);
+  color: var(--canopy-dark);
+}
+
+.aviso-cidades {
+  padding: 10px 12px;
+  color: var(--ink-soft);
   font-size: 13.5px;
 }
 
-.barra-superior button {
-  padding: 10px 16px;
+.status-cidades {
+  display: block;
+  margin-top: 6px;
+  color: rgba(255, 255, 255, 0.85);
   font-size: 12.5px;
-  font-weight: 600;
-  white-space: nowrap;
-  color: #fff;
-  background: rgba(255, 255, 255, 0.14);
-  border: 1px solid rgba(255, 255, 255, 0.28);
+}
+
+.status-cidades:empty {
+  display: none;
+}
+
+.mapa-aviso {
+  position: absolute;
+  top: calc(84px + env(safe-area-inset-top, 0px));
+  left: 50%;
+  z-index: 600;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: max-content;
+  max-width: calc(100% - 24px);
+  padding: 10px 14px;
   border-radius: var(--radius-sm);
-}
-
-.barra-superior button:hover {
-  background: rgba(255, 255, 255, 0.26);
-}
-
-/* botão de confirmar cadastro se destaca dos demais, que são de edição do desenho */
-.botao-confirmar-cadastro {
-  background: var(--gold);
-  color: var(--ink);
-  border-color: transparent;
-}
-
-.botao-confirmar-cadastro:hover {
-  background: #b6842f;
+  background: var(--cherry-soft);
+  box-shadow: var(--shadow-md);
+  color: var(--cherry);
+  font-size: 13.5px;
+  font-weight: 500;
+  transform: translateX(-50%);
 }
 
 #mapa {
@@ -64,111 +132,235 @@
   z-index: 2000;
 }
 
-@media (max-width: 600px) {
-  .barra-superior {
-    flex-direction: column;
-  }
+/* ---------- painel de cadastro (produtor) ---------- */
 
-  .barra-superior input,
-  .barra-superior button {
-    width: 100%;
-  }
-}
-
-.busca-cidade {
-  position: relative;
-  flex: 1 1 200px;
-  min-width: 0;
-}
-.busca-cidade input { width: 100%; box-sizing: border-box; }
-.sugestoes-cidades {
+.mapa-painel {
   position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  margin: 4px 0 0;
-  padding: 4px;
-  list-style: none;
-  background: #fff;
-  border-radius: 8px;
-  box-shadow: 0 4px 16px #0003;
-  max-height: 240px;
-  overflow-y: auto;
-  z-index: 1;
+  bottom: calc(16px + 72px + 12px + env(safe-area-inset-bottom, 0px));
+  left: 50%;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: calc(100% - 28px);
+  max-width: 452px;
+  padding: 14px 16px 16px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: rgba(255, 253, 248, 0.98);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+  box-shadow: var(--shadow-lg);
+  transform: translateX(-50%);
 }
-.sugestoes-cidades button {
+
+@media (min-width: 540px) {
+  .mapa-painel {
+    bottom: calc(22px + 72px + 12px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+.mapa-painel-topo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px 10px;
+}
+
+.mapa-painel-topo strong {
+  font: 600 15.5px/1.2 var(--font-display);
+}
+
+.mapa-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.mapa-chips span {
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--canopy-soft);
+  color: var(--canopy-dark);
+  font-size: 12.5px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.mapa-painel-texto {
+  font-size: 13.5px;
+  line-height: 1.45;
+}
+
+.mapa-painel-botoes {
+  display: flex;
+  gap: 8px;
+}
+
+.mapa-painel-botoes .ui-btn:last-child {
+  flex: 1;
+}
+
+/* ---------- popup do ponto ---------- */
+
+.mapa-popup-texto {
+  margin: 0 0 8px;
+  color: var(--ink);
+  font-size: 12.5px;
+}
+
+.mapa-popup-remover {
   width: 100%;
-  text-align: left;
-  white-space: normal;
-  color: #203526;
+  padding: 8px 12px;
+  border: 1.5px solid var(--cherry-soft);
+  border-radius: 8px;
   background: transparent;
-  border: none;
+  color: var(--cherry);
+  font-size: 13px;
 }
-.sugestoes-cidades button:hover,
-.sugestoes-cidades button:focus-visible { background: #e6efe8; }
-.aviso-cidades { padding: 10px; color: #445; font-size: 13px; }
-.status-cidades { display: block; color: #fff; font-size: 12px; }
-.status-cidades:empty { display: none; }
-@media (max-width: 600px) {
-  .busca-cidade { flex: 0 0 auto; width: 100%; }
+
+.mapa-popup-remover:hover {
+  background: var(--cherry-soft);
 }
+
+/* ============================================================
+   LEGENDA DAS LAVOURAS (agrônomo)
+   ============================================================ */
 .legenda-lavouras {
   position: absolute;
-  bottom: 20px;
-  left: 20px;
+  left: 16px;
   z-index: 1000;
+  width: 250px;
+  max-width: calc(100vw - 32px);
 
-  background: white;
-  padding: 12px;
-  border-radius: 8px;
+  /* telas estreitas: fica logo acima da navbar (16px do rodapé +
+     72px de altura da navbar + 12px de respiro) */
+  bottom: calc(16px + 72px + 12px + env(safe-area-inset-bottom, 0px));
 
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
-
-  max-height: 250px;
-  overflow-y: auto;
-
-  min-width: 190px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: rgba(255, 253, 248, 0.98);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+  box-shadow: var(--shadow-lg);
 }
 
-.legenda-lavouras > strong {
-  display: block;
-  margin-bottom: 8px;
+@media (min-width: 540px) {
+  .legenda-lavouras {
+    bottom: calc(22px + 72px + 12px + env(safe-area-inset-bottom, 0px));
+  }
 }
 
-.item-legenda {
+/* telas largas: a legenda fica no canto esquerdo, na mesma linha da navbar */
+@media (min-width: 1000px) {
+  .legenda-lavouras {
+    bottom: 22px;
+  }
+}
+
+.legenda-cabecalho {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
   width: 100%;
+  min-height: 48px;
+  padding: 12px 16px;
+  border-radius: 0;
+  background: transparent;
+  color: var(--ink);
+  font: 600 15px/1.2 var(--font-display);
+  text-align: left;
+}
+
+.legenda-cabecalho:hover {
+  background: var(--canopy-soft);
+}
+
+.legenda-titulo {
   display: flex;
   align-items: center;
   gap: 8px;
-
-  border: none;
-  background: transparent;
-  padding: 6px;
-
-  text-align: left;
-  cursor: pointer;
 }
 
-.item-legenda:hover {
-  background: #f0f0f0;
-  border-radius: 5px;
+.legenda-titulo small {
+  min-width: 20px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--canopy-soft);
+  color: var(--canopy-dark);
+  font: 700 11.5px/1.5 var(--font-body);
+  text-align: center;
+}
+
+.legenda-seta {
+  color: var(--ink-soft);
+  transition: transform 0.2s ease;
+}
+
+.legenda-lavouras.recolhida .legenda-seta {
+  transform: rotate(180deg);
+}
+
+.legenda-lista {
+  max-height: min(240px, 35svh);
+  padding: 4px 8px 8px;
+  overflow-y: auto;
+  border-top: 1px solid var(--border);
+}
+
+.item-legenda {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 48px;
+  margin-top: 4px;
+  padding: 8px;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ink);
+  font-size: 13.5px;
+  font-weight: 500;
+  text-align: left;
+}
+
+.item-legenda:hover,
+.item-legenda:focus-visible {
+  background: var(--canopy-soft);
 }
 
 .quadrado-cor {
+  flex: none;
   width: 16px;
   height: 16px;
-  min-width: 16px;
-
-  border: 1px solid #333;
-  border-radius: 3px;
+  border: 1px solid rgba(0, 0, 0, 0.45);
+  border-radius: 4px;
 }
 
 .texto-legenda {
   display: flex;
   flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.texto-legenda strong,
+.texto-legenda small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.texto-legenda strong {
+  color: var(--ink);
+  font-size: 13.5px;
+  font-weight: 600;
 }
 
 .texto-legenda small {
-  color: #666;
+  color: var(--ink-soft);
   font-size: 12px;
 }

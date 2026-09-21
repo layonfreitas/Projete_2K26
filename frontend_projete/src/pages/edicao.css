@@ -1,355 +1,93 @@
-/* ================================
-   PÁGINA DE EDIÇÃO DA LAVOURA
-================================ */
-
-.editar-lavoura-page {
-    min-height: 100svh;
-    display: flex;
-    justify-content: center;
-    align-items: flex-start;
-
-    padding: 40px 18px;
-
-    background: var(--parchment);
+.edi-titulo {
+  margin: 0 0 2px;
+  font-size: 17px;
 }
 
-/* ================================
-   CARD PRINCIPAL
-================================ */
-
-.editar-lavoura-card {
-    width: 100%;
-    max-width: 520px;
-
-    background: var(--surface);
-
-    border: 1px solid var(--border);
-    border-radius: var(--radius-lg);
-
-    padding: 30px;
-
-    box-shadow: var(--shadow-md);
+.edi-texto {
+  font-size: 13.5px;
+  line-height: 1.5;
 }
 
-/* ================================
-   CABEÇALHO
-================================ */
-
-.editar-lavoura-header {
-    margin-bottom: 28px;
+.edi-cabecalho-area {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
 }
 
-.editar-lavoura-header h1 {
-    margin: 0 0 8px;
-
-    font-size: 26px;
-    font-weight: 700;
-
-    color: var(--ink);
+.edi-area {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: var(--canopy-soft);
+  color: var(--canopy-dark);
+  font-size: 13px;
+  font-weight: 700;
 }
-
-.editar-lavoura-header p {
-    margin: 0;
-
-    font-size: 14px;
-
-    color: var(--ink-soft);
-}
-
-/* ================================
-   SEÇÕES
-================================ */
-
-.editar-section {
-    padding: 22px 0;
-
-    border-bottom: 1px solid var(--border);
-}
-
-.editar-section:first-of-type {
-    padding-top: 0;
-}
-
-.editar-section:last-of-type {
-    border-bottom: none;
-}
-
-.editar-section h2 {
-    margin: 0 0 6px;
-
-    font-size: 17px;
-
-    color: var(--ink);
-}
-
-.editar-section p {
-    margin: 0 0 16px;
-
-    font-size: 13px;
-    line-height: 1.5;
-
-    color: var(--ink-soft);
-}
-
-/* ================================
-   CAMPO DO NOME
-================================ */
-
-.nome-lavoura-input {
-    width: 100%;
-    box-sizing: border-box;
-
-    padding: 12px 14px;
-
-    border: 1px solid var(--border);
-    border-radius: var(--radius-md);
-
-    background: var(--surface);
-    color: var(--ink);
-
-    font-family: var(--font-body);
-    font-size: 15px;
-
-    outline: none;
-
-    transition:
-        border-color 0.2s ease,
-        box-shadow 0.2s ease;
-
-    margin-bottom: 12px;
-}
-
-.nome-lavoura-input:focus {
-    border-color: var(--canopy);
-
-    box-shadow:
-        0 0 0 3px var(--canopy-soft);
-}
-
-.nome-lavoura-input::placeholder {
-    color: #a49a86;
-}
-
-/* ================================
-   BOTÕES
-================================ */
-
-.editar-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    width: 100%;
-
-    padding: 12px 16px;
-
-    border: none;
-    border-radius: var(--radius-sm);
-
-    font-family: var(--font-body);
-    font-size: 14.5px;
-    font-weight: 600;
-
-    cursor: pointer;
-
-    background: var(--canopy);
-    color: #ffffff;
-
-    opacity: 1;
-    visibility: visible;
-
-    transition:
-        background 0.18s ease,
-        transform 0.12s ease,
-        box-shadow 0.18s ease;
-}
-
-.editar-btn:hover {
-    background: var(--canopy-dark);
-
-    opacity: 1;
-}
-
-.editar-btn:active {
-    transform: translateY(1px);
-}
-
-/* ================================
-   SALVAR NOME
-================================ */
-
-.editar-btn-primary {
-    background: var(--canopy);
-    color: #ffffff;
-}
-
-.editar-btn-primary:hover {
-    background: var(--canopy-dark);
-}
-
-/* ================================
-   MAPA
-================================ */
 
 .mapa-edicao-container {
-    width: 100%;
-    height: 300px;
-
-    overflow: hidden;
-
-    border: 1px solid var(--border);
-    border-radius: var(--radius-md);
-
-    margin-bottom: 12px;
-
-    background: #eee;
+  width: 100%;
+  height: clamp(280px, 48svh, 420px);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--parchment);
 }
 
 .mapa-edicao-container .leaflet-container {
-    width: 100%;
-    height: 100%;
+  width: 100%;
+  height: 100%;
 }
 
-/* ================================
-   TEXTO DE AJUDA
-================================ */
-
-.mapa-ajuda {
-    font-size: 12px;
-
-    color: var(--ink-soft);
-
-    margin-bottom: 12px;
+.edi-ajuda {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: -6px;
+  font-size: 13px;
 }
 
-/* ================================
-   BOTÃO EDITAR PONTOS
-================================ */
-
-.editar-pontos-btn {
-    background: var(--canopy);
-    color: #ffffff;
+.edi-ajuda-ativa {
+  color: var(--canopy-dark);
+  font-weight: 600;
 }
 
-.editar-pontos-btn:hover {
-    background: var(--canopy-dark);
+.edi-botoes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
 }
 
-/* ================================
-   BOTÃO SALVAR PONTOS
-================================ */
-
-.salvar-pontos-btn {
-    margin-top: 10px;
-
-    background: var(--canopy);
-    color: #ffffff;
+.edi-botoes .ui-btn {
+  padding-inline: 10px;
+  white-space: nowrap;
 }
 
-.salvar-pontos-btn:hover {
-    background: var(--canopy-dark);
+@media (max-width: 380px) {
+  .edi-botoes {
+    grid-template-columns: 1fr;
+  }
 }
 
-/* ================================
-   BOTÃO PARAR DE EDITAR
-================================ */
-
-.parar-edicao-btn {
-    margin-top: 10px;
-
-    background: var(--canopy);
-    color: #ffffff;
+.edi-perigo {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  border-color: var(--cherry-soft);
 }
 
-.parar-edicao-btn:hover {
-    background: var(--canopy-dark);
+.edi-perigo .edi-titulo {
+  color: var(--cherry);
 }
 
-/* ================================
-   ÁREA DE EXCLUSÃO
-================================ */
-
-.editar-section-danger {
-    margin-top: 8px;
-
-    padding-top: 24px;
-
-    border-top: 1px solid var(--border);
-}
-
-.editar-section-danger h2 {
-    color: var(--cherry);
-}
-
-.editar-section-danger p {
-    color: var(--ink-soft);
-}
-
-/* ================================
-   BOTÃO REMOVER
-================================ */
-
-.remover-lavoura-btn {
-    width: 100%;
-
-    padding: 12px 16px;
-
-    border: none;
-    border-radius: var(--radius-sm);
-
-    background: var(--cherry);
-    color: #ffffff;
-
-    font-family: var(--font-body);
-    font-size: 14.5px;
-    font-weight: 600;
-
-    cursor: pointer;
-
-    opacity: 1;
-    visibility: visible;
-
-    transition:
-        background 0.18s ease,
-        transform 0.12s ease;
-}
-
-.remover-lavoura-btn:hover {
-    background: #a91f1f;
-}
-
-.remover-lavoura-btn:active {
-    transform: translateY(1px);
-}
-
-/* ================================
-   GARANTIR VISIBILIDADE
-================================ */
-
-.editar-lavoura-card button {
-    opacity: 1;
-    visibility: visible;
-}
-
-/* ================================
-   RESPONSIVIDADE
-================================ */
-
-@media (max-width: 600px) {
-
-    .editar-lavoura-page {
-        padding: 24px 14px;
-    }
-
-    .editar-lavoura-card {
-        padding: 22px;
-    }
-
-    .editar-lavoura-header h1 {
-        font-size: 23px;
-    }
-
-    .mapa-edicao-container {
-        height: 260px;
-    }
+.edi-erro-remocao {
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  background: var(--cherry-soft);
+  color: var(--cherry);
+  font-size: 13.5px;
+  font-weight: 500;
 }
