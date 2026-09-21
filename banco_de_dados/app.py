@@ -11,7 +11,7 @@ from routes.imagens_routes import listar_imagens_bp, init_mysql as init_imagens_
 from routes.imagens_routes import acessar_imagem_bp, init_mysql as init_imagens_mysql
 from routes.cooperativa_routes import cooperativa_bp, init_mysql as init_cooperativa_mysql
 from routes.indices_routes import indices_bp, init_mysql as init_indices_mysql
-
+from routes.gda_routes import gda_bp, init_mysql as init_gda_mysql
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -35,5 +35,6 @@ app.register_blueprint(cooperativa_bp)
 app.register_blueprint(listar_imagens_bp)
 app.register_blueprint(acessar_imagem_bp)
 app.register_blueprint(indices_bp)
+app.register_blueprint(gda_bp)
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
