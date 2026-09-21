@@ -49,6 +49,8 @@ def cadastrar_lavoura():
     nome_lavoura = dados.get('nomeLavoura')
     coordenadas = dados.get('coordenadas')
     area_hectares = calcular_area_m2(coordenadas)
+    crs = dados.get('crs', 'EPSG:4326')
+    crs_transformation = dados.get("crsTransformation")
 
     if not usuario_id or not nome_lavoura or not coordenadas:
         return jsonify({
@@ -60,6 +62,7 @@ def cadastrar_lavoura():
             "mensagem": "O polígono precisa de pelo menos 3 pontos"
         }), 400
 
+    area_hectares = calcular_area_m2(coordenadas)
     coordenadas_json = json.dumps(coordenadas)
 
     try:
@@ -69,14 +72,16 @@ def cadastrar_lavoura():
         cursor.execute(
             """
             INSERT INTO lavouras
-            (usuario_id, nome_lavoura, coordenadas, area_m2)
+            (usuario_id, nome_lavoura, coordenadas, area_m2, crs, crs_transformation)
             VALUES (%s, %s, %s, %s)
             """,
             (
                 usuario_id,
                 nome_lavoura,
                 coordenadas_json,
-                area_hectares
+                area_hectares,
+                crs,
+                crs_transformation
             )
         )
 
@@ -89,10 +94,11 @@ def cadastrar_lavoura():
 
     except Exception as erro:
 
-        return jsonify({
+        return jsonify({ 
             "mensagem": "Erro ao cadastrar lavoura",
             "erro": str(erro)
         }), 500
+
 
 # LISTAR TODAS AS LAVOURAS (TODOS OS PRODUTORES)
 # Usado pelo backend_indices para processar automaticamente
@@ -112,6 +118,8 @@ def listar_todas_lavouras():
                 l.coordenadas,
                 l.area_m2,
                 u.nome
+                l.crs
+                l.crs_transformation
             FROM lavouras l
             JOIN usuarios u
                 ON l.usuario_id = u.id
@@ -134,6 +142,8 @@ def listar_todas_lavouras():
                 "coordenadas": json.loads(linha[3]),
                 "areaM2": float(linha[4]) if linha[4] is not None else 0,
                 "produtorNome": linha[5]
+                "crs": linha[6]
+                "crsTransformation": linha[7]
             })
 
         return jsonify(lavouras), 200
