@@ -1,10 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import "./mapa.css";
-
 import BottomNav from "../components/BottomNav";
 import Button from "../components/ui/Button";
 import Icon from "../components/ui/Icon";
@@ -13,7 +11,6 @@ import { AUTH_API_URL } from "../config/api";
 import { calcularAreaHectares, formatarHectares } from "../utils/geo";
 import { mensagemDeErro } from "../services/erros";
 import { contar } from "../utils/texto";
-
 import "../utils/leafletIcons";
 
 const BRASIL = [
@@ -76,11 +73,9 @@ export default function Mapa() {
   const location = useLocation();
   const toast = useToast();
 
-  // SOMENTE a URL solicita zoom.
+  // Somente a URL solicita zoom.
   // Não usa localStorage nem location.state para escolher o alvo.
-  const alvo = new URLSearchParams(location.search).get(
-    "lavouraId"
-  );
+  const alvo = new URLSearchParams(location.search).get("lavouraId");
 
   const usuarioId = localStorage.getItem("usuarioId");
   const tipo = localStorage.getItem("usuarioTipo");
@@ -88,7 +83,6 @@ export default function Mapa() {
 
   const container = useRef(null);
   const mapa = useRef(null);
-
   const pontosCadastro = useRef([]);
   const desenho = useRef(null);
   const camadaCadastro = useRef(null);
@@ -98,14 +92,18 @@ export default function Mapa() {
   const [legendaAberta, setLegendaAberta] = useState(
     () => window.innerWidth > 600
   );
+
   const [areaHectares, setAreaHectares] = useState(0);
   const [totalPontos, setTotalPontos] = useState(0);
   const [confirmado, setConfirmado] = useState(false);
+
   const [cidade, setCidade] = useState("");
   const [municipios, setMunicipios] = useState([]);
 
-  const [sugestoesAbertas, setSugestoesAbertas] =
+  const [painelCadastroRecolhido, setPainelCadastroRecolhido] =
     useState(false);
+
+  const [sugestoesAbertas, setSugestoesAbertas] = useState(false);
 
   const [statusCidades, setStatusCidades] = useState(
     "Carregando cidades..."
@@ -141,10 +139,11 @@ export default function Mapa() {
 
     setAreaHectares(calcularAreaHectares(coords));
     setTotalPontos(coords.length);
+
     if (coords.length < 2) return;
 
     const estilo = {
-      color: finalizado ? "#2f4a33" : "#ff0000",
+      color: finalizado ? "#eae41e" : "#ff0000",
       weight: 3,
       fillOpacity: 0.2,
       dashArray: finalizado ? undefined : "6 8",
@@ -168,10 +167,14 @@ export default function Mapa() {
       try {
         const r = await fetch(
           "https://servicodados.ibge.gov.br/api/v1/localidades/municipios?orderBy=nome",
-          { signal: controller.signal }
+          {
+            signal: controller.signal,
+          }
         );
 
-        if (!r.ok) throw new Error();
+        if (!r.ok) {
+          throw new Error();
+        }
 
         const dados = await r.json();
 
@@ -181,8 +184,7 @@ export default function Mapa() {
           dados.map(m => {
             const uf =
               m.microrregiao?.mesorregiao?.UF?.sigla ??
-              m["regiao-imediata"]?.["regiao-intermediaria"]
-                ?.UF?.sigla;
+              m["regiao-imediata"]?.["regiao-intermediaria"]?.UF?.sigla;
 
             const nome = uf ? `${m.nome}, ${uf}` : m.nome;
 
@@ -224,6 +226,7 @@ export default function Mapa() {
     });
 
     mapa.current = atual;
+
     atual.fitBounds(BRASIL);
 
     L.tileLayer(
@@ -245,24 +248,42 @@ export default function Mapa() {
         }).addTo(camadaCadastro.current);
 
         const ponto = { marcador };
+
         let inserir = pontosCadastro.current.length;
+
         if (inserir >= 3) {
           const clique = atual.latLngToLayerPoint(e.latlng);
+
           let distanciaMinima = Infinity;
+
           pontosCadastro.current.forEach((item, indice) => {
-            const proximo = pontosCadastro.current[(indice + 1) % pontosCadastro.current.length];
-            const distancia = L.LineUtil.pointToSegmentDistance(clique,
-              atual.latLngToLayerPoint(item.marcador.getLatLng()),
-              atual.latLngToLayerPoint(proximo.marcador.getLatLng()));
+            const proximo =
+              pontosCadastro.current[
+                (indice + 1) % pontosCadastro.current.length
+              ];
+
+            const distancia =
+              L.LineUtil.pointToSegmentDistance(
+                clique,
+                atual.latLngToLayerPoint(
+                  item.marcador.getLatLng()
+                ),
+                atual.latLngToLayerPoint(
+                  proximo.marcador.getLatLng()
+                )
+              );
+
             if (distancia < distanciaMinima) {
               distanciaMinima = distancia;
               inserir = indice + 1;
             }
           });
         }
+
         pontosCadastro.current.splice(inserir, 0, ponto);
 
         const popup = document.createElement("div");
+
         const texto = document.createElement("p");
         texto.className = "mapa-popup-texto";
 
@@ -292,6 +313,7 @@ export default function Mapa() {
         };
 
         popup.append(texto, remover);
+
         marcador.bindPopup(popup);
 
         marcador.on("dragstart", () => {
@@ -337,11 +359,14 @@ export default function Mapa() {
 
     setAviso("");
     setLavourasLegenda([]);
+
     atual.stop();
 
     // Sem ID na URL: navbar abre a visão geral.
     if (!alvo) {
-      atual.fitBounds(BRASIL, { animate: false });
+      atual.fitBounds(BRASIL, {
+        animate: false,
+      });
     }
 
     async function carregar() {
@@ -379,32 +404,36 @@ export default function Mapa() {
 
         let lavourasVisiveis = dados;
 
-if (tipo === "agronomo") {
-  const respostaProdutores = await fetch(
-    `${AUTH_API_URL}/agronomo/${usuarioId}/produtores`,
-    {
-      signal: controller.signal,
-      headers: {
-        "X-Usuario-Id": usuarioId,
-      },
-    }
-  );
+        if (tipo === "agronomo") {
+          const respostaProdutores = await fetch(
+            `${AUTH_API_URL}/agronomo/${usuarioId}/produtores`,
+            {
+              signal: controller.signal,
+              headers: {
+                "X-Usuario-Id": usuarioId,
+              },
+            }
+          );
 
-  if (!respostaProdutores.ok) {
-    throw new Error("Erro ao carregar produtores vinculados.");
-  }
+          if (!respostaProdutores.ok) {
+            throw new Error(
+              "Erro ao carregar produtores vinculados."
+            );
+          }
 
-  const produtoresVinculados = await respostaProdutores.json();
+          const produtoresVinculados =
+            await respostaProdutores.json();
 
-  const idsProdutores = produtoresVinculados.map(
-    produtor => String(produtor.id)
-  );
+          const idsProdutores = produtoresVinculados.map(
+            produtor => String(produtor.id)
+          );
 
-  lavourasVisiveis = dados.filter(
-    lavoura =>
-      idsProdutores.includes(String(lavoura.usuarioId))
-  );
-}
+          lavourasVisiveis = dados.filter(lavoura =>
+            idsProdutores.includes(
+              String(lavoura.usuarioId)
+            )
+          );
+        }
 
         if (
           controller.signal.aborted ||
@@ -416,10 +445,13 @@ if (tipo === "agronomo") {
         let selecionado = null;
 
         if (tipo === "agronomo") {
-  setLavourasLegenda([]);
-}
+          setLavourasLegenda([]);
+        }
 
-        for (const [indice, lavoura] of lavourasVisiveis.entries()) {
+        for (const [
+          indice,
+          lavoura,
+        ] of lavourasVisiveis.entries()) {
           const coords = obterPontos(lavoura.coordenadas);
 
           if (coords.length < 3) continue;
@@ -428,10 +460,11 @@ if (tipo === "agronomo") {
             alvo != null &&
             String(lavoura.id) === alvo;
 
-            const cor =
-  focada
-    ? "#ffd54f"
-    : CORES_LAVOURAS[indice % CORES_LAVOURAS.length];
+          const cor = focada
+            ? "#ffd54f"
+            : CORES_LAVOURAS[
+                indice % CORES_LAVOURAS.length
+              ];
 
           const poligono = L.polygon(coords, {
             color: cor,
@@ -440,17 +473,19 @@ if (tipo === "agronomo") {
           }).addTo(camada);
 
           if (tipo === "agronomo") {
-  setLavourasLegenda(prev => [
-    ...prev,
-    {
-      id: lavoura.id,
-      nome: lavoura.nomeLavoura || "Sem nome",
-      produtor: lavoura.produtorNome || "Sem produtor",
-      cor,
-      poligono
-    }
-  ]);
-}
+            setLavourasLegenda(prev => [
+              ...prev,
+              {
+                id: lavoura.id,
+                nome:
+                  lavoura.nomeLavoura || "Sem nome",
+                produtor:
+                  lavoura.produtorNome || "Sem produtor",
+                cor,
+                poligono,
+              },
+            ]);
+          }
 
           const tooltip = document.createElement("div");
 
@@ -460,7 +495,9 @@ if (tipo === "agronomo") {
           );
 
           const linhas = [
-            `Lavoura: ${lavoura.nomeLavoura || "Sem nome"}`,
+            `Lavoura: ${
+              lavoura.nomeLavoura || "Sem nome"
+            }`,
           ];
 
           if (!ehProdutor && lavoura.produtorNome) {
@@ -470,13 +507,15 @@ if (tipo === "agronomo") {
           }
 
           if (Number.isFinite(area)) {
-            linhas.push(`Área: ${area.toFixed(2)} ha`);
+            linhas.push(
+              `Área: ${area.toFixed(2)} ha`
+            );
           }
 
           linhas.forEach(linha => {
             const div = document.createElement("div");
             div.textContent = linha;
-            tooltip.append(div);
+            tooltip.appendChild(div);
           });
 
           poligono.bindTooltip(tooltip, {
@@ -489,7 +528,8 @@ if (tipo === "agronomo") {
           }
         }
 
-        // Nenhuma solicitação de zoom: mantém a visão geral.
+        // Nenhuma solicitação de zoom:
+        // mantém a visão geral.
         if (!alvo) return;
 
         if (!selecionado) {
@@ -508,13 +548,18 @@ if (tipo === "agronomo") {
             return;
           }
 
-          atual.invalidateSize({ pan: false });
-
-          atual.fitBounds(selecionado.getBounds(), {
-            padding: [40, 40],
-            maxZoom: 17,
-            animate: false,
+          atual.invalidateSize({
+            pan: false,
           });
+
+          atual.fitBounds(
+            selecionado.getBounds(),
+            {
+              padding: [40, 40],
+              maxZoom: 17,
+              animate: false,
+            }
+          );
 
           selecionado.bringToFront();
         });
@@ -574,14 +619,19 @@ if (tipo === "agronomo") {
       if (mapa.current !== atual) return;
 
       if (!dados.length) {
-        toast.info("Cidade não encontrada. Confira o nome e tente de novo.");
+        toast.info(
+          "Cidade não encontrada. Confira o nome e tente de novo."
+        );
         return;
       }
 
       const lat = Number(dados[0].lat);
       const lng = Number(dados[0].lon);
 
-      if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+      if (
+        !Number.isFinite(lat) ||
+        !Number.isFinite(lng)
+      ) {
         throw new Error("Coordenadas inválidas.");
       }
 
@@ -600,7 +650,12 @@ if (tipo === "agronomo") {
         .openPopup();
     } catch (erro) {
       if (mapa.current === atual) {
-        toast.erro(mensagemDeErro(erro, "Não foi possível buscar a cidade."));
+        toast.erro(
+          mensagemDeErro(
+            erro,
+            "Não foi possível buscar a cidade."
+          )
+        );
       }
     }
   }
@@ -611,7 +666,9 @@ if (tipo === "agronomo") {
 
   function confirmarContorno() {
     if (pontosCadastro.current.length < 3) {
-      toast.info("Marque pelo menos 3 pontos no mapa.");
+      toast.info(
+        "Marque pelo menos 3 pontos no mapa."
+      );
       return;
     }
 
@@ -621,8 +678,10 @@ if (tipo === "agronomo") {
 
   function apagarContorno() {
     camadaCadastro.current?.clearLayers();
+
     pontosCadastro.current = [];
     desenho.current = null;
+
     setConfirmado(false);
     setAreaHectares(0);
     setTotalPontos(0);
@@ -636,13 +695,21 @@ if (tipo === "agronomo") {
       return;
     }
 
-    const coordenadas = pontosCadastro.current.map(p => {
-      const { lat, lng } = p.marcador.getLatLng();
-      return { lat, lng };
-    });
+    const coordenadas =
+      pontosCadastro.current.map(p => {
+        const { lat, lng } =
+          p.marcador.getLatLng();
+
+        return {
+          lat,
+          lng,
+        };
+      });
 
     navigate("/cadastro", {
-      state: { coordenadas },
+      state: {
+        coordenadas,
+      },
     });
   }
 
@@ -658,16 +725,28 @@ if (tipo === "agronomo") {
 
   return (
     <div className="pagina-mapa">
+
+      {/* ========================================================
+          BARRA SUPERIOR
+      ======================================================== */}
+
       <div className="barra-superior">
         <div
           className="busca-cidade"
           onBlur={e => {
-            if (!e.currentTarget.contains(e.relatedTarget)) {
+            if (
+              !e.currentTarget.contains(
+                e.relatedTarget
+              )
+            ) {
               setSugestoesAbertas(false);
             }
           }}
         >
-          <Icon nome="busca" tamanho={18} />
+          <Icon
+            nome="busca"
+            tamanho={18}
+          />
 
           <input
             type="text"
@@ -676,7 +755,9 @@ if (tipo === "agronomo") {
             placeholder="Digite uma cidade..."
             autoComplete="off"
             value={cidade}
-            onFocus={() => setSugestoesAbertas(true)}
+            onFocus={() =>
+              setSugestoesAbertas(true)
+            }
             onChange={e => {
               setCidade(e.target.value);
               setSugestoesAbertas(true);
@@ -692,9 +773,10 @@ if (tipo === "agronomo") {
               }
 
               if (e.key === "ArrowDown") {
-                const botao = e.currentTarget.parentElement.querySelector(
-                  ".sugestoes-cidades button"
-                );
+                const botao =
+                  e.currentTarget.parentElement.querySelector(
+                    ".sugestoes-cidades button"
+                  );
 
                 if (botao) {
                   e.preventDefault();
@@ -704,132 +786,274 @@ if (tipo === "agronomo") {
             }}
           />
 
-          {sugestoesAbertas && termo.length >= 2 && (
-            <ul className="sugestoes-cidades">
-              {sugestoes.map(m => (
-                <li key={m.id}>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setCidade(m.nome);
-                      setSugestoesAbertas(false);
-                    }}
-                  >
-                    {m.nome}
-                  </button>
-                </li>
-              ))}
+          {sugestoesAbertas &&
+            termo.length >= 2 && (
+              <ul className="sugestoes-cidades">
+                {sugestoes.map(m => (
+                  <li key={m.id}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCidade(m.nome);
+                        setSugestoesAbertas(false);
+                      }}
+                    >
+                      {m.nome}
+                    </button>
+                  </li>
+                ))}
 
-              {!sugestoes.length && (
-                <li className="aviso-cidades">
-                  {statusCidades || "Nenhuma cidade encontrada."}
-                </li>
-              )}
-            </ul>
-          )}
+                {!sugestoes.length && (
+                  <li className="aviso-cidades">
+                    {statusCidades ||
+                      "Nenhuma cidade encontrada."}
+                  </li>
+                )}
+              </ul>
+            )}
 
-          <span id="status-cidades" className="status-cidades" role="status">
+          <span
+            id="status-cidades"
+            className="status-cidades"
+            role="status"
+          >
             {statusCidades}
           </span>
         </div>
 
-        <Button variant="glass" icon="busca" onClick={buscarCidade}>
+        <Button
+          variant="glass"
+          icon="busca"
+          onClick={buscarCidade}
+        >
           Buscar
         </Button>
       </div>
 
+      {/* ========================================================
+          AVISO
+      ======================================================== */}
+
       {aviso && (
-        <div className="mapa-aviso" role="alert">
-          <Icon nome="alertaCirculo" tamanho={18} />
+        <div
+          className="mapa-aviso"
+          role="alert"
+        >
+          <Icon
+            nome="alertaCirculo"
+            tamanho={18}
+          />
           {aviso}
         </div>
       )}
 
-      <div ref={container} id="mapa" />
+      {/* ========================================================
+          MAPA
+      ======================================================== */}
+
+      <div
+        ref={container}
+        id="mapa"
+      />
+
+      {/* ========================================================
+          PAINEL DE CADASTRO DO PRODUTOR
+      ======================================================== */}
 
       {ehProdutor && (
-        <section className="mapa-painel" aria-label="Cadastro da lavoura">
+        <section
+          className={
+            "mapa-painel" +
+            (painelCadastroRecolhido
+              ? " recolhido"
+              : "")
+          }
+          aria-label="Cadastro da lavoura"
+        >
           <div className="mapa-painel-topo">
-            <strong>Cadastrar lavoura</strong>
-            <div className="mapa-chips" aria-live="polite">
-              <span>{contar(totalPontos, "ponto", "pontos")}</span>
-              {totalPontos >= 3 && <span>{formatarHectares(areaHectares)}</span>}
-            </div>
-          </div>
+            <strong>
+              Cadastrar lavoura
+            </strong>
 
-          <p className="mapa-painel-texto">{instrucao}</p>
-
-          <div className="mapa-painel-botoes">
-            <Button
-              variant="secondary"
-              size="sm"
-              icon="lixeira"
-              onClick={apagarContorno}
-              disabled={totalPontos === 0}
+            <div
+              className="mapa-chips"
+              aria-live="polite"
             >
-              Apagar
-            </Button>
+              <span>
+                {contar(
+                  totalPontos,
+                  "ponto",
+                  "pontos"
+                )}
+              </span>
 
-            {confirmado ? (
-              <Button variant="gold" size="sm" icon="avancar" onClick={cadastrar}>
-                Continuar cadastro
-              </Button>
-            ) : (
-              <Button size="sm" icon="check" onClick={confirmarContorno} disabled={totalPontos < 3}>
-                Confirmar contorno
-              </Button>
-            )}
+              {totalPontos >= 3 && (
+                <span>
+                  {formatarHectares(
+                    areaHectares
+                  )}
+                </span>
+              )}
+            </div>
+
+          <button
+  type="button"
+  className="mapa-painel-seta"
+  onClick={() =>
+    setPainelCadastroRecolhido(prev => !prev)
+  }
+  aria-expanded={!painelCadastroRecolhido}
+  aria-label={
+    painelCadastroRecolhido
+      ? "Expandir cadastro"
+      : "Recolher cadastro"
+  }
+  title={
+    painelCadastroRecolhido
+      ? "Expandir cadastro"
+      : "Recolher cadastro"
+  }
+>
+  <Icon
+    nome="setaBaixo"
+    className="legenda-seta"
+  />
+</button>
           </div>
+
+          {!painelCadastroRecolhido && (
+            <>
+              <p className="mapa-painel-texto">
+                {instrucao}
+              </p>
+
+              <div className="mapa-painel-botoes">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  icon="lixeira"
+                  onClick={apagarContorno}
+                  disabled={totalPontos === 0}
+                >
+                  Apagar
+                </Button>
+
+                {confirmado ? (
+                  <Button
+                    variant="gold"
+                    size="sm"
+                    icon="avancar"
+                    onClick={cadastrar}
+                  >
+                    Continuar cadastro
+                  </Button>
+                ) : (
+                  <Button
+                    size="sm"
+                    icon="check"
+                    onClick={confirmarContorno}
+                    disabled={totalPontos < 3}
+                  >
+                    Confirmar contorno
+                  </Button>
+                )}
+              </div>
+            </>
+          )}
         </section>
       )}
 
-      {tipo === "agronomo" && lavourasLegenda.length > 0 && (
-        <div className={"legenda-lavouras" + (legendaAberta ? "" : " recolhida")}>
-          <button
-            type="button"
-            className="legenda-cabecalho"
-            onClick={() => setLegendaAberta(aberta => !aberta)}
-            aria-expanded={legendaAberta}
-            aria-controls="lista-legenda"
-            title={legendaAberta ? "Recolher legenda" : "Expandir legenda"}
+      {/* ========================================================
+          LEGENDA DAS LAVOURAS — AGRÔNOMO
+      ======================================================== */}
+
+      {tipo === "agronomo" &&
+        lavourasLegenda.length > 0 && (
+          <div
+            className={
+              "legenda-lavouras" +
+              (legendaAberta
+                ? ""
+                : " recolhida")
+            }
           >
-            <span className="legenda-titulo">
-              Lavouras
-              <small>{lavourasLegenda.length}</small>
-            </span>
+            <button
+              type="button"
+              className="legenda-cabecalho"
+              onClick={() =>
+                setLegendaAberta(
+                  aberta => !aberta
+                )
+              }
+              aria-expanded={legendaAberta}
+              aria-controls="lista-legenda"
+              title={
+                legendaAberta
+                  ? "Recolher legenda"
+                  : "Expandir legenda"
+              }
+            >
+              <span className="legenda-titulo">
+                Lavouras
+                <small>
+                  {lavourasLegenda.length}
+                </small>
+              </span>
 
-            <Icon nome="setaBaixo" className="legenda-seta" />
-          </button>
+              <Icon
+                nome="setaBaixo"
+                className="legenda-seta"
+              />
+            </button>
 
-          {legendaAberta && (
-            <div id="lista-legenda" className="legenda-lista">
-              {lavourasLegenda.map(lavoura => (
-                <button
-                  type="button"
-                  key={lavoura.id}
-                  className="item-legenda"
-                  onClick={() => {
-                    mapa.current.fitBounds(lavoura.poligono.getBounds(), {
-                      padding: [40, 40],
-                      maxZoom: 17,
-                      animate: true,
-                    });
+            {legendaAberta && (
+              <div
+                id="lista-legenda"
+                className="legenda-lista"
+              >
+                {lavourasLegenda.map(
+                  lavoura => (
+                    <button
+                      type="button"
+                      key={lavoura.id}
+                      className="item-legenda"
+                      onClick={() => {
+                        mapa.current.fitBounds(
+                          lavoura.poligono.getBounds(),
+                          {
+                            padding: [40, 40],
+                            maxZoom: 17,
+                            animate: true,
+                          }
+                        );
 
-                    lavoura.poligono.bringToFront();
-                  }}
-                >
-                  <span className="quadrado-cor" style={{ backgroundColor: lavoura.cor }} />
+                        lavoura.poligono.bringToFront();
+                      }}
+                    >
+                      <span
+                        className="quadrado-cor"
+                        style={{
+                          backgroundColor:
+                            lavoura.cor,
+                        }}
+                      />
 
-                  <span className="texto-legenda">
-                    <strong>{lavoura.nome}</strong>
-                    <small>{lavoura.produtor}</small>
-                  </span>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
+                      <span className="texto-legenda">
+                        <strong>
+                          {lavoura.nome}
+                        </strong>
+
+                        <small>
+                          {lavoura.produtor}
+                        </small>
+                      </span>
+                    </button>
+                  )
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
       <BottomNav />
     </div>
