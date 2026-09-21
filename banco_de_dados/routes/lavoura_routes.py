@@ -61,7 +61,7 @@ def cadastrar_lavoura():
             "mensagem": "O polígono precisa de pelo menos 3 pontos"
         }), 400
 
-    area_m2 = calcular_area_m2(coordenadas)
+    area_hectares = calcular_area_m2(coordenadas)
     coordenadas_json = json.dumps(coordenadas)
 
     try:
@@ -70,15 +70,8 @@ def cadastrar_lavoura():
         cursor.execute(
             """
             INSERT INTO lavouras
-            (
-                usuario_id,
-                nome_lavoura,
-                coordenadas,
-                area_m2,
-                crs,
-                crs_transformation
-            )
-            VALUES (%s, %s, %s, %s, %s, %s)
+            (usuario_id, nome_lavoura, coordenadas, area_m2, crs, crs_transformation)
+            VALUES (%s, %s, %s, %s)
             """,
             (
                 usuario_id,
