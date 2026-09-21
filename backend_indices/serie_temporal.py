@@ -13,8 +13,14 @@ from dotenv import load_dotenv
 import cloudinary
 from  get_indices import save_image_indatabase
 from graus_dia import get_graus_dia_data
-import json
+from z_score import calcular_z_score
 import requests
+import boto3
+import xarray as xr
+import s3fs
+
+
+
 load_dotenv()
 
 
@@ -25,6 +31,15 @@ cloudinary.config(
     secure=True
 )
 
+s3 = boto3.client(
+    service_name='s3',
+    aws_access_key_id=os.environ.get("ACCESS_KEY_ID"),
+    aws_secret_access_key=os.environ.get("SECRET_ACCESS_KEY"),
+    region_name='auto'
+)
+
+
+
 from gee_auth import obter_credenciais
 
 credentials, project_id = obter_credenciais()
@@ -32,17 +47,20 @@ ee.Initialize(credentials, project="projete2k26")
 
 indices = ["NDVI", "NDRE", "NDWI"]
 
-def add_NDVI(image):
+def add_NDVI_zscore(image):
     ndvi = image.normalizedDifference(["B8","B4"]).rename("NDVI")
-    return image.addBands(ndvi)
+    z_score,_,_ = calcular_z_score(ndvi, image.geometry())
+    return image.addBands(z_score.rename("NDVI_zscore"))
 
-def add_NDRE(image):
+def add_NDRE_zscore(image):
     ndre = image.normalizedDifference(["B8","B5"]).rename("NDRE")
-    return image.addBands(ndre)
+    z_score,_,_ = calcular_z_score(ndre, image.geometry())
+    return image.addBands(z_score.rename("NDRE_zscore"))
 
-def add_NDWI(image):
+def add_NDWI_zscore(image):
     ndwi = image.normalizedDifference(["B3","B8"]).rename("NDWI")
-    return image.addBands(ndwi)
+    z_score,_,_ = calcular_z_score(ndwi, image.geometry())
+    return image.addBands(z_score.rename("NDWI_zscore"))
 
 
 
@@ -365,6 +383,9 @@ def create_zonas_de_manejo(array,usuario_id: int, lavoura_id: int,pasta_id = os.
     nome_arquivo = (
         f"zonas_de_manejo_{datetime.now().strftime('%Y-%m-%d')}.png"
     )
+
+    imagem_zonas_de_manejo = Image.fromarray(rgba)
+    save_image_indatabase(imagem_zonas_de_manejo, nome_arquivo, pasta_id, usuario_id, lavoura_id, datetime.now().strftime('%Y-%m-%d'))
     
    
 
@@ -377,36 +398,36 @@ def make_time_series(geometria, data_inicio, data_fim, usuario_id: int, lavoura_
         .filterBounds(lavoura)
         .filterDate(inicio, fim)
         .filter(ee.Filter.lt("CLOUDY_PIXEL_PERCENTAGE", 30))
+        .map(add_NDVI_zscore).map(add_NDRE_zscore).map(add_NDWI_zscore)
+        .select(['NDVI_zscore', 'NDRE_zscore', 'NDWI_zscore'])
+        .map(lambda image: image.clip(lavoura))
     )
 
-    imagens_com_indices = imagens.map(add_NDVI).map(add_NDRE).map(add_NDWI)
-    colecao_com_indices = imagens_com_indices.toList(imagens_com_indices.size())
-
-    graus_dia = 0
-    resultados = []
-    for i in range (colecao_com_indices.size().getInfo()):
-        imagem = ee.Image(colecao_com_indices.get(i))
-        graus_dia += get_graus_dia_data(lavoura.centroid().coordinates().get(1).getInfo(), lavoura.centroid().coordinates().get(0).getInfo(), imagem.date().format('YYYY-MM-dd').getInfo())
-        valores = imagem.reduceRegion(
-            reducer=ee.Reducer.mean(),
-            geometry=lavoura,
-            scale=10
+    ds = xr.open_dataset(imagens, engine="ee", region=lavoura, crs='EPSG:4326', scale=10, max_pixels=1e8)
+    renomear = {"time": "tempo", "lat": "y", "lon": "x", "Y": "y", "X": "x"}
+    ds = ds.rename({k: v for k, v in renomear.items() if k in ds.dims})
+    ds = ds.resample(time="1D").mean().transpose("tempo", "y", "x")
+    lon, lat = lavoura.centroid().coordinates().getInfo()
+    dias = [str(d)[:10] for d in ds.tempo.values]
+    graus_dia_acum = np.cumsum([get_graus_dia_data(d, lat, lon) for d in dias])
+    global indices
+    for indice in indices:
+        saida = (
+            ds[indice + "_zscore"].rename("z_score").to_dataset()
+            .assgn_coords({"graus_dia": ("tempo", graus_dia_acum)})
+            .chunks({"tempo": 365, "y": -1, "x": -1})
         )
+        url = f"{os.environ.get('ENDPOINT_URL')}{usu}"
+    
 
-        for indice in indices:
-            resultados.append({
-                "dataReferencia": imagem.date().format('YYYY-MM-dd').getInfo(),
-                "tipoIndice": indice,
-                "valor": valores.get(indice).getInfo(),
-                "grausDia": graus_dia ,
-                "lavouraId": lavoura_id
-            })
+    
 
-    dados = json.dumps(resultados)
-    resposta = requests.post(url=api_url('/create_serie_temporal'), json=dados, timeout=(15,60))
-    resposta.raise_for_status()
-    print(resposta.json())
-    return resposta.json()
+    
+   
+    
+        
+
+        
 
 
     
@@ -432,5 +453,3 @@ def make_time_series(geometria, data_inicio, data_fim, usuario_id: int, lavoura_
 
 
 
-    imagem_zonas_de_manejo = Image.fromarray(rgba)
-    save_image_indatabase(imagem_zonas_de_manejo, nome_arquivo, pasta_id, usuario_id, lavoura_id, datetime.now().strftime('%Y-%m-%d'))

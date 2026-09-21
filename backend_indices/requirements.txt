@@ -4,6 +4,7 @@ uvicorn[standard]
 pydantic
 python-dotenv
 flask
+xarray
 
 # Google Earth Engine & Google Cloud / API Services
 earthengine-api
@@ -31,3 +32,6 @@ requests
 
 #Cloudinary
 cloudinary
+
+#S3
+s3fs

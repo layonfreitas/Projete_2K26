@@ -24,11 +24,11 @@ def calcular_z_score(indice,geometria):
         .where(z.lt(-2).And(z.gte(-3.5)),2).where(z.lt(-3.5),3)
         .where(z.gt(2).And(z.lte(3.5)),4).where(z.gt(3.5),5)
         .updateMask(z.mask()).clip(geometria))
-    return classes, {'mediana':mediana,'mad':mad}
+    return z,classes, {'mediana':mediana,'mad':mad}
 
 
 def salvar_mapa_z_score(imagem,nome_indice,usuario_id,lavoura__id,geometria,pasta_id=None):
-    classes,estatisticas = calcular_z_score(imagem.select(nome_indice),geometria)
+    _,classes,estatisticas = calcular_z_score(imagem.select(nome_indice),geometria)
     conteudo,meta = exportar_png(classes.visualize(min=1,max=5,palette=PALETA),
         geometria,usuario_id,lavoura__id,imagem)
     meta['visualizacao'] = {'tipo':'zscore','palette':PALETA,'rotulos':ROTULOS,**estatisticas}
