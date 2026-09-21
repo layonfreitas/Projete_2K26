@@ -11,6 +11,7 @@ DROP TABLE IF EXISTS observacoes;
 DROP TABLE IF EXISTS vinculos_agronomo;
 DROP TABLE IF EXISTS lavouras;
 DROP TABLE IF EXISTS usuarios;
+SHOW COLUMNS FROM lavouras;
 
 -- ================================================================
 -- USUÁRIOS (produtor, agronomo ou cooperativa, tudo na mesma tabela)
@@ -36,11 +37,11 @@ CREATE TABLE lavouras (
     usuario_id INT NOT NULL,
     nome_lavoura VARCHAR(100) NOT NULL,
     coordenadas JSON NOT NULL,
+    area_m2 DECIMAL(14,2) NULL,
+    crs VARCHAR(50) NULL,
+    crs_transformation TEXT NULL,
     criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     status ENUM('ok', 'atencao', 'critico') NOT NULL DEFAULT 'ok',
-    ADD COLUMN crs VARCHAR(50) NULL,
-    ADD COLUMN crs_transformation TEXT NULL;
-    UPDATE lavouras SET crs = 'EPSG:4326' WHERE crs IS NULL;
     FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
 );
 

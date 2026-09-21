@@ -141,8 +141,8 @@ def listar_todas_lavouras():
                 "nomeLavoura": linha[2],
                 "coordenadas": json.loads(linha[3]),
                 "areaM2": float(linha[4]) if linha[4] is not None else 0,
-                "produtorNome": linha[5]
-                "crs": linha[6]
+                "produtorNome": linha[5],
+                "crs": linha[6],
                 "crsTransformation": linha[7]
             })
 

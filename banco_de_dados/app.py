@@ -15,7 +15,7 @@ from routes.indices_routes import indices_bp, init_mysql as init_indices_mysql
 
 app = Flask(__name__)
 app.config.from_object(Config)
-CORS(app)
+CORS(app, origins=["http://localhost:5173"])
 
 mysql = MySQL(app)
 init_auth_mysql(mysql)
