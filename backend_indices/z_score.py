@@ -21,17 +21,52 @@ def calcular_z_score(indice,geometria):
     z = diferenca.multiply(0.6745).divide(mad)
     # Não inicia com ee.Image(0), que tem grade e footprint próprios.
     classes = (indice.multiply(0).add(1)
-        .where(z.lt(-2).And(z.gte(-3.5)),2).where(z.lt(-3.5),3)
-        .where(z.gt(2).And(z.lte(3.5)),4).where(z.gt(3.5),5)
-        .updateMask(z.mask()).clip(geometria))
+    .where(z.lt(-2).And(z.gte(-3.5)), 2)
+    .where(z.lt(-3.5), 3)
+    .where(z.gt(2).And(z.lte(3.5)), 4)
+    .where(z.gt(3.5), 5)
+    .updateMask(z.mask())
+    .updateMask(z.lt(-2).Or(z.gt(2)))
+    .clip(geometria))
     return classes, {'mediana':mediana,'mad':mad}
 
 
-def salvar_mapa_z_score(imagem,nome_indice,usuario_id,lavoura__id,geometria,pasta_id=None):
-    classes,estatisticas = calcular_z_score(imagem.select(nome_indice),geometria)
-    conteudo,meta = exportar_png(classes.visualize(min=1,max=5,palette=PALETA),
-        geometria,usuario_id,lavoura__id,imagem)
-    meta['visualizacao'] = {'tipo':'zscore','palette':PALETA,'rotulos':ROTULOS,**estatisticas}
+def salvar_mapa_z_score(imagem, nome_indice, usuario_id, lavoura__id, geometria, pasta_id=None):
+    classes, estatisticas = calcular_z_score(
+        imagem.select(nome_indice),
+        geometria
+    )
+
+    visualizacao = classes.visualize(
+        min=1,
+        max=5,
+        palette=PALETA
+    )
+
+    conteudo, meta = exportar_png(
+        visualizacao,
+        geometria,
+        usuario_id,
+        lavoura__id,
+        imagem
+    )
+
+    meta['visualizacao'] = {
+        'tipo': 'zscore',
+        'palette': PALETA,
+        'rotulos': ROTULOS,
+        **estatisticas
+    }
+
     data = imagem.date().format('YYYY-MM-dd').getInfo()
-    return save_image_indatabase(conteudo,f'z-score-{nome_indice}_{data}',pasta_id,
-        usuario_id,lavoura__id,data,None,meta)
+
+    return save_image_indatabase(
+        conteudo,
+        f'z-score-{nome_indice}_{data}',
+        pasta_id,
+        usuario_id,
+        lavoura__id,
+        data,
+        None,
+        meta
+    )
