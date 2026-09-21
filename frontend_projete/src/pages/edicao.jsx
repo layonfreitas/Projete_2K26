@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { AUTH_API_URL } from "../config/api";
+import { fetchAutenticado } from "../services/apiAutenticado";
 
 import { MapContainer, TileLayer, Marker, Polygon } from "react-leaflet";
 
@@ -83,7 +84,7 @@ function Edicao() {
 
     async function carregarLavoura() {
       try {
-        const resposta = await fetch(`${AUTH_API_URL}/lavoura/${id}`);
+        const resposta = await fetchAutenticado(`${AUTH_API_URL}/lavoura/${id}`);
 
         const dados = await resposta.json();
 
@@ -145,7 +146,7 @@ function Edicao() {
     setSalvandoPontos(true);
 
     try {
-      const resposta = await fetch(`${AUTH_API_URL}/lavoura/${id}`, {
+      const resposta = await fetchAutenticado(`${AUTH_API_URL}/lavoura/${id}`, {
         method: "PUT",
 
         headers: {
@@ -191,7 +192,7 @@ function Edicao() {
     setSalvandoNome(true);
 
     try {
-      const resposta = await fetch(`${AUTH_API_URL}/lavoura/${id}`, {
+      const resposta = await fetchAutenticado(`${AUTH_API_URL}/lavoura/${id}`, {
         method: "PUT",
 
         headers: {
@@ -230,7 +231,7 @@ function Edicao() {
     setErroRemocao("");
 
     try {
-      const resposta = await fetch(`${AUTH_API_URL}/lavoura/${id}`, {
+      const resposta = await fetchAutenticado(`${AUTH_API_URL}/lavoura/${id}`, {
         method: "DELETE",
       });
 

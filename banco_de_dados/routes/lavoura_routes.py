@@ -8,6 +8,41 @@ lavoura_bp = Blueprint('lavoura', __name__)
 
 mysql = None
 
+
+def _dono_da_lavoura(cursor, lavoura_id):
+    """Retorna o usuario_id dono da lavoura, ou None se ela não existir."""
+    cursor.execute(
+        "SELECT usuario_id FROM lavouras WHERE id = %s",
+        (lavoura_id,)
+    )
+    linha = cursor.fetchone()
+    return linha[0] if linha else None
+
+
+def _exige_dono(lavoura_id):
+    """Confere se quem está chamando (X-Usuario-Id) é o dono da lavoura.
+
+    Retorna (ok: bool, resposta_erro: (dict, status) | None).
+    Se a lavoura não existir, retorna erro 404 aqui mesmo, para as rotas
+    não precisarem checar isso de novo.
+    """
+    usuario_id = request.headers.get("X-Usuario-Id")
+
+    if not usuario_id:
+        return False, (jsonify({"mensagem": "Cabeçalho X-Usuario-Id ausente."}), 401)
+
+    cursor = mysql.connection.cursor()
+    dono_id = _dono_da_lavoura(cursor, lavoura_id)
+    cursor.close()
+
+    if dono_id is None:
+        return False, (jsonify({"mensagem": "Lavoura não encontrada"}), 404)
+
+    if str(dono_id) != str(usuario_id):
+        return False, (jsonify({"mensagem": "Você não tem permissão para acessar esta lavoura."}), 403)
+
+    return True, None
+
 def calcular_area_m2(coordenadas):
     if len(coordenadas) < 3:
         return 0
@@ -223,6 +258,10 @@ def listar_lavouras(usuario_id):
 @lavoura_bp.route('/lavoura/<int:lavoura_id>', methods=['GET'])
 def buscar_lavoura(lavoura_id):
 
+    ok, erro = _exige_dono(lavoura_id)
+    if not ok:
+        return erro
+
     try:
 
         cursor = mysql.connection.cursor()
@@ -284,6 +323,10 @@ def buscar_lavoura(lavoura_id):
     
 @lavoura_bp.route('/lavoura/<int:lavoura_id>', methods=['PUT'])
 def editar_lavoura(lavoura_id):
+
+    ok, erro = _exige_dono(lavoura_id)
+    if not ok:
+        return erro
 
     dados = request.get_json()
 
@@ -387,25 +430,13 @@ def editar_lavoura(lavoura_id):
         }), 500
 @lavoura_bp.route('/lavoura/<int:lavoura_id>', methods=['DELETE'])
 def remover_lavoura(lavoura_id):
+
+    ok, erro = _exige_dono(lavoura_id)
+    if not ok:
+        return erro
+
     try:
         cursor = mysql.connection.cursor()
-
-        cursor.execute(
-            """
-            SELECT id
-            FROM lavouras
-            WHERE id = %s
-            """,
-            (lavoura_id,)
-        )
-
-        lavoura = cursor.fetchone()
-
-        if not lavoura:
-            cursor.close()
-            return jsonify({
-                "mensagem": "Lavoura não encontrada"
-            }), 404
 
         cursor.execute(
             """
