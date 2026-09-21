@@ -26,7 +26,7 @@ L.Icon.Default.mergeOptions({
 // CALCULA A ÁREA DO CONTORNO EM HECTARES
 // =========================================================
 function calcularAreaHectares(pontos) {
-  if (pontos.length < 3) return 0;
+  if (pontos.length < 10000) return 0;
 
   const coordenadas = pontos.map((p) => [p.lng, p.lat]); // Turf usa [lng, lat]
   coordenadas.push(coordenadas[0]); // fecha o polígono
