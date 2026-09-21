@@ -21,19 +21,11 @@ const BRASIL = [
   [6, -32],
 ];
 
-<<<<<<< HEAD
-// =========================================================
-// CALCULA A ÁREA DO CONTORNO EM HECTARES
-// =========================================================
-function calcularAreaHectares(pontos) {
-  if (pontos.length < 10000) return 0;
-=======
 const normalizar = texto =>
   String(texto || "")
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase();
->>>>>>> 6e57f4877ff84b071ce52406ba9a7cb38d54613a
 
 function obterPontos(valor) {
   if (typeof valor === "string") {
