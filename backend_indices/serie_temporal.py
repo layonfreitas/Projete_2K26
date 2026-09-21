@@ -31,19 +31,10 @@ cloudinary.config(
     secure=True
 )
 
-s3 = boto3.client(
-    service_name='s3',
-    aws_access_key_id=os.environ.get("ACCESS_KEY_ID"),
-    aws_secret_access_key=os.environ.get("SECRET_ACCESS_KEY"),
-    region_name='auto'
-)
-
-
-
 from gee_auth import obter_credenciais
 
 credentials, project_id = obter_credenciais()
-ee.Initialize(credentials, project="projete2k26")
+ee.Initialize(credentials, project="projete2k26", opt_url="https://earthengine-highvolume.googleapis.com")
 
 indices = ["NDVI", "NDRE", "NDWI"]
 
@@ -389,7 +380,7 @@ def create_zonas_de_manejo(array,usuario_id: int, lavoura_id: int,pasta_id = os.
     
    
 
-def make_time_series(geometria, data_inicio, data_fim, usuario_id: int, lavoura_id: int):
+def make_time_series(geometria, data_inicio, data_fim, usuario_id: int, lavoura_id: int, ano : int):
     inicio =ee.Date(data_inicio)
     fim = ee.Date(data_fim)
     lavoura = ee.Geometry.Polygon(geometria)
@@ -417,7 +408,8 @@ def make_time_series(geometria, data_inicio, data_fim, usuario_id: int, lavoura_
             .assgn_coords({"graus_dia": ("tempo", graus_dia_acum)})
             .chunks({"tempo": 365, "y": -1, "x": -1})
         )
-        url = f"{os.environ.get('ENDPOINT_URL')}{usu}"
+        url = f"{os.environ.get('ENDPOINT_URL')}{usuario_id}/{lavoura_id}/safra{ano}/{indice}_zscore.zarr"
+        saida.to_zarr(url, mode="w", consolidated=True)
     
 
     
