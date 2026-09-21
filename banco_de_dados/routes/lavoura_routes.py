@@ -62,6 +62,7 @@ def cadastrar_lavoura():
             "mensagem": "O polígono precisa de pelo menos 3 pontos"
         }), 400
 
+   
     area_hectares = calcular_area_m2(coordenadas)
     coordenadas_json = json.dumps(coordenadas)
 
@@ -73,7 +74,7 @@ def cadastrar_lavoura():
             """
             INSERT INTO lavouras
             (usuario_id, nome_lavoura, coordenadas, area_m2, crs, crs_transformation)
-            VALUES (%s, %s, %s, %s)
+            VALUES (%s, %s, %s, %s, %s, %s)
             """,
             (
                 usuario_id,
@@ -117,8 +118,8 @@ def listar_todas_lavouras():
                 l.nome_lavoura,
                 l.coordenadas,
                 l.area_m2,
-                u.nome
-                l.crs
+                u.nome,
+                l.crs,
                 l.crs_transformation
             FROM lavouras l
             JOIN usuarios u
