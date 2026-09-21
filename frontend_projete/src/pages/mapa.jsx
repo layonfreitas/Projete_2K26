@@ -143,7 +143,7 @@ export default function Mapa() {
     if (coords.length < 2) return;
 
     const estilo = {
-      color: finalizado ? "#2f4a33" : "#ff0000",
+      color: finalizado ? "#eae41e" : "#ff0000",
       weight: 3,
       fillOpacity: 0.2,
       dashArray: finalizado ? undefined : "6 8",
