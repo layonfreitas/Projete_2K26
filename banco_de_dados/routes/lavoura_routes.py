@@ -42,13 +42,14 @@ def init_mysql(mysql_instance):
 # CADASTRAR LAVOURA
 @lavoura_bp.route('/lavoura', methods=['POST'])
 def cadastrar_lavoura():
-
     dados = request.get_json()
 
     usuario_id = dados.get('usuarioId')
     nome_lavoura = dados.get('nomeLavoura')
     coordenadas = dados.get('coordenadas')
-    area_hectares = calcular_area_m2(coordenadas)
+
+    crs = dados.get('crs', 'EPSG:4326')
+    crs_transformation = dados.get("crsTransformation")
 
     if not usuario_id or not nome_lavoura or not coordenadas:
         return jsonify({
@@ -60,23 +61,32 @@ def cadastrar_lavoura():
             "mensagem": "O polígono precisa de pelo menos 3 pontos"
         }), 400
 
+    area_m2 = calcular_area_m2(coordenadas)
     coordenadas_json = json.dumps(coordenadas)
 
     try:
-
         cursor = mysql.connection.cursor()
 
         cursor.execute(
             """
             INSERT INTO lavouras
-            (usuario_id, nome_lavoura, coordenadas, area_m2)
-            VALUES (%s, %s, %s, %s)
+            (
+                usuario_id,
+                nome_lavoura,
+                coordenadas,
+                area_m2,
+                crs,
+                crs_transformation
+            )
+            VALUES (%s, %s, %s, %s, %s, %s)
             """,
             (
                 usuario_id,
                 nome_lavoura,
                 coordenadas_json,
-                area_hectares
+                area_m2,
+                crs,
+                crs_transformation
             )
         )
 
@@ -88,6 +98,12 @@ def cadastrar_lavoura():
         }), 201
 
     except Exception as erro:
+        print("ERRO AO CADASTRAR LAVOURA:", repr(erro))
+
+        try:
+            mysql.connection.rollback()
+        except:
+            pass
 
         return jsonify({
             "mensagem": "Erro ao cadastrar lavoura",
@@ -111,7 +127,9 @@ def listar_todas_lavouras():
                 l.nome_lavoura,
                 l.coordenadas,
                 l.area_m2,
-                u.nome
+                u.nome,
+                l.crs,
+                l.crs_transformation
             FROM lavouras l
             JOIN usuarios u
                 ON l.usuario_id = u.id
@@ -127,13 +145,15 @@ def listar_todas_lavouras():
 
         for linha in resultados:
 
-            lavouras.append({
+            lavouras.append({   
                 "id": linha[0],
                 "usuarioId": linha[1],
                 "nomeLavoura": linha[2],
                 "coordenadas": json.loads(linha[3]),
                 "areaM2": float(linha[4]) if linha[4] is not None else 0,
-                "produtorNome": linha[5]
+                "produtorNome": linha[5],
+                "crs": linha[6],
+                "crsTransformation": linha[7]
             })
 
         return jsonify(lavouras), 200

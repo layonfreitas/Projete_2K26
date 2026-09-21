@@ -33,5 +33,14 @@ def salvar_mapa_z_score(imagem,nome_indice,usuario_id,lavoura__id,geometria,past
         geometria,usuario_id,lavoura__id,imagem)
     meta['visualizacao'] = {'tipo':'zscore','palette':PALETA,'rotulos':ROTULOS,**estatisticas}
     data = imagem.date().format('YYYY-MM-dd').getInfo()
-    return save_image_indatabase(conteudo,f'z-score-{nome_indice}_{data}',pasta_id,
-        usuario_id,lavoura__id,data,None,meta)
+
+    return save_image_indatabase(
+        conteudo,
+        f'z-score-{nome_indice}_{data}',
+        pasta_id,
+        usuario_id,
+        lavoura__id,
+        data,
+        None,
+        meta
+    )

@@ -38,6 +38,9 @@ CREATE TABLE lavouras (
     coordenadas JSON NOT NULL,
     criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     status ENUM('ok', 'atencao', 'critico') NOT NULL DEFAULT 'ok',
+    ADD COLUMN crs VARCHAR(50) NULL,
+    ADD COLUMN crs_transformation TEXT NULL;
+    UPDATE lavouras SET crs = 'EPSG:4326' WHERE crs IS NULL;
     FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
 );
 
