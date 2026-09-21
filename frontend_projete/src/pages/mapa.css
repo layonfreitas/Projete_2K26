@@ -364,3 +364,52 @@
   color: var(--ink-soft);
   font-size: 12px;
 }
+.mapa-painel-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 28px;
+  height: 28px;
+
+  padding: 0;
+  border: 0;
+  background: transparent;
+
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+}
+.mapa-painel-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 28px;
+  height: 28px;
+
+  padding: 0;
+  border: none;
+  background: transparent;
+
+  color: inherit;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.mapa-painel-seta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  margin-left: auto;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.mapa-painel-seta:hover {
+  background: transparent;
+}
