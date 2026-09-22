@@ -66,7 +66,29 @@ def cadastrar_imagem():
     lock_nome = None
     try:
         cursor = mysql.connection.cursor()
-        cursor.execute('SELECT id FROM lavouras WHERE id = %s AND usuario_id = %s', (lavoura_id, usuario_id))
+        cursor.execute(
+            """
+            SELECT id, georreferencia
+            FROM imagens
+            WHERE lavoura_id = %s
+              AND usuario_id = %s
+              AND data_imagem = %s
+              AND indice = %s
+            ORDER BY id DESC
+            """,
+            chave,
+        )
+
+        contorno_recebido = chave_contorno(meta)
+
+        existente = next(
+            (
+                linha
+                for linha in cursor.fetchall()
+                if chave_contorno(linha[1]) == contorno_recebido
+            ),
+            None,
+        )
         if not cursor.fetchone():
             return jsonify({'mensagem': 'Lavoura não encontrada.'}), 404
         chave = (lavoura_id, usuario_id, data_imagem, indice)
@@ -76,16 +98,26 @@ def cadastrar_imagem():
             lock_nome = None
             return jsonify({'mensagem':'Essa imagem já está sendo salva. Tente novamente.'}), 409
         cursor.execute(
-            'SELECT id FROM imagens WHERE lavoura_id = %s AND usuario_id = %s AND data_imagem = %s AND indice = %s LIMIT 1', chave
-        )
+            'SELECT id FROM imagens WHERE lavoura_id = %s AND usuario_id = %s AND data_imagem = %s AND indice = %s', chave)
+
         existente = cursor.fetchone()
         meta_json = json.dumps(meta) if meta is not None else None
         if existente and meta is not None:
             # Preserva IDs e referências. Corrige duplicatas antigas da mesma chave.
-            cursor.execute(
-                'UPDATE imagens SET url_imagem = %s, valor_indice = %s, georreferencia = %s '
-                'WHERE lavoura_id = %s AND usuario_id = %s AND data_imagem = %s AND indice = %s',
-                (url_imagem, valor_indice, meta_json, *chave)
+                      cursor.execute(
+                """
+                UPDATE imagens
+                SET url_imagem = %s,
+                    valor_indice = %s,
+                    georreferencia = %s
+                WHERE id = %s
+                """,
+                (
+                    url_imagem,
+                    valor_indice,
+                    meta_json,
+                    existente[0],
+                ),
             )
         else:
             cursor.execute(
@@ -127,7 +159,20 @@ def acessar_imagem():
             "ORDER BY COALESCE(CAST(JSON_UNQUOTE(JSON_EXTRACT(georreferencia, '$.versao')) AS UNSIGNED), 0) DESC, id DESC LIMIT 1", 
             (lavoura_id, usuario_id, data, indice)
         )
-        linha = cursor.fetchone()
+        linhas = cursor.fetchall()
+        contorno = request.args.get("contorno")
+
+        linha = next(
+            (
+                registro
+                for registro in linhas
+                if (
+                    not contorno
+                    or chave_contorno(registro[2]) == contorno
+                )
+            ),
+            None,
+        )
         if not linha:
             return jsonify({'mensagem': 'Imagem não encontrada.'}), 404
         meta = json.loads(linha[2]) if isinstance(linha[2], (str, bytes)) else linha[2]
@@ -141,42 +186,86 @@ def acessar_imagem():
         if cursor is not None:
             cursor.close()
 
-
-@listar_imagens_bp.route('/imagens/<int:lavoura_id>', methods=['GET'])
+@listar_imagens_bp.route(
+    "/imagens/<int:lavoura_id>",
+    methods=["GET"],
+)
 def listar_imagens(lavoura_id):
-    usuario_id = request.args.get('usuario_id')
+    usuario_id = request.args.get("usuario_id")
+
     if not usuario_id:
-        return jsonify({"mensagem": "Parâmetro 'usuario_id' é obrigatório"}), 400
- 
+        return jsonify({
+            "mensagem": "Parâmetro usuario_id é obrigatório."
+        }), 400
+
+    cursor = None
+
     try:
         cursor = mysql.connection.cursor()
-        cursor.execute(
-            "SELECT DISTINCT data_imagem, indice FROM imagens "
-            "WHERE lavoura_id = %s AND usuario_id = %s "
-            "ORDER BY data_imagem DESC",
-            (lavoura_id, usuario_id)
-        )
-        linhas = cursor.fetchall()
-        cursor.close()
- 
-        agrupado = {}
-        ordem_datas = []
-        for data_imagem, indice in linhas:
-            data_str = data_imagem.isoformat() if hasattr(data_imagem, 'isoformat') else str(data_imagem)
-            if data_str not in agrupado:
-                agrupado[data_str] = []
-                ordem_datas.append(data_str)
-            agrupado[data_str].append(indice)
- 
-        resultado = [
-            {"data": data_str, "indicesDisponiveis": agrupado[data_str]}
-            for data_str in ordem_datas
-        ]
- 
-        return jsonify(resultado), 200
-    except Exception as erro:
-        return jsonify({"mensagem": "Erro ao buscar imagens", "erro": str(erro)}), 500
 
+        cursor.execute(
+            """
+            SELECT id, data_imagem, indice, georreferencia
+            FROM imagens
+            WHERE lavoura_id = %s
+              AND usuario_id = %s
+            ORDER BY id ASC
+            """,
+            (lavoura_id, usuario_id),
+        )
+
+        linhas = cursor.fetchall()
+
+        grupos = {}
+        versoes = {}
+
+        for imagem_id, data_imagem, indice, meta in linhas:
+            contorno = chave_contorno(meta)
+
+            if contorno not in versoes:
+                versoes[contorno] = len(versoes) + 1
+
+            data_str = (
+                data_imagem.isoformat()
+                if hasattr(data_imagem, "isoformat")
+                else str(data_imagem)
+            )
+
+            chave = (data_str, contorno)
+
+            grupo = grupos.setdefault(
+                chave,
+                {
+                    "data": data_str,
+                    "contorno": contorno,
+                    "versaoContorno": versoes[contorno],
+                    "indicesDisponiveis": [],
+                },
+            )
+
+            if indice not in grupo["indicesDisponiveis"]:
+                grupo["indicesDisponiveis"].append(indice)
+
+        resultado = sorted(
+            grupos.values(),
+            key=lambda grupo: (
+                grupo["data"],
+                grupo["versaoContorno"],
+            ),
+            reverse=True,
+        )
+
+        return jsonify(resultado), 200
+
+    except Exception as erro:
+        return jsonify({
+            "mensagem": "Erro ao buscar imagens.",
+            "erro": str(erro),
+        }), 500
+
+    finally:
+        if cursor is not None:
+            cursor.close()
 
 @get_indices_valores_bp.route('/get_i_valor', methods=['GET'])
 def get_indice_valor():

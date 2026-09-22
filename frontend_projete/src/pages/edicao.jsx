@@ -165,6 +165,13 @@ function Edicao() {
       }
 
       toast.sucesso("Área da lavoura atualizada!");
+            if (dados.mapas) {
+        if (dados.mapas.status === "aceito") {
+          toast.sucesso(dados.mapas.mensagem);
+        } else {
+          toast.erro(`Lavoura salva. ${dados.mapas.mensagem}`);
+        }
+      }
 
       setCoordenadasSalvas(coordenadas);
       setModoEdicao(false);

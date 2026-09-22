@@ -61,6 +61,13 @@ export default function Cadastro() {
 
       if (resposta.ok) {
         toast.sucesso("Lavoura cadastrada com sucesso!");
+                if (dados.mapas) {
+          if (dados.mapas.status === "aceito") {
+            toast.sucesso(dados.mapas.mensagem);
+          } else {
+            toast.erro(`Lavoura salva. ${dados.mapas.mensagem}`);
+          }
+        }
         navigate("/home");
       } else {
         setMensagem(dados.mensagem || "Erro ao cadastrar lavoura.");
