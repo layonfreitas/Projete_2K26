@@ -62,8 +62,21 @@ def get_indices_image(geometria, data_alvo, janela=5, nuvem_maxima=100, crs=None
         # Conta também a área fora do footprint da cena como ausência de dados.
         valida = (imagem.select(list(INDICES)).mask().reduce(ee.Reducer.min())
                   .unmask(0,sameFootprint=False).rename('cobertura'))
-        info = valida.reduceRegion(reducer=ee.Reducer.mean(),geometry=geometria,
-            scale=10,maxPixels=1e8, crs=crs, crs_transformation=crs_transformation ).getInfo()
+        parametros = {
+            "reducer": ee.Reducer.mean(),
+            "geometry": geometria,
+            "maxPixels": 100_000_000,
+        }
+
+        if crs is not None:
+            parametros["crs"] = crs
+
+        if crs_transformation is not None:
+            parametros["crsTransform"] = crs_transformation
+        else:
+            parametros["scale"] = 10
+
+        info = valida.reduceRegion(**parametros).getInfo()
         cobertura = info.get('cobertura') or 0
         if cobertura >= minimo:
             return (imagem.clip(geometria).set('cobertura_valida',cobertura)
