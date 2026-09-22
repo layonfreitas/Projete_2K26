@@ -3,6 +3,55 @@ import math
 import hashlib
 from flask import Blueprint, request, jsonify
 
+def chave_contorno(meta):
+    if isinstance(meta, (str, bytes)):
+        meta = json.loads(meta)
+
+    geometria = (meta or {}).get("geometria")
+
+    if not geometria:
+        return "sem-geometria"
+
+    aneis = []
+
+    for anel in geometria["coordinates"]:
+        pontos = [
+            tuple(round(float(valor), 7) for valor in ponto)
+            for ponto in anel
+        ]
+
+        # Remove o ponto repetido que fecha o polígono.
+        if pontos and pontos[0] == pontos[-1]:
+            pontos.pop()
+
+        if not pontos:
+            raise ValueError("Contorno vazio.")
+
+        # Reconhece o mesmo desenho mesmo se a ordem inicial
+        # ou o sentido dos pontos mudar.
+        variantes = []
+
+        for ordem in (pontos, list(reversed(pontos))):
+            inicio = min(
+                range(len(ordem)),
+                key=lambda i: ordem[i],
+            )
+
+            variantes.append(
+                ordem[inicio:] + ordem[:inicio]
+            )
+
+        aneis.append(min(variantes))
+
+    serializado = json.dumps(
+        aneis,
+        separators=(",", ":"),
+    )
+
+    return hashlib.sha256(
+        serializado.encode("utf-8")
+    ).hexdigest()
+
 cadastrar_imagens_bp = Blueprint('cadastrar_imagens', __name__)
 acessar_imagem_bp = Blueprint('acessar_imagem', __name__)
 listar_imagens_bp = Blueprint('listar_imagens', __name__)
@@ -264,7 +313,7 @@ def acessar_imagem():
         cursor.execute(
             'SELECT url_imagem, valor_indice, georreferencia FROM imagens '
             'WHERE lavoura_id = %s AND usuario_id = %s AND data_imagem = %s AND indice = %s '
-            "ORDER BY COALESCE(CAST(JSON_UNQUOTE(JSON_EXTRACT(georreferencia, '$.versao')) AS UNSIGNED), 0) DESC, id DESC LIMIT 1", 
+            "ORDER BY COALESCE(CAST(JSON_UNQUOTE(JSON_EXTRACT(georreferencia, '$.versao')) AS UNSIGNED), 0) DESC, id DESC", 
             (lavoura_id, usuario_id, data, indice)
         )
         linhas = cursor.fetchall()
