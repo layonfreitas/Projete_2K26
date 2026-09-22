@@ -271,9 +271,14 @@ export default function ClimaBanner({ lavouras }) {
         )}
 
         {tipo === "produtor" && (
+          <>
           <Button variant="glass" size="sm" icon="lapis" onClick={() => abrir("edicao")}>
             Editar lavoura
           </Button>
+          <Button variant="glass" size="sm" icon="mapa" onClick={() => abrir("mapa")}>
+              Mapa
+            </Button>
+            </>          
         )}
       </div>
     </section>
