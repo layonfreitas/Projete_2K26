@@ -1,14 +1,14 @@
-"""Seleção por cobertura na lavoura, renderização e gravação de mapas."""
 from datetime import date
 import io
 import math
 import os
 import logging
-
 import ee
 import requests
 import cloudinary
 import cloudinary.uploader
+import hashlib
+import json
 from PIL import Image
 from dotenv import load_dotenv
 from georreferencia import preparar_exportacao
@@ -113,8 +113,29 @@ def save_image_indatabase(imagem,nome_arquivo,pasta_id,usuario_id,lavoura_id,
         api_secret=os.environ.get('CLOUDINARY_API_SECRET'),secure=True)
     # PNG validado é enviado como bytes, preservando seu canal alpha.
     arquivo = io.BytesIO(imagem) if isinstance(imagem,bytes) else imagem
+        # O nome do arquivo passa a identificar também o desenho da área.
+    geometria = (georreferencia or {}).get("geometria")
+
+    if not geometria:
+        raise ValueError(
+            "Não é possível salvar o mapa sem sua geometria."
+        )
+
+    desenho_json = json.dumps(
+        geometria,
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+
+    identificador_contorno = hashlib.sha256(
+        desenho_json.encode("utf-8")
+    ).hexdigest()
+
     response = cloudinary.uploader.upload(arquivo,
-        public_id=f'usuario_{usuario_id}_lavoura_{lavoura_id}_{nome_arquivo}',
+            public_id=(
+            f"usuario_{usuario_id}_lavoura_{lavoura_id}_"
+            f"{nome_arquivo}_{identificador_contorno}"
+        ),
         folder=pasta_id or os.environ.get('MAPAS_INDICES_FOLDER') or 'mapas_indices',
         overwrite=True,invalidate=True,resource_type='image',format='png',timeout=180)
     dados = {'usuarioId':usuario_id,'lavouraId':lavoura_id,'dataImagem':data_imagem,

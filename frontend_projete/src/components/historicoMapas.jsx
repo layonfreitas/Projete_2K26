@@ -6,6 +6,7 @@ import { buscarJson, validarMapa, indicesDaData, selecionarRegistro } from '../s
 import Button from './ui/Button';
 import Icon from './ui/Icon';
 import './historicoMapas.css';
+import { fetchAutenticado } from "../services/apiAutenticado";
 
 const estilo = { color: '#2f4a33', weight: 2, fill: false };
 const formatarData = data => data ? data.slice(0, 10).split('-').reverse().join('/') : '';
@@ -31,12 +32,19 @@ export default function HistoricoMapas() {
   const chaveLavouras = `${usuarioId}/${atualizacao}`;
   const historicoAtual = historico.id === lavouraId && historico.atualizacao === atualizacao;
   const itens = historicoAtual ? historico.itens : [];
-  const registro = itens.find(item => item.data === selecao.data);
+  const registro = itens.find(
+    item =>
+      item.data === selecao.data &&
+      item.contorno === selecao.contorno
+  );
   const indiceBanco = selecao.modo === 'zscore' ? `z-score-${selecao.indice}` : selecao.indice;
   const disponivel = registro?.indicesDisponiveis.includes(indiceBanco);
-  const chave = disponivel ? `${usuarioId}/${lavouraId}/${selecao.data}/${indiceBanco}` : '';
+  const chave = disponivel
+    ? `${usuarioId}/${lavouraId}/${selecao.data}/${indiceBanco}/${selecao.contorno}`
+    : "";
   const exibicao = estadoMapa.chave === chave && estadoMapa.atualizacao === atualizacao ? estadoMapa : { carregando: Boolean(chave), erro: '', dados: null };
-
+  const [gerando, setGerando] = useState(false);
+  const [avisoGeracao, setAvisoGeracao] = useState("");
   useEffect(() => {
     const map = L.map(container.current, { center: [-14.235, -51.925], zoom: 4, maxZoom: 17, trackResize: false });
     mapa.current = map;
@@ -87,7 +95,16 @@ export default function HistoricoMapas() {
       if (!Array.isArray(dados)) throw new Error('Resposta inválida ao consultar as datas.');
       const itens = dados.filter(item => indicesDaData(item).length).sort((a, b) => b.data.localeCompare(a.data));
       setHistorico({ id: lavouraId, atualizacao, itens, erro: '' });
-      setSelecao(anterior => selecionarRegistro(itens.find(i => i.data === anterior.data) || itens[0], anterior));
+           setSelecao(anterior =>
+        selecionarRegistro(
+          itens.find(
+            item =>
+              item.data === anterior.data &&
+              item.contorno === anterior.contorno
+          ) || itens[0],
+          anterior
+        )
+      );
     }).catch(e => {
       if (!controller.signal.aborted) setHistorico({ id: lavouraId, atualizacao, itens: [], erro: e.message });
     });
@@ -100,8 +117,15 @@ export default function HistoricoMapas() {
     let layer;
     let timer;
     if (!chave || !map) return () => controller.abort();
-    const [usuario, id, data, indice] = chave.split('/');
-    const params = new URLSearchParams({ usuario_id: usuario, id, data, indice });
+       const [usuario, id, data, indice, contornoId] = chave.split("/");
+
+    const params = new URLSearchParams({
+      usuario_id: usuario,
+      id,
+      data,
+      indice,
+      contorno: contornoId,
+    });
     const falhou = mensagem => {
       if (controller.signal.aborted) return;
       clearTimeout(timer);
@@ -140,6 +164,31 @@ export default function HistoricoMapas() {
   }, [chave, atualizacao]);
 
   useEffect(() => { camada.current?.setOpacity(opacidade); }, [opacidade, estadoMapa]);
+    async function gerarImagens() {
+    setGerando(true);
+    setAvisoGeracao("Solicitando geração…");
+
+    try {
+      const resposta = await fetchAutenticado(
+        `${AUTH_API_URL}/lavoura/${lavouraId}/gerar-imagens`,
+        { method: "POST" }
+      );
+
+      const dados = await resposta.json();
+
+      setAvisoGeracao(
+        dados.mensagem || "Não foi possível solicitar a geração."
+      );
+    } catch {
+      setAvisoGeracao(
+        "Não foi possível confirmar a solicitação. " +
+        "Consulte o histórico antes de tentar novamente."
+      );
+    } finally {
+      setGerando(false);
+    }
+  }
+
 
   const meta = exibicao.dados?.georreferencia;
   const vis = meta?.visualizacao;
@@ -156,21 +205,53 @@ export default function HistoricoMapas() {
             {!lavouras.length && <option value="">Nenhuma lavoura cadastrada</option>}
             {lavouras.map(l => <option key={l.id} value={l.id}>{l.nomeLavoura}</option>)}
           </select>
+          
         </div>
         <Button variant="secondary" size="sm" icon="atualizar" className="ui-btn--icon hm-atualizar" aria-label="Atualizar histórico" title="Atualizar histórico" onClick={() => setAtualizacao(n => n + 1)} />
       </div>
+      
+      {avisoGeracao && (
+        <p role="status">{avisoGeracao}</p>
+      )}
 
       <div className="hm-area">
         <aside className="hm-datas" aria-label="Datas disponíveis">
           <h3 className="hm-datas-titulo"><Icon nome="calendario" tamanho={16} /> Imagens disponíveis</h3>
           {!itens.length && !carregando && <p className="hm-sem-imagens">{semLavouras ? 'Nenhuma lavoura cadastrada ainda.' : 'Nenhuma imagem disponível para esta lavoura.'}</p>}
           <ul className="hm-datas-lista">
-            {itens.map(item => <li key={item.data}>
-              <button className={`hm-data ${item.data === selecao.data ? 'ativa' : ''}`} aria-pressed={item.data === selecao.data} onClick={() => setSelecao(a => selecionarRegistro(item, a))}>
-                <strong>{formatarData(item.data)}</strong>
-                <span className="hm-data-indices">{indicesDaData(item).map(i => <i key={i}>{i}</i>)}</span>
-              </button>
-            </li>)}
+                        {itens.map(item => {
+              const selecionado =
+                item.data === selecao.data &&
+                item.contorno === selecao.contorno;
+
+              return (
+                <li key={`${item.data}/${item.contorno}`}>
+                  <button
+                    className={`hm-data ${selecionado ? "ativa" : ""}`}
+                    aria-pressed={selecionado}
+                    onClick={() =>
+                      setSelecao(anterior =>
+                        selecionarRegistro(item, anterior)
+                      )
+                    }
+                  >
+                    <strong>
+                      {formatarData(item.data)}
+                    </strong>
+
+                    <span>
+                      Contorno {item.versaoContorno}
+                    </span>
+
+                    <span className="hm-data-indices">
+                      {indicesDaData(item).map(indice => (
+                        <i key={indice}>{indice}</i>
+                      ))}
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
           </ul>
         </aside>
 
@@ -211,4 +292,5 @@ export default function HistoricoMapas() {
       </div>
     </div>
   );
+  
 }

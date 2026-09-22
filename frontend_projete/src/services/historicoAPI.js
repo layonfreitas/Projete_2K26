@@ -62,5 +62,10 @@ export function selecionarRegistro(registro, anterior = {}) {
   let modo = anterior.modo || 'indice';
   if (modo === 'zscore' && !nomes.includes(`z-score-${indice}`)) modo = 'indice';
   if (modo === 'indice' && !nomes.includes(indice) && nomes.includes(`z-score-${indice}`)) modo = 'zscore';
-  return { data: registro?.data || '', indice, modo };
+  return {
+    data: registro?.data || "",
+    contorno: registro?.contorno || "",
+    indice,
+    modo,
+  };
 }

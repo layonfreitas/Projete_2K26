@@ -1,12 +1,74 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, current_app
 import json
 import math
-
 from email_utils import enviar_email, montar_email_laudo
+import os
+import requests
 
 lavoura_bp = Blueprint('lavoura', __name__)
 
 mysql = None
+
+def solicitar_mapas(lavoura_id, usuario_id, coordenadas):
+    base_url = os.getenv("INDICES_API_URL", "").rstrip("/")
+    token = os.getenv("MAPAS_INTERNAL_TOKEN", "")
+
+    if not base_url or not token:
+        return {
+            "status": "nao_configurado",
+            "mensagem": "A geração de imagens não foi configurada.",
+        }
+
+    try:
+        resposta = requests.post(
+            f"{base_url}/agendar_mapas/",
+            headers={
+                "X-Mapas-Token": token,
+            },
+            json={
+                "lavoura_id": lavoura_id,
+                "usuario_id": int(usuario_id),
+                "coordenadas": coordenadas,
+            },
+            timeout=(5, 10),
+        )
+
+        if resposta.status_code == 202:
+            return {
+                "status": "aceito",
+                "mensagem": (
+                    "Geração solicitada. "
+                    "Aguarde e atualize o histórico."
+                ),
+            }
+
+        if resposta.status_code == 409:
+            return {
+                "status": "ocupado",
+                "mensagem": (
+                    "O serviço está ocupado. "
+                    "Tente novamente pelo botão Gerar imagens "
+                    "no histórico."
+                ),
+            }
+
+        current_app.logger.warning(
+            "Solicitação de mapas recusada: HTTP %s",
+            resposta.status_code,
+        )
+
+    except requests.RequestException:
+        current_app.logger.exception(
+            "Não foi possível confirmar a geração de mapas."
+        )
+
+    return {
+        "status": "nao_confirmado",
+        "mensagem": (
+            "Não foi possível confirmar a geração. "
+            "Consulte o histórico antes de tentar novamente."
+        ),
+    }
 
 
 def _dono_da_lavoura(cursor, lavoura_id):
@@ -125,11 +187,24 @@ def cadastrar_lavoura():
             )
         )
 
+            # Guarda o ID antes de fechar o cursor.
+        lavoura_id = cursor.lastrowid
+
+        # Primeiro confirma o cadastro no banco.
         mysql.connection.commit()
         cursor.close()
 
+        # Depois solicita as imagens da nova lavoura.
+        mapas = solicitar_mapas(
+            lavoura_id,
+            usuario_id,
+            coordenadas,
+        )
+
         return jsonify({
-            "mensagem": "Lavoura cadastrada com sucesso"
+            "id": lavoura_id,
+            "mensagem": "Lavoura cadastrada com sucesso",
+            "mapas": mapas,
         }), 201
 
     except Exception as erro:
@@ -341,6 +416,29 @@ def editar_lavoura(lavoura_id):
     try:
 
         cursor = mysql.connection.cursor()
+        cursor.execute(
+            """
+            SELECT coordenadas, usuario_id
+            FROM lavouras
+            WHERE id = %s
+            """,
+            (lavoura_id,),
+        )
+
+        anterior = cursor.fetchone()
+
+        if not anterior:
+            cursor.close()
+
+            return jsonify({
+                "mensagem": "Lavoura não encontrada"
+            }), 404
+
+        # Só gera novamente se os pontos enviados forem diferentes.
+        mudou_contorno = (
+            coordenadas is not None
+            and json.loads(anterior[0]) != coordenadas
+        )
 
         # Nome + coordenadas
         if nome_lavoura is not None and coordenadas is not None:
@@ -409,17 +507,21 @@ def editar_lavoura(lavoura_id):
                 )
             )
 
-        if cursor.rowcount == 0:
-            cursor.close()
-            return jsonify({
-                "mensagem": "Lavoura não encontrada"
-            }), 404
-
         mysql.connection.commit()
         cursor.close()
 
+        mapas = None
+
+        if mudou_contorno:
+            mapas = solicitar_mapas(
+                lavoura_id,
+                anterior[1],
+                coordenadas,
+            )
+
         return jsonify({
-            "mensagem": "Lavoura atualizada com sucesso"
+            "mensagem": "Lavoura atualizada com sucesso",
+            "mapas": mapas,
         }), 200
 
     except Exception as erro:
@@ -590,3 +692,45 @@ def enviar_laudo_email():
             "mensagem": "Erro ao enviar laudo por e-mail",
             "erro": str(erro)
         }), 500
+
+@lavoura_bp.route(
+    "/lavoura/<int:lavoura_id>/gerar-imagens",
+    methods=["POST"],
+)
+def gerar_imagens_lavoura(lavoura_id):
+    ok, erro = _exige_dono(lavoura_id)
+
+    if not ok:
+        return erro
+
+    cursor = mysql.connection.cursor()
+
+    try:
+        cursor.execute(
+            """
+            SELECT usuario_id, coordenadas
+            FROM lavouras
+            WHERE id = %s
+            """,
+            (lavoura_id,),
+        )
+
+        linha = cursor.fetchone()
+
+    finally:
+        cursor.close()
+
+    if not linha:
+        return jsonify({
+            "mensagem": "Lavoura não encontrada."
+        }), 404
+
+    resultado = solicitar_mapas(
+        lavoura_id,
+        linha[0],
+        json.loads(linha[1]),
+    )
+
+    codigo = 202 if resultado["status"] == "aceito" else 503
+
+    return jsonify(resultado), codigo
