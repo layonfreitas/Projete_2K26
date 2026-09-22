@@ -182,7 +182,7 @@ def save_image_indatabase(imagem,nome_arquivo,pasta_id,usuario_id,lavoura_id,
     dados = {'usuarioId':usuario_id,'lavouraId':lavoura_id,'dataImagem':data_imagem,
         'urlImagem':response['secure_url'],'indice':nome_arquivo.split('_')[0],
         'valorIndice':valor_indice,'georreferencia':georreferencia}
-        resposta = requests.post(
+    resposta = requests.post(
         api_url("/imagens"),
         json=dados,
         timeout=(15, 60),
