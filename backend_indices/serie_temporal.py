@@ -31,6 +31,12 @@ cloudinary.config(
     secure=True
 )
 
+credentials_r2 = {
+    "access_key_id": os.environ.get("ACCESS_KEY_ID"),
+    "secret_access_key": os.environ.get("SECRET_ACCESS_KEY"),
+    "client_kwargs": { "endpoint_url": os.environ.get("ENDPOINT_URL")}
+}
+
 from gee_auth import obter_credenciais
 
 credentials, project_id = obter_credenciais()
@@ -405,11 +411,11 @@ def make_time_series(geometria, data_inicio, data_fim, usuario_id: int, lavoura_
     for indice in indices:
         saida = (
             ds[indice + "_zscore"].rename("z_score").to_dataset()
-            .assgn_coords({"graus_dia": ("tempo", graus_dia_acum)})
+            .assgn_coords({"graus_dia": ("tempo", graus_dia_acum), "safra": ano})
             .chunks({"tempo": 365, "y": -1, "x": -1})
         )
-        url = f"{os.environ.get('ENDPOINT_URL')}{usuario_id}/{lavoura_id}/safra{ano}/{indice}_zscore.zarr"
-        saida.to_zarr(url, mode="w", consolidated=True)
+        url = f"{os.environ.get('ENDPOINT_URL')}{usuario_id}/{lavoura_id}/{indice}_zscore.zarr"
+        saida.to_zarr(url, mode="w", consolidated=False, storage_options=credentials_r2)
     
 
     
