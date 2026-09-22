@@ -1,9 +1,9 @@
 import s3fs
 import numpy as np
 import xarray as xr
+import ee
 
-
-def calcular_zscore_historico(z_scores_espaciais, graus_dia, lavoura_id, usuario_id, safra_atual):
+def calcular_zscore_historico(z_scores_espacial,indice, graus_dia, lavoura_id, usuario_id, safra_atual):
     
     indices = [ "NDVI", "NDRE", "NDWI"]
 
@@ -14,22 +14,36 @@ def calcular_zscore_historico(z_scores_espaciais, graus_dia, lavoura_id, usuario
 
 
 
-    resultados = {}
     
-    for indice in indices:
-        url = f"{os.environ.get("ENDPOINT_URL")}/{usuario_id}/{lavoura_id}/{indice}_zscore.zarr"
+    
+    
+    url = f"{os.environ.get("ENDPOINT_URL")}/{usuario_id}/{lavoura_id}/{indice}_zscore.zarr"
 
-        with open (url, 'rb') as f:
-            ds = xr.open_zarr(f, consolidated=False)
-            filtros = (ds["safra"] != safra_atual) & (ds["graus_dia"] >= graus_dia - 50) & (ds["graus_dia"] <= graus_dia + 50)
-            zscore_historico = ds["z_score"].where(filtros, drop=True)
-            mediana = zscore_historico.median(dim="tempo", skipna=True)
-            diferenca = (zscore_historico - mediana).abs()
-            mad = diferenca.median(dim = "tempo", skipna = True)
-            z_score_final = 0.6745*diferenca/mad
-            resultados.append({f"{indice}": z_score_final})
+    with open (url, 'rb') as f:
+        ds = xr.open_zarr(f, consolidated=False)
+        filtros = (ds["safra"] != safra_atual) & (ds["graus_dia"] >= graus_dia - 50) & (ds["graus_dia"] <= graus_dia + 50)
+        zscore_historico = ds["z_score"].where(filtros, drop=True)
+        mediana = zscore_historico.median(dim="tempo", skipna=True)
+        diferenca = (z_scores_espacial - mediana).abs()
+        mad = diferenca.median(dim = "tempo", skipna = True)
+        z_score_final = (0.6745*diferenca/mad)
+        return z_score_final
 
-        return resultados
+def salvar_mapa_anomalias(indice, lavoura_id, usuario_id, geometria, z_scores_espacial, graus_dia, safra_atual):
+    
+
+    z_score_final = calcular_zscore_historico(z_scores_espacial, indice, graus_dia, lavoura_id, usuario_id, safra_atual)
+    
+
+
+
+
+        
+
+    
+
+
+
 
         
         
