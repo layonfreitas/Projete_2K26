@@ -1,12 +1,16 @@
 import ee
-from pydantic import BaseModel
-from fastapi import FastAPI, status, HTTPException, BackgroundTasks
-from datetime import date
+import os
+import secrets
 import logging
+from pydantic import BaseModel
+from fastapi import FastAPI, status, HTTPException, BackgroundTasks, Header
+from datetime import date
 from processar_lavouras import processar_todas_lavouras, processar_lavoura
 from georreferencia import criar_geometria
 from gee_auth import inicializar_ee
 from threading import Lock
+
+
 
 _processamento_lock = Lock()
 from dotenv import load_dotenv
@@ -101,4 +105,82 @@ async def zonas_de_manejo(zona_de_manejo_req: Zona_de_manejo_req):
         "status": "sucesso",
         "mensagem": "Zonas de manejo criadas.",
         "arquivo": arquivo
+    }
+def _gerar_mapas_agendados(dados):
+    try:
+        resultado = processar_lavoura(dados)
+
+        logging.info(
+            "Resultado dos mapas da lavoura %s: %s",
+            dados["id"],
+            resultado,
+        )
+
+    except Exception:
+        logging.exception(
+            "Erro ao gerar imagens da lavoura %s",
+            dados["id"],
+        )
+
+    finally:
+        _processamento_lock.release()
+
+
+@app.post("/agendar_mapas/", status_code=202)
+def agendar_mapas(
+    day_req: Day_req,
+    background_tasks: BackgroundTasks,
+    x_mapas_token: str = Header(default=""),
+):
+    # Confere a senha enviada pelo backend do banco.
+    token_esperado = os.getenv("MAPAS_INTERNAL_TOKEN", "")
+
+    if (
+        not token_esperado
+        or not secrets.compare_digest(
+            x_mapas_token,
+            token_esperado,
+        )
+    ):
+        raise HTTPException(
+            status_code=401,
+            detail="Credencial interna inválida.",
+        )
+
+    dados = {
+        "id": day_req.lavoura_id,
+        "usuarioId": day_req.usuario_id,
+        "coordenadas": [
+            {"lat": ponto.lat, "lng": ponto.lng}
+            for ponto in day_req.coordenadas
+        ],
+    }
+
+    # Confere os pontos antes de aceitar a geração.
+    from georreferencia import normalizar_coordenadas
+
+    try:
+        normalizar_coordenadas(dados["coordenadas"])
+
+    except ValueError as erro:
+        raise HTTPException(
+            status_code=422,
+            detail=str(erro),
+        ) from erro
+
+    # Reutiliza a trava que seu projeto já possui.
+    if not _processamento_lock.acquire(blocking=False):
+        raise HTTPException(
+            status_code=409,
+            detail="Já existe um processamento em andamento.",
+        )
+
+    background_tasks.add_task(
+        _gerar_mapas_agendados,
+        dados,
+    )
+
+    return {
+        "status": "aceito",
+        "lavouraId": day_req.lavoura_id,
     }

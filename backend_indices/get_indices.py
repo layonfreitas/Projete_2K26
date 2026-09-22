@@ -1,14 +1,14 @@
-"""Seleção por cobertura na lavoura, renderização e gravação de mapas."""
 from datetime import date
 import io
 import math
 import os
 import logging
-
 import ee
 import requests
 import cloudinary
 import cloudinary.uploader
+import hashlib
+import json
 from PIL import Image
 from dotenv import load_dotenv
 from georreferencia import preparar_exportacao
@@ -62,8 +62,21 @@ def get_indices_image(geometria, data_alvo, janela=5, nuvem_maxima=100, crs=None
         # Conta também a área fora do footprint da cena como ausência de dados.
         valida = (imagem.select(list(INDICES)).mask().reduce(ee.Reducer.min())
                   .unmask(0,sameFootprint=False).rename('cobertura'))
-        info = valida.reduceRegion(reducer=ee.Reducer.mean(),geometry=geometria,
-            scale=10,maxPixels=1e8, crs=crs, crs_transformation=crs_transformation ).getInfo()
+        parametros = {
+            "reducer": ee.Reducer.mean(),
+            "geometry": geometria,
+            "maxPixels": 100_000_000,
+        }
+
+        if crs is not None:
+            parametros["crs"] = crs
+
+        if crs_transformation is not None:
+            parametros["crsTransform"] = crs_transformation
+        else:
+            parametros["scale"] = 10
+
+        info = valida.reduceRegion(**parametros).getInfo()
         cobertura = info.get('cobertura') or 0
         if cobertura >= minimo:
             return (imagem.clip(geometria).set('cobertura_valida',cobertura)
@@ -113,8 +126,29 @@ def save_image_indatabase(imagem,nome_arquivo,pasta_id,usuario_id,lavoura_id,
         api_secret=os.environ.get('CLOUDINARY_API_SECRET'),secure=True)
     # PNG validado é enviado como bytes, preservando seu canal alpha.
     arquivo = io.BytesIO(imagem) if isinstance(imagem,bytes) else imagem
+        # O nome do arquivo passa a identificar também o desenho da área.
+    geometria = (georreferencia or {}).get("geometria")
+
+    if not geometria:
+        raise ValueError(
+            "Não é possível salvar o mapa sem sua geometria."
+        )
+
+    desenho_json = json.dumps(
+        geometria,
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+
+    identificador_contorno = hashlib.sha256(
+        desenho_json.encode("utf-8")
+    ).hexdigest()
+
     response = cloudinary.uploader.upload(arquivo,
-        public_id=f'usuario_{usuario_id}_lavoura_{lavoura_id}_{nome_arquivo}',
+            public_id=(
+            f"usuario_{usuario_id}_lavoura_{lavoura_id}_"
+            f"{nome_arquivo}_{identificador_contorno}"
+        ),
         folder=pasta_id or os.environ.get('MAPAS_INDICES_FOLDER') or 'mapas_indices',
         overwrite=True,invalidate=True,resource_type='image',format='png',timeout=180)
     dados = {'usuarioId':usuario_id,'lavouraId':lavoura_id,'dataImagem':data_imagem,

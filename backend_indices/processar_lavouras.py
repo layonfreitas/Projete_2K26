@@ -73,7 +73,11 @@ def obter_classificao(lat,lon,clmi):
     }
 
     ia_url = os.getenv("IA_URL", "http://localhost:8000/clmi_clf")
-    resposta = requests.post(ia_url+'/clmi_clf', json= dados)
+    resposta = requests.post(
+        ia_url + "/clmi_clf",
+        json=dados,
+        timeout=(5, 30),
+    )
     resposta.raise_for_status()
     dados_resposta = resposta.json()
     classificao = dados_resposta['classificacao']
@@ -119,13 +123,33 @@ def processar_lavoura(lavoura, crs=None, crs_transformation=None, data_alvo=None
             resultado['erros'].append(f'{nome}: {erro}')
             log.exception('Falha na lavoura %s / %s',lavoura['id'],nome)
 
+    try:
+        primeiro = lavoura["coordenadas"][0]
 
-    clmi = valores.get('CLMI')   
-    latitude = lavoura['coordenadas'][0][1]  
-    longitude = lavoura['coordenadas'][0][0]
-    classificacao = obter_classificao(latitude, longitude, clmi)
+        if isinstance(primeiro, dict):
+            latitude = primeiro["lat"]
+            longitude = primeiro["lng"]
 
-    resultado['classificacao'] = classificacao
+        else:
+            longitude, latitude = normalizar_coordenadas(
+                geometria.getInfo()
+            )[0]
+
+        resultado["classificacao"] = obter_classificao(
+            latitude,
+            longitude,
+            valores.get("CLMI"),
+        )
+
+    except Exception as erro:
+        resultado["avisos"].append(
+            f"Classificação indisponível: {erro}"
+        )
+
+        log.exception(
+            "A classificação falhou após o processamento dos mapas."
+        )
+
     resultado['status'] = ('parcial' if resultado['salvos'] else 'erro') if resultado['erros'] else ('concluido' if resultado['salvos'] else 'sem_dados')
     log.info('Lavoura %s: %s; %s mapas salvos.',lavoura['id'],resultado['status'],len(resultado['salvos']))
     return resultado
