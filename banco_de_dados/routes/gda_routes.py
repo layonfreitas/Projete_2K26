@@ -56,3 +56,29 @@ def listar_gda(lavoura_id):
         return jsonify(lista), 200
     except Exception as erro:
         return jsonify({"mensagem": "Erro ao buscar GDA", "erro": str(erro)}), 500
+
+
+@gda_bp.route('/update_gda', methods=['PUT'])
+def update_gda():
+    dados = request.get_json()
+    lavoura_id = dados.get('lavouraId')
+    usuario_id = dados.get('usuarioId')
+    gda = dados.get('gda')
+
+    if not lavoura_id or not usuario_id or gda is None:
+        return jsonify({
+            "mensagem": "lavouraId, usuarioId e gda são obrigatórios"
+        }), 400
+
+    try:
+        cursor = mysql.connection.cursor()
+        cursor.execute(
+            "UPDATE gda SET gda = %s WHERE usuario_id = %s AND lavoura_id = %s",
+            (gda, usuario_id, lavoura_id)
+        )
+        mysql.connection.commit()
+        cursor.close()
+        return jsonify({"mensagem": "GDA atualizado com sucesso"}), 200
+    except Exception as erro:
+        return jsonify({"mensagem": "Erro ao atualizar GDA", "erro": str(erro)}), 500
+    
