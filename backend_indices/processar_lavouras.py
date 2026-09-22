@@ -1,16 +1,18 @@
 """Processamento por lavoura; falhas de um índice não interrompem os demais."""
-from datetime import date
+from datetime import date, datetime
 from datetime import date, timedelta
 import logging
 import requests
 from get_indices import (get_indices_image,save_indice_map,obter_valores_indices,
                          api_url,SemDadosValidos,INDICES)
-from z_score import salvar_mapa_z_score
+from z_score import salvar_mapa_z_score, ee_image_para_xarray
+from detectar_anomalias import salvar_mapa_anomalia
 from georreferencia import normalizar_coordenadas,criar_geometria
 from gee_auth import inicializar_ee
 from flask import Flask, jsonify, request
 from dotenv import load_dotenv
 import os
+
 
 load_dotenv()
 log = logging.getLogger(__name__)
@@ -93,7 +95,7 @@ def buscar_todas_lavouras():
     return resposta.json()
 
 
-def processar_lavoura(lavoura, crs=None, crs_transformation=None, data_alvo=None, janela=30, indices=None, geometria=None):
+def processar_lavoura(lavoura, crs=None, crs_transformation=None, safra_atual=None, graus_dia=None, data_alvo=None, janela=30, indices=None, geometria=None):
     inicializar_ee()
     if geometria is None: geometria = criar_geometria(lavoura['coordenadas'])
     alvo = data_alvo or date.today().isoformat()
@@ -110,7 +112,52 @@ def processar_lavoura(lavoura, crs=None, crs_transformation=None, data_alvo=None
     for nome in indice_nomes:
         try:
             if nome.startswith('z-score-') and nome.removeprefix('z-score-') in INDICES:
-                salvar_mapa_z_score(imagem,nome.removeprefix('z-score-'),lavoura['usuarioId'],lavoura['id'],geometria)
+                indice = nome.removeprefix('z-score-')
+
+                # 1) Obtém o z-score espacial da cena atual (ee.Image)
+                _, z_score_ee = salvar_mapa_z_score(
+                    imagem,
+                    indice,
+                    lavoura['usuarioId'],
+                    lavoura['id'],
+                    geometria
+                )
+
+                # 2) Converte para xarray
+                z_scores_espacial = ee_image_para_xarray(
+                    z_score_ee,
+                    indice,
+                    geometria
+                )
+
+                # 3) Calcula z-score final e decide sobre anomalia
+                resultado_anomalia = salvar_mapa_anomalia(
+                    indice=indice,
+                    lavoura_id=lavoura['id'],
+                    usuario_id=lavoura['usuarioId'],
+                    geometria=geometria,
+                    z_scores_espacial=z_scores_espacial,
+                    graus_dia= graus_dia,
+                    safra_atual=safra_atual,
+                    data=resultado['dataImagem']
+                )
+
+                if resultado_anomalia['salvo']:
+                    resultado['salvos'].append('z_score_indice_final')
+
+                    if resultado_anomalia['critico']:
+                        resultado['alertas'].append(
+                            f'{indice}: anomalia crítica detectada'
+                        )
+                    elif indice == 'NDWI':
+                        resultado['alertas'].append(
+                            'NDWI: possível estresse hídrico detectado'
+                        )
+                    else:
+                        resultado['alertas'].append(
+                            f'{indice}: comportamento anormal detectado'
+                        )    
+
             elif nome in INDICES:
                 save_indice_map(imagem,nome,geometria,lavoura['usuarioId'],lavoura['id'],valores)
             else:
@@ -159,9 +206,11 @@ def processar_todas_lavouras():
     resultados=[]
     for lavoura in buscar_todas_lavouras():
         try:
+            safra_atual = datetime.date.today().year
             crs = lavoura.get('crs')
             crs_tranformation = lavoura.get('crs_transformation')
-            resultados.append(processar_lavoura(lavoura, crs, crs_tranformation))
+            graus_dia = lavoura.get('graus_dia')
+            resultados.append(processar_lavoura(lavoura = lavoura, crs = crs, crs_tranformation= crs_tranformation, safra_atual = safra_atual, graus_dia = graus_dia))
         except Exception as erro:
             log.exception('Falha na lavoura %s',lavoura.get('id'))
             resultados.append({'lavouraId':lavoura.get('id'),'status':'erro','erros':[str(erro)]})
