@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { AUTH_API_URL } from "../config/api";
 import { fetchAutenticado } from "../services/apiAutenticado";
 
-import { MapContainer, TileLayer, Marker, Polygon } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Polygon, useMapEvents } from "react-leaflet";
 
 import { useParams, useNavigate } from "react-router-dom";
 
@@ -23,8 +23,22 @@ import { mensagemDeErro } from "../services/erros";
 // ======================================================
 // MARCADOR EDITÁVEL
 // ======================================================
+function MapaAdicionarPonto({ ativo, adicionarPonto }) {
+  useMapEvents({
+    click: (evento) => {
+      if (!ativo) return;
 
-function PontoEditavel({ ponto, index, atualizarPonto }) {
+      adicionarPonto({
+        lat: evento.latlng.lat,
+        lng: evento.latlng.lng,
+      });
+    },
+  });
+
+  return null;
+}
+
+function PontoEditavel({ ponto, index, atualizarPonto, removerPonto }) {
   return (
     <Marker
       position={[ponto.lat, ponto.lng]}
@@ -38,6 +52,9 @@ function PontoEditavel({ ponto, index, atualizarPonto }) {
             lng: novaPosicao.lng,
           });
         },
+        click: () => {
+          removerPonto(index);
+        }
       }}
     />
   );
@@ -134,6 +151,22 @@ function Edicao() {
       anteriores.map((ponto, i) => (i === index ? novoPonto : ponto))
     );
   }
+  function adicionarPonto(novoPonto) {
+  setCoordenadas((anteriores) => [
+    ...anteriores,
+    novoPonto,
+  ]);
+}
+function removerPonto(index) {
+  setCoordenadas((anteriores) => {
+    if (anteriores.length <= 3) {
+      toast.erro("A lavoura precisa ter pelo menos 3 pontos.");
+      return anteriores;
+    }
+
+    return anteriores.filter((_, i) => i !== index);
+  });
+}
 
   const pontosAlterados = JSON.stringify(coordenadas) !== JSON.stringify(coordenadasSalvas);
   const nomeAlterado = nomeLavoura.trim() !== nomeSalvo.trim();
@@ -171,6 +204,7 @@ function Edicao() {
         } else {
           toast.erro(`Lavoura salva. ${dados.mapas.mensagem}`);
         }
+
       }
 
       setCoordenadasSalvas(coordenadas);
@@ -375,16 +409,22 @@ function Edicao() {
                       ponto={ponto}
                       index={index}
                       atualizarPonto={atualizarPonto}
+                      removerPonto={removerPonto}
                     />
                   ))}
+                  <MapaAdicionarPonto
+  ativo={modoEdicao}
+  adicionarPonto={adicionarPonto}
+/>
               </MapContainer>
             )}
           </div>
+          
 
           <p className={`edi-ajuda ${modoEdicao ? "edi-ajuda-ativa" : ""}`} aria-live="polite">
             <Icon nome="info" tamanho={16} />
             {modoEdicao
-              ? "Arraste os pontos para ajustar a área."
+              ? "Arraste os pontos, toque em um ponto para removê-lo ou toque no mapa para adicionar novos pontos."
               : "Toque em “Editar pontos” para alterar a área."}
           </p>
 
@@ -398,6 +438,7 @@ function Edicao() {
             </Button>
 
             <Button
+              
               onClick={salvarPontos}
               loading={salvandoPontos}
               disabled={!pontosAlterados}
