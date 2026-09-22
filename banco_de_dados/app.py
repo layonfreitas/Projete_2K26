@@ -15,7 +15,10 @@ from routes.gda_routes import gda_bp, init_mysql as init_gda_mysql
 
 app = Flask(__name__)
 app.config.from_object(Config)
-CORS(app, origins=["http://localhost:5173"])
+CORS(app, origins=[
+    "http://localhost:5173",
+    "https://projete-2k26-frontend.onrender.com"
+])
 
 mysql = MySQL(app)
 init_auth_mysql(mysql)
