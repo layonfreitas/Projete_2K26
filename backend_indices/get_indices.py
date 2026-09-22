@@ -106,34 +106,47 @@ def validar_png(conteudo, metadados):
     return len(pixels)
 
 
-def exportar_png(imagem_colorida, geometria, usuario_id, lavoura_id, imagem_origem):
-    parametros,meta = preparar_exportacao(geometria,usuario_id,lavoura_id)
-    # O PNG nasce com o recorte, projeção e máscara corretos no Earth Engine.
-    url = imagem_colorida.clip(geometria).getThumbURL(parametros)
-    resposta = requests.post(
-        api_url("/imagens"),
-        json=dados,
-        timeout=(15, 60),
+def exportar_png(
+    imagem_colorida,
+    geometria,
+    usuario_id,
+    lavoura_id,
+    imagem_origem,
+):
+    parametros, meta = preparar_exportacao(
+        geometria,
+        usuario_id,
+        lavoura_id,
     )
 
-    if not resposta.ok:
-        log.error(
-            "Erro ao salvar imagem: lavoura=%s, indice=%s, "
-            "HTTP=%s, resposta=%s",
-            lavoura_id,
-            dados.get("indice"),
-            resposta.status_code,
-            resposta.text[:4000],
-        )
+    # Obtém o endereço do PNG gerado pelo Earth Engine.
+    url = imagem_colorida.clip(geometria).getThumbURL(
+        parametros
+    )
 
+    # Baixa a imagem. Aqui não há envio para o banco.
+    resposta = requests.get(
+        url,
+        timeout=(15, 180),
+    )
     resposta.raise_for_status()
-    meta['pixelsVisiveis'] = validar_png(resposta.content,meta)
-    detalhes = imagem_origem.toDictionary(['cena_id','cobertura_valida']).getInfo()
-    meta.update({'cenaId':detalhes.get('cena_id'),
-                 'coberturaValida':detalhes.get('cobertura_valida')})
-    return resposta.content,meta
 
+    meta["pixelsVisiveis"] = validar_png(
+        resposta.content,
+        meta,
+    )
 
+    detalhes = imagem_origem.toDictionary([
+        "cena_id",
+        "cobertura_valida",
+    ]).getInfo()
+
+    meta.update({
+        "cenaId": detalhes.get("cena_id"),
+        "coberturaValida": detalhes.get("cobertura_valida"),
+    })
+
+    return resposta.content, meta
 def save_image_indatabase(imagem,nome_arquivo,pasta_id,usuario_id,lavoura_id,
                           data_imagem,valor_indice=None,georreferencia=None):
     cloudinary.config(cloud_name=os.environ.get('CLOUDINARY_CLOUD_NAME'),
@@ -169,8 +182,24 @@ def save_image_indatabase(imagem,nome_arquivo,pasta_id,usuario_id,lavoura_id,
     dados = {'usuarioId':usuario_id,'lavouraId':lavoura_id,'dataImagem':data_imagem,
         'urlImagem':response['secure_url'],'indice':nome_arquivo.split('_')[0],
         'valorIndice':valor_indice,'georreferencia':georreferencia}
-    resposta = requests.post(api_url('/imagens'),json=dados,timeout=(15,60))
+        resposta = requests.post(
+        api_url("/imagens"),
+        json=dados,
+        timeout=(15, 60),
+    )
+
+    if not resposta.ok:
+        log.error(
+            "Erro ao salvar imagem: lavoura=%s, indice=%s, "
+            "HTTP=%s, resposta=%s",
+            lavoura_id,
+            dados.get("indice"),
+            resposta.status_code,
+            resposta.text[:4000],
+        )
+
     resposta.raise_for_status()
+
     log.info('Mapa salvo: lavoura %s / %s.',lavoura_id,nome_arquivo)
     return resposta.json()
 
