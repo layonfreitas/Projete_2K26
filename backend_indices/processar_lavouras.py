@@ -89,13 +89,13 @@ def buscar_todas_lavouras():
     return resposta.json()
 
 
-def processar_lavoura(lavoura, data_alvo=None, janela=30, indices=None, geometria=None):
+def processar_lavoura(lavoura, crs=None, crs_transformation=None, data_alvo=None, janela=30, indices=None, geometria=None):
     inicializar_ee()
     if geometria is None: geometria = criar_geometria(lavoura['coordenadas'])
     alvo = data_alvo or date.today().isoformat()
     indice_nomes = indices if indices is not None else [n for i in INDICES for n in (i,f'z-score-{i}')]
     resultado = {'lavouraId':lavoura['id'],'dataAlvo':alvo,'salvos':[], 'avisos':[], 'erros':[]}
-    imagem = get_indices_image(geometria,alvo,janela,30)
+    imagem = get_indices_image(geometria,alvo,janela,30,crs,crs_transformation)
     if imagem is None:
         resultado['status'] = 'sem_dados'
         resultado['avisos'].append('Nenhuma cena com cobertura válida suficiente nesta janela de datas.')
@@ -135,7 +135,9 @@ def processar_todas_lavouras():
     resultados=[]
     for lavoura in buscar_todas_lavouras():
         try:
-            resultados.append(processar_lavoura(lavoura))
+            crs = lavoura.get('crs')
+            crs_tranformation = lavoura.get('crs_transformation')
+            resultados.append(processar_lavoura(lavoura, crs, crs_tranformation))
         except Exception as erro:
             log.exception('Falha na lavoura %s',lavoura.get('id'))
             resultados.append({'lavouraId':lavoura.get('id'),'status':'erro','erros':[str(erro)]})

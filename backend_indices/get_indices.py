@@ -41,7 +41,7 @@ def adicionar_indices(imagem):
     return imagem.addBands([ndvi,ndre,ndwi,clmi]).updateMask(mascara)
 
 
-def get_indices_image(geometria, data_alvo, janela=5, nuvem_maxima=100):
+def get_indices_image(geometria, data_alvo, janela=5, nuvem_maxima=100, crs=None, crs_transformation=None):
     inicializar_ee()
     date.fromisoformat(str(data_alvo))
     if janela < 0: raise ValueError('Janela de datas inválida.')
@@ -63,7 +63,7 @@ def get_indices_image(geometria, data_alvo, janela=5, nuvem_maxima=100):
         valida = (imagem.select(list(INDICES)).mask().reduce(ee.Reducer.min())
                   .unmask(0,sameFootprint=False).rename('cobertura'))
         info = valida.reduceRegion(reducer=ee.Reducer.mean(),geometry=geometria,
-            crs=original.select('B8').projection(),scale=10,maxPixels=1e8).getInfo()
+            scale=10,maxPixels=1e8, crs=crs, crs_transformation=crs_transformation ).getInfo()
         cobertura = info.get('cobertura') or 0
         if cobertura >= minimo:
             return (imagem.clip(geometria).set('cobertura_valida',cobertura)
