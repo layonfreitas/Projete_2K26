@@ -110,7 +110,22 @@ def exportar_png(imagem_colorida, geometria, usuario_id, lavoura_id, imagem_orig
     parametros,meta = preparar_exportacao(geometria,usuario_id,lavoura_id)
     # O PNG nasce com o recorte, projeção e máscara corretos no Earth Engine.
     url = imagem_colorida.clip(geometria).getThumbURL(parametros)
-    resposta = requests.get(url,timeout=(15,180))
+    resposta = requests.post(
+        api_url("/imagens"),
+        json=dados,
+        timeout=(15, 60),
+    )
+
+    if not resposta.ok:
+        log.error(
+            "Erro ao salvar imagem: lavoura=%s, indice=%s, "
+            "HTTP=%s, resposta=%s",
+            lavoura_id,
+            dados.get("indice"),
+            resposta.status_code,
+            resposta.text[:4000],
+        )
+
     resposta.raise_for_status()
     meta['pixelsVisiveis'] = validar_png(resposta.content,meta)
     detalhes = imagem_origem.toDictionary(['cena_id','cobertura_valida']).getInfo()
