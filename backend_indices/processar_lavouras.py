@@ -94,13 +94,13 @@ def buscar_todas_lavouras():
 
 
 
-def processar_lavoura(lavoura, crs=None, crs_transformation=None, safra_atual=None, graus_dia=None, data_alvo=None, janela=30, indices=None, geometria=None):
+def processar_lavoura(lavoura, crs=None, crs_transformation=None, safra_atual=None, graus_dia=None, data_alvo=None, janela=10, indices=None, geometria=None):
     inicializar_ee()
     if geometria is None: geometria = criar_geometria(lavoura['coordenadas'])
     alvo = data_alvo or date.today().isoformat()
     indice_nomes = indices if indices is not None else [n for i in INDICES for n in (i,f'z-score-{i}')]
     resultado = {'lavouraId':lavoura['id'],'dataAlvo':alvo,'salvos':[], 'avisos':[], 'erros':[]}
-    imagem = get_indices_image(geometria,alvo,janela,30,crs,crs_transformation)
+    imagem = get_indices_image(geometria,alvo,janela,100,crs,crs_transformation)
     if imagem is None:
         resultado['status'] = 'sem_dados'
         resultado['avisos'].append('Nenhuma cena com cobertura válida suficiente nesta janela de datas.')
