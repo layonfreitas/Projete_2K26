@@ -45,6 +45,7 @@ export default function Cadastro() {
     setErroNome("");
 
     try {
+      
       const resposta = await fetch(`${AUTH_API_URL}/lavoura`, {
         method: "POST",
         headers: {

@@ -14,6 +14,7 @@ from dotenv import load_dotenv
 import os
 
 
+
 load_dotenv()
 log = logging.getLogger(__name__)
 
@@ -85,14 +86,12 @@ def obter_classificao(lat,lon,clmi):
     classificao = dados_resposta['classificacao']
     return classificao
 
-    
-
-    
-
 def buscar_todas_lavouras():
     resposta = requests.get(api_url('/lavouras'),timeout=(15,60))
     resposta.raise_for_status()
     return resposta.json()
+
+
 
 
 def processar_lavoura(lavoura, crs=None, crs_transformation=None, safra_atual=None, graus_dia=None, data_alvo=None, janela=30, indices=None, geometria=None):

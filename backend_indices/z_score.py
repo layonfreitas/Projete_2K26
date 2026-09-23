@@ -1,30 +1,33 @@
-"""Z-score robusto dentro da lavoura; máscara e grade herdadas do índice."""
-
 import math
-
 import ee
-
 from get_indices import SemDadosValidos, exportar_png, save_image_indatabase
-
 import s3fs
-
 import numpy as np
-
 import xarray as xr
-
 import requests
 
-PALETA = ['00000000','fbbf24','dc2626','86efac','166534']
+# A primeira cor não aparecerá, pois a classe 1 será transparente.
+PALETA = ['000000', 'fbbf24', 'dc2626', '86efac', '166534']
 
-ROTULOS = ['Faixa central (−2 a 2)','Baixo (−3,5 a −2)','Muito baixo (< −3,5)',
-           'Alto (2 a 3,5)','Muito alto (> 3,5)']
+ROTULOS = [
+    'Faixa central (−2 a 2)',
+    'Baixo (−3,5 a −2)',
+    'Muito baixo (< −3,5)',
+    'Alto (2 a 3,5)',
+    'Muito alto (> 3,5)'
+]
 
 
 def calcular_z_score(indice, geometria):
 
     banda = indice.bandNames().getInfo()[0]
 
-    parametros = dict(geometry=geometria, crs=indice.projection(), scale=10, maxPixels=1e8)
+    parametros = dict(
+        geometry=geometria,
+        crs=indice.projection(),
+        scale=10,
+        maxPixels=1e8
+    )
 
     mediana = indice.reduceRegion(
         reducer=ee.Reducer.median(),
@@ -61,15 +64,25 @@ def calcular_z_score(indice, geometria):
     return z, classes, {'mediana': mediana, 'mad': mad}
 
 
-def salvar_mapa_z_score(imagem, nome_indice, usuario_id, lavoura__id, geometria, pasta_id=None):
+def salvar_mapa_z_score(
+    imagem,
+    nome_indice,
+    usuario_id,
+    lavoura__id,
+    geometria,
+    pasta_id=None
+):
 
     z_score_img, classes, estatisticas = calcular_z_score(
         imagem.select(nome_indice),
         geometria
     )
 
+    # Deixa transparente somente a faixa central, correspondente à classe 1.
+    classes_visuais = classes.updateMask(classes.neq(1))
+
     conteudo, meta = exportar_png(
-        classes.visualize(
+        classes_visuais.visualize(
             min=1,
             max=5,
             palette=PALETA
