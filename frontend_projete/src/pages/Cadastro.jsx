@@ -45,7 +45,7 @@ export default function Cadastro() {
     setErroNome("");
 
     try {
-      const projection = await fetch(`${IA_URL}/crs`,
+      const projection = await fetch(`${os.environ.get("IA_URL")}/crs`,
         {
           method: "POST",
           headers:{
