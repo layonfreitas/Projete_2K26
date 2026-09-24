@@ -15,7 +15,6 @@ from  get_indices import save_image_indatabase
 from graus_dia import get_graus_dia_data
 from z_score import calcular_z_score
 import requests
-import boto3
 import xarray as xr
 import s3fs
 
@@ -386,7 +385,7 @@ def create_zonas_de_manejo(array,usuario_id: int, lavoura_id: int,pasta_id = os.
     
    
 
-def make_time_series(geometria, data_inicio, data_fim, usuario_id: int, lavoura_id: int, ano : int):
+def make_time_series(geometria, data_inicio, data_fim, usuario_id: int, lavoura_id: int, ano : int, crs, crsTransform):
     inicio =ee.Date(data_inicio)
     fim = ee.Date(data_fim)
     lavoura = ee.Geometry.Polygon(geometria)
@@ -398,6 +397,7 @@ def make_time_series(geometria, data_inicio, data_fim, usuario_id: int, lavoura_
         .map(add_NDVI_zscore).map(add_NDRE_zscore).map(add_NDWI_zscore)
         .select(['NDVI_zscore', 'NDRE_zscore', 'NDWI_zscore'])
         .map(lambda image: image.clip(lavoura))
+        .map(lambda image: image.reproject(crs= crs, crsTransform = crsTransform))
     )
 
     ds = xr.open_dataset(imagens, engine="ee", region=lavoura, crs='EPSG:4326', scale=10, max_pixels=1e8)
@@ -416,7 +416,8 @@ def make_time_series(geometria, data_inicio, data_fim, usuario_id: int, lavoura_
         )
         url = f"{os.environ.get('ENDPOINT_URL')}{usuario_id}/{lavoura_id}/{indice}_zscore.zarr"
         saida.to_zarr(url, mode="w", consolidated=False, storage_options=credentials_r2)
-    
+
+    return {"mensagem": "Série temporal criada", "status": 200}
 
     
 

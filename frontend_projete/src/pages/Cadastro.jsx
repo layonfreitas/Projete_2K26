@@ -60,7 +60,6 @@ export default function Cadastro() {
       const crs = projecoes.crs;
       const crs_transformation = projecoes.crs_transformation;
 
-      
       const resposta = await fetch(`${AUTH_API_URL}/lavoura`, {
         method: "POST",
         headers: {
@@ -79,6 +78,18 @@ export default function Cadastro() {
 
       if (resposta.ok) {
         toast.sucesso("Lavoura cadastrada com sucesso!");
+        res_time_series = await fetch(`${IA_API_URL}/time_series`, {
+          method: "POST",
+          headers:{
+            "Content-Type": "application/json",
+          },
+
+          //substituir geometria, data_inicio e data_fim posteriormente
+          body:{
+            geometria: coordenadas,
+            data_inicio :"2024-02-18",  
+          }
+        })
                 if (dados.mapas) {
           if (dados.mapas.status === "aceito") {
             toast.sucesso(dados.mapas.mensagem);

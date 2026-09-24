@@ -530,6 +530,8 @@ def editar_lavoura(lavoura_id):
             "mensagem": "Erro ao atualizar lavoura",
             "erro": str(erro)
         }), 500
+
+
 @lavoura_bp.route('/lavoura/<int:lavoura_id>', methods=['DELETE'])
 def remover_lavoura(lavoura_id):
 
