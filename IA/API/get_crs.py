@@ -5,7 +5,7 @@ from contextlib import asynccontextmanager
 from typing import List, Tuple
 import ee
 
-from gee_auth import inicializar_gee
+from gee_auth import inicializar_ee
 
 
 class Coordenadas(BaseModel):
@@ -15,7 +15,7 @@ class Coordenadas(BaseModel):
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    inicializar_gee()
+    inicializar_ee()
     yield
 
 
