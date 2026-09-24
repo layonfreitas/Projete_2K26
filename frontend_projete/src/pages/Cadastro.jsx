@@ -70,6 +70,7 @@ export default function Cadastro() {
           coordenadas,
           crs: crs,
           crs_transformation: crs_transformation
+          
         }),
       });
 
