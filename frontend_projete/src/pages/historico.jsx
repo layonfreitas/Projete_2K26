@@ -1,6 +1,7 @@
 import { useState } from "react";
 import "./historico.css";
 
+
 import HistoricoMapas from "../components/historicoMapas.jsx";
 import BottomNav from "../components/BottomNav";
 import Header from "../components/Header";
@@ -11,15 +12,25 @@ const ABAS = [
     nome: "Mapas",
     componente: HistoricoMapas,
   },
-
-  // Para adicionar uma nova aba futuramente:
-  //
-  // {
-  //   id: "graficos",
-  //   nome: "Gráficos",
-  //   componente: Graficos,
-  // },
+  {
+    id: "alerta",
+    nome: "Alertas",
+    componente: HistoricoAlerta,
+  },
 ];
+
+function HistoricoAlerta() {
+  return (
+    <div className="hist-alerta">
+      <div className="hist-alerta-conteudo">
+        <div className="hist-alerta-cabecalho">
+          <h2>Alertas</h2>
+        </div>
+       
+      </div>
+    </div>
+  );
+}
 
 export default function Historico() {
   const [abaAtiva, setAbaAtiva] = useState(ABAS[0].id);

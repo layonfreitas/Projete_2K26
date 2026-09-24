@@ -1,43 +1,43 @@
-.hist {
+.hist-alerta {
   width: 100%;
   min-height: 100svh;
   background: var(--parchment);
   padding-bottom: calc(120px + env(safe-area-inset-bottom, 0px));
 }
 
-.hist-conteudo {
+.hist-alerta-conteudo {
   max-width: 1280px;
   margin: 0 auto;
   padding: 24px 20px 32px;
 }
 
 @media (min-width: 720px) {
-  .hist-conteudo {
+  .hist-alerta-conteudo {
     padding: 32px 40px 40px;
   }
 }
 
 @media (min-width: 1100px) {
-  .hist-conteudo {
+  .hist-alerta-conteudo {
     padding: 36px 56px 48px;
   }
 }
 
-.hist-cabecalho {
+.hist-alerta-cabecalho {
   margin-bottom: 20px;
 }
 
-.hist-cabecalho h1 {
+.hist-alerta-cabecalho h1 {
   margin: 0 0 4px;
   font-size: 26px;
 }
 
-.hist-cabecalho p {
+.hist-alerta-cabecalho p {
   font-size: 14px;
   line-height: 1.6;
 }
 
-.hist-abas {
+.hist-alerta-abas {
   display: flex;
   gap: 4px;
   margin-bottom: 20px;
@@ -45,7 +45,7 @@
   overflow-x: auto;
 }
 
-.hist-aba {
+.hist-alerta-aba {
   margin-bottom: -1px;
   padding: 12px 20px;
   border-bottom: 3px solid transparent;
@@ -56,16 +56,16 @@
   white-space: nowrap;
 }
 
-.hist-aba:hover {
+.hist-alerta-aba:hover {
   background: var(--surface);
   color: var(--canopy-dark);
 }
 
-.hist-aba[aria-selected="true"] {
+.hist-alerta-aba[aria-selected="true"] {
   border-bottom-color: var(--canopy);
   color: var(--canopy-dark);
 }
 
-.hist-painel {
+.hist-alerta-painel {
   width: 100%;
 }

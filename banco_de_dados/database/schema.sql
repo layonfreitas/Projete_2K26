@@ -104,7 +104,7 @@ CREATE TABLE indices_vegetacao (
 -- ================================================================
 -- AVISOS (comunicados enviados pela cooperativa)
 -- ================================================================
-CREATE TABLE avisos (
+CREATE TABLE alerta (
     id INT AUTO_INCREMENT PRIMARY KEY,
     cooperativa_id INT NOT NULL,
     usuario_id INT NOT NULL,
