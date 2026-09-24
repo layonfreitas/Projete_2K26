@@ -98,7 +98,7 @@ def processar_lavoura(lavoura, crs=None, crs_transformation=None, safra_atual=No
     if geometria is None: geometria = criar_geometria(lavoura['coordenadas'])
     alvo = data_alvo or date.today().isoformat()
     indice_nomes = indices if indices is not None else [n for i in INDICES for n in (i,f'z-score-{i}')]
-    resultado = {'lavouraId':lavoura['id'],'dataAlvo':alvo,'salvos':[], 'avisos':[], 'erros':[]}
+    resultado = {'lavouraId':lavoura['id'],'dataAlvo':alvo,'salvos':[], 'avisos':[], 'erros':[], 'alertas': []}
     imagem = get_indices_image(geometria,alvo,janela,100,crs,crs_transformation)
     if imagem is None:
         resultado['status'] = 'sem_dados'
