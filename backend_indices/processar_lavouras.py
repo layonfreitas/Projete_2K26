@@ -1,5 +1,4 @@
 """Processamento por lavoura; falhas de um índice não interrompem os demais."""
-from datetime import date, datetime
 from datetime import date, timedelta
 import logging
 import requests
@@ -205,11 +204,11 @@ def processar_todas_lavouras():
     resultados=[]
     for lavoura in buscar_todas_lavouras():
         try:
-            safra_atual = datetime.date.today().year
+            safra_atual = date.today().year
             crs = lavoura.get('crs')
-            crs_tranformation = lavoura.get('crs_transformation')
+            crs_transformation = lavoura.get('crs_transformation')
             graus_dia = lavoura.get('graus_dia')
-            resultados.append(processar_lavoura(lavoura = lavoura, crs = crs, crs_tranformation= crs_tranformation, safra_atual = safra_atual, graus_dia = graus_dia))
+            resultados.append(processar_lavoura(lavoura = lavoura, crs = crs, crs_transformation= crs_transformation, safra_atual = safra_atual, graus_dia = graus_dia))
         except Exception as erro:
             log.exception('Falha na lavoura %s',lavoura.get('id'))
             resultados.append({'lavouraId':lavoura.get('id'),'status':'erro','erros':[str(erro)]})
