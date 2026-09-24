@@ -59,6 +59,8 @@ export default function Cadastro() {
       const projecoes = await projection.json();
       const crs = projecoes.crs;
       const crs_transformation = projecoes.crs_transformation;
+
+      
       const resposta = await fetch(`${AUTH_API_URL}/lavoura`, {
         method: "POST",
         headers: {
@@ -73,7 +75,6 @@ export default function Cadastro() {
           
         }),
       });
-
       const dados = await resposta.json();
 
       if (resposta.ok) {
@@ -95,6 +96,28 @@ export default function Cadastro() {
       setCarregando(false);
     }
   }
+
+        async function Crs_obtido(coordenadas){
+        try{
+          const response = await fetch("http://127.0.0.1:8000/crs",
+            {
+              method:POST,
+              headers:{"Content-type": "application/json"},
+              body: JSONstringify({coordenadas}),
+            });
+
+            if(response.ok){
+              const erro = await response.json();
+              throw new Error(erro.detail || "Erro desconhecido ao consultar o CRS");
+            }
+            const dados = await response.json();
+            return dados;
+          } catch(erro){
+            console.error("falha o obter CRS:", Error.message);
+            throw erro;
+          }
+        }
+
 
   if (!temPoligono) {
     return (
