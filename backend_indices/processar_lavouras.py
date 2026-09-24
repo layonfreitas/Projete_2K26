@@ -107,6 +107,7 @@ def processar_lavoura(lavoura, crs=None, crs_transformation=None, safra_atual=No
         return resultado
     resultado['dataImagem'] = imagem.date().format('YYYY-MM-dd').getInfo()
     valores = obter_valores_indices(imagem,geometria)
+
     for nome in indice_nomes:
         try:
             if nome.startswith('z-score-') and nome.removeprefix('z-score-') in INDICES:
