@@ -45,6 +45,20 @@ export default function Cadastro() {
     setErroNome("");
 
     try {
+      const projection = await fetch(`${IA_URL}/crs`,
+        {
+          method: "POST",
+          headers:{
+            "Content-Type":"application/json"
+          },
+          body:JSON.stringify({
+            coordenadas: coordenadas
+          })
+        })
+      
+      const projecoes = await projection.json();
+      const crs = projecoes.crs;
+      const crs_transformation = projecoes.crs_transformation;
       const resposta = await fetch(`${AUTH_API_URL}/lavoura`, {
         method: "POST",
         headers: {
@@ -54,6 +68,8 @@ export default function Cadastro() {
           usuarioId: usuarioId,
           nomeLavoura: nome,
           coordenadas,
+          crs: crs,
+          crs_transformation: crs_transformation
         }),
       });
 
