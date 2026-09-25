@@ -22,6 +22,9 @@ const NaoEncontrado = lazy(() => import("./pages/NaoEncontrado"));
 const Laudo = lazy(() => import("./pages/laudo"));
 const Edicao = lazy(() => import("./pages/edicao"));
 const EditarSenha = lazy(() => import("./pages/Editar_senha"));
+const CadastroUsuario = lazy(() => import("./pages/cadastroUsuario"));
+
+
 
 // Ao trocar de tela, volta ao topo (o React Router não faz isso sozinho).
 function VoltarAoTopo() {
@@ -152,6 +155,12 @@ function App() {
               <RotaProtegida tiposPermitidos={["cooperativa"]}>
                 <EditarSenha />
               </RotaProtegida>
+            }
+          />
+          <Route
+            path="/cadastroUsuario"
+            element={
+                <CadastroUsuario />
             }
           />
 
