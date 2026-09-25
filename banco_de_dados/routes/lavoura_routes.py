@@ -138,8 +138,6 @@ def init_mysql(mysql_instance):
     global mysql
     mysql = mysql_instance
 
-# CADASTRAR LAVOURA
-@lavoura_bp.route('/lavoura', methods=['POST'])
 
 def validar_safras(valor):
     if not isinstance(valor, list) or not 1 <= len(valor) <= 30:
@@ -194,6 +192,9 @@ def validar_safras(valor):
             raise ValueError("Os períodos das safras não podem se sobrepor.")
 
     return resultado
+
+# CADASTRAR LAVOURA
+@lavoura_bp.route('/lavoura', methods=['POST'])
 
 def cadastrar_lavoura():
     dados = request.get_json()
