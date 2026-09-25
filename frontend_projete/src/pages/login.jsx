@@ -57,7 +57,6 @@ function Login() {
     <AuthShell
       titulo="Entrar"
       subtitulo="Entre para acompanhar e analisar suas lavouras."
-      rodape="Ainda não tem acesso? Peça o seu cadastro à cooperativa."
     >
       <form className="auth-formulario" onSubmit={handleSubmit} noValidate>
         <TextField

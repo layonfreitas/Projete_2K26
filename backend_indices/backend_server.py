@@ -2,7 +2,7 @@ import ee
 import os
 import secrets
 import logging
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, model_validator
 from fastapi import FastAPI, status, HTTPException, BackgroundTasks, Header
 from datetime import date
 from processar_lavouras import processar_todas_lavouras, processar_lavoura
@@ -22,10 +22,45 @@ class Coordenada(BaseModel):
     lat: float
     lng: float
 
+class SafraReq(BaseModel):
+    ano: int = Field(ge=2017)
+    inicio: date
+    fim: date
+
+    @model_validator(mode="after")
+    def validar_periodo(self):
+        if self.ano > date.today().year:
+            raise ValueError("O ano da safra não pode estar no futuro.")
+
+        if not date(2017, 3, 28) <= self.inicio <= self.fim <= date.today():
+            raise ValueError(
+                "Informe um período entre 28/03/2017 e hoje."
+            )
+
+        return self
+
+
 class Day_req(BaseModel):
     coordenadas: list[Coordenada]
     usuario_id: int
     lavoura_id: int
+    safras: list[SafraReq] = Field(default_factory=list, max_length=30)
+
+    @model_validator(mode="after")
+    def validar_safras(self):
+        periodos = sorted(self.safras, key=lambda safra: safra.inicio)
+
+        anos = [safra.ano for safra in periodos]
+
+        if len(anos) != len(set(anos)):
+            raise ValueError("Há anos de safra repetidos.")
+
+        for anterior, atual in zip(periodos, periodos[1:]):
+            if atual.inicio <= anterior.fim:
+                raise ValueError("Os períodos das safras se sobrepõem.")
+
+        self.safras = periodos
+        return self
     
 class Zona_de_manejo_req(BaseModel):
     coordenadas: list[list[float]]
@@ -108,23 +143,42 @@ async def zonas_de_manejo(zona_de_manejo_req: Zona_de_manejo_req):
     }
 def _gerar_mapas_agendados(dados):
     try:
-        resultado = processar_lavoura(dados)
+        if dados.get("safras"):
+            try:
+                from serie_safras import gerar_series_safras
 
-        logging.info(
-            "Resultado dos mapas da lavoura %s: %s",
-            dados["id"],
-            resultado,
-        )
+                resultado_series = gerar_series_safras(dados)
 
-    except Exception:
-        logging.exception(
-            "Erro ao gerar imagens da lavoura %s",
-            dados["id"],
-        )
+                logging.info(
+                    "Resultado das séries da lavoura %s: %s",
+                    dados["id"],
+                    resultado_series,
+                )
+
+            except Exception:
+                logging.exception(
+                    "Falha na série temporal da lavoura %s",
+                    dados["id"],
+                )
+
+        # Uma falha na série não impede a tentativa de gerar os mapas.
+        try:
+            resultado = processar_lavoura(dados)
+
+            logging.info(
+                "Resultado dos mapas da lavoura %s: %s",
+                dados["id"],
+                resultado,
+            )
+
+        except Exception:
+            logging.exception(
+                "Erro ao gerar mapas da lavoura %s",
+                dados["id"],
+            )
 
     finally:
         _processamento_lock.release()
-
 
 @app.post("/agendar_mapas/", status_code=202)
 def agendar_mapas(
@@ -148,13 +202,17 @@ def agendar_mapas(
         )
 
     dados = {
-        "id": day_req.lavoura_id,
-        "usuarioId": day_req.usuario_id,
-        "coordenadas": [
-            {"lat": ponto.lat, "lng": ponto.lng}
-            for ponto in day_req.coordenadas
-        ],
-    }
+    "id": day_req.lavoura_id,
+    "usuarioId": day_req.usuario_id,
+    "coordenadas": [
+        {"lat": ponto.lat, "lng": ponto.lng}
+        for ponto in day_req.coordenadas
+    ],
+    "safras": [
+        safra.model_dump(mode="json")
+        for safra in day_req.safras
+    ],
+}
 
     # Confere os pontos antes de aceitar a geração.
     from georreferencia import normalizar_coordenadas

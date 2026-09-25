@@ -1,0 +1,117 @@
+:root{
+    --coffee-950:#241509; --coffee-900:#2f1c0d; --coffee-800:#4a2e1a;
+    --cherry-600:#1b5e20; --cherry-700:#8a1f30;
+    --leaf-700:#33532f; --leaf-800:#243e22;
+    --parchment-50:#faf5e9; --parchment-100:#f1e7d2; --parchment-200:#e6d8ba;
+    --gold-500:#c1943f;
+    --ink:#241509;
+    --serif:"Fraunces",Georgia,serif;
+    --sans:"Work Sans",system-ui,-apple-system,Segoe UI,sans-serif;
+    padding-top:env(safe-area-inset-top,0px);
+    padding-bottom:env(safe-area-inset-bottom,0px);
+  }
+  @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){ --parchment-50:#f1e7d2; --parchment-100:#e6d8ba; } }
+  :root[data-theme="dark"]{ --parchment-50:#f1e7d2; --parchment-100:#e6d8ba; }
+  *{box-sizing:border-box;}
+  html{scroll-padding-top:env(safe-area-inset-top,0px);}
+  body{
+    margin:0; background:var(--parchment-50); color:var(--ink);
+    font-family:var(--sans); line-height:1.6; -webkit-font-smoothing:antialiased;
+  }
+  img,svg{max-width:100%;}
+  h1,h2,h3{font-family:var(--serif); margin:0; font-weight:560; line-height:1.08;}
+  p{margin:0 0 1em; max-width:62ch;}
+  section{padding:5.5rem 1.5rem;}
+  .wrap{max-width:1040px; margin:0 auto;}
+  a{color:inherit;}
+
+  /* Top bar */
+  header.top{
+    position:sticky; top:0; z-index:20; background:var(--parchment-50);
+    border-bottom:1px solid var(--parchment-200);
+    padding:1rem 1.5rem calc(1rem + env(safe-area-inset-top,0px));
+    padding-top:calc(1rem + env(safe-area-inset-top,0px));
+    display:flex; align-items:center; justify-content:space-between;
+  }
+  .brand{display:flex; align-items:center; gap:.6rem; font-family:var(--serif); font-size:1.15rem; font-weight:560;}
+  .brand svg{width:26px; height:26px;}
+  .cta{
+    background:var(--cherry-600); color:var(--parchment-50); text-decoration:none;
+    padding:.6rem 1.1rem; font-family:var(--sans); font-weight:600; font-size:.92rem;
+    border-radius:2px; white-space:nowrap;
+  }
+
+  /* Hero */
+  .hero{background:var(--coffee-950); color:var(--parchment-100); position:relative; overflow:hidden;}
+  .hero .wrap{padding-top:1rem;}
+  .hero h1{color:var(--parchment-50); font-size:clamp(2.1rem,5vw,3.4rem); max-width:16ch;}
+  .hero p.lead{color:var(--parchment-200); font-size:1.15rem; margin-top:1.2rem; max-width:46ch;}
+  .sources{display:flex; flex-wrap:wrap; gap:.9rem; margin-top:2.5rem; padding-top:2rem; border-top:1px solid rgba(241,231,210,.18);}
+  .source-chip{display:flex; align-items:center; gap:.55rem; font-size:.88rem; color:var(--parchment-200);}
+  .source-chip svg{width:20px; height:20px; flex:none;}
+
+  /* Problema */
+  .problema{background:var(--parchment-100);}
+  .problema .wrap{display:grid; grid-template-columns:auto 1fr; gap:2.5rem; align-items:start;}
+  .problema .rule{width:3px; background:var(--cherry-600); height:100%; min-height:120px;}
+  .problema h2{font-size:1.9rem; margin-bottom:1.1rem; max-width:16ch;}
+
+  /* Como funciona */
+  .funciona h2{font-size:1.9rem; margin-bottom:.5rem;}
+  .funciona > .wrap > p{margin-bottom:2.8rem;}
+  .pilares{display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:0; border-top:1px solid var(--parchment-200);}
+  .pilar{padding:1.6rem 1.2rem 1.6rem 0; border-bottom:1px solid var(--parchment-200);}
+  .pilar svg{width:28px; height:28px; color:var(--leaf-700);}
+  .pilar h3{font-size:1.05rem; margin:.7rem 0 .4rem;}
+  .pilar p{font-size:.94rem; margin:0; color:#4b3a2a;}
+
+  /* Tutorial - timeline */
+  .tutorial{background:var(--coffee-900); color:var(--parchment-100);}
+  .tutorial h2{color:var(--parchment-50); font-size:1.9rem; margin-bottom:.4rem;}
+  .tutorial > .wrap > p{color:var(--parchment-200); margin-bottom:3rem;}
+  .passos{position:relative; padding-left:2.4rem;}
+  .passos::before{content:"";position:absolute; left:7px; top:.3rem; bottom:.3rem; width:2px; background:rgba(241,231,210,.25);}
+  .passo{position:relative; padding-bottom:2.6rem;}
+  .passo:last-child{padding-bottom:0;}
+  .passo::before{
+    content:""; position:absolute; left:-2.4rem; top:.25rem; width:16px; height:16px;
+    background:var(--cherry-600); border-radius:50%; box-shadow:0 0 0 4px var(--coffee-900);
+  }
+  .passo .num{font-family:var(--serif); font-size:.95rem; color:var(--gold-500); display:block; margin-bottom:.2rem;}
+  .passo h3{color:var(--parchment-50); font-size:1.2rem; margin-bottom:.4rem;}
+  .passo p{color:var(--parchment-200); font-size:.96rem; margin:0;}
+
+  /* Doenças - field guide list */
+  .doencas h2{font-size:1.9rem; margin-bottom:.4rem;}
+  .doencas > .wrap > p{margin-bottom:2.2rem;}
+  .lista-doencas{border-top:1px solid var(--parchment-200);}
+  .doenca-item{
+    display:grid; grid-template-columns:1.4fr 2fr; gap:1rem; padding:1.1rem 0;
+    border-bottom:1px solid var(--parchment-200); align-items:baseline;
+  }
+  .doenca-item h3{font-size:1.05rem; font-weight:600; font-family:var(--sans);}
+  .doenca-item p{margin:0; font-size:.93rem; color:#4b3a2a;}
+
+  /* Perfis - tabela */
+  .perfis{background:var(--parchment-100);}
+  .perfis h2{font-size:1.9rem; margin-bottom:1.8rem;}
+  .tabela-perfis{width:100%; border-collapse:collapse; font-size:.94rem;}
+  .tabela-perfis th{
+    text-align:left; font-family:var(--sans); font-weight:600; padding:.7rem .8rem;
+    border-bottom:2px solid var(--coffee-900); color:var(--coffee-900);
+  }
+  .tabela-perfis td{padding:1rem .8rem; border-bottom:1px solid var(--parchment-200); vertical-align:top;}
+  .tabela-perfis td:first-child{font-family:var(--serif); font-weight:560; white-space:nowrap;}
+
+  /* Footer CTA */
+  footer{background:var(--coffee-950); color:var(--parchment-200); padding:5rem 1.5rem 3rem; text-align:center;}
+  footer h2{color:var(--parchment-50); font-size:2rem; max-width:20ch; margin:0 auto 1.4rem;}
+  footer .cta{display:inline-block; margin-top:.4rem; font-size:1rem; padding:.85rem 1.6rem;}
+  footer .creditos{margin-top:3.5rem; font-size:.82rem; color:#8a7a63; max-width:60ch; margin-left:auto; margin-right:auto;}
+
+  @media (max-width:640px){
+    section{padding:3.5rem 1.2rem;}
+    .problema .wrap{grid-template-columns:2px 1fr; gap:1.3rem;}
+    .doenca-item{grid-template-columns:1fr; gap:.2rem;}
+    .tabela-perfis{font-size:.86rem;}
+  }
