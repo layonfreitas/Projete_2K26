@@ -205,7 +205,6 @@ def gerar_series_safras(dados):
     )
 
     base = (
-        f"{os.environ['R2_BUCKET']}/"
         f"{dados['usuarioId']}/"
         f"{dados['id']}"
     )
