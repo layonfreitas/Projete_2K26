@@ -1,6 +1,6 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { useState } from "react";
-import { AUTH_API_URL, IA_API_URL } from "../config/api";
+import { AUTH_API_URL } from "../config/api";
 import AppBar from "../components/ui/AppBar";
 import Button from "../components/ui/Button";
 import { TextField } from "../components/ui/Field";
@@ -22,112 +22,166 @@ export default function Cadastro() {
   const [mensagem, setMensagem] = useState("");
   const [carregando, setCarregando] = useState(false);
 
+  const [safras, setSafras] = useState([
+  { ano: "", inicio: "", fim: "" },
+]);
+
+const hoje = new Date();
+const anoAtual = hoje.getFullYear();
+
+const hojeTexto = [
+  anoAtual,
+  String(hoje.getMonth() + 1).padStart(2, "0"),
+  String(hoje.getDate()).padStart(2, "0"),
+].join("-");
+
+function alterarSafra(indice, campo, valor) {
+  setSafras((anteriores) =>
+    anteriores.map((safra, posicao) =>
+      posicao === indice
+        ? { ...safra, [campo]: valor }
+        : safra
+    )
+  );
+}
+
+function adicionarSafra() {
+  setSafras((anteriores) => [
+    ...anteriores,
+    { ano: "", inicio: "", fim: "" },
+  ]);
+}
+
+function removerSafra(indice) {
+  setSafras((anteriores) =>
+    anteriores.filter((_, posicao) => posicao !== indice)
+  );
+}
+
   const temPoligono = Array.isArray(coordenadas) && coordenadas.length >= 3;
   const area_hectares = calcularAreaHectares(coordenadas);
 
-  async function salvarCadastro(evento) {
-    evento.preventDefault();
+ async function salvarCadastro(evento) {
+  evento.preventDefault();
 
-    const usuarioId = localStorage.getItem("usuarioId");
+  if (carregando) return;
 
-    if (!nome.trim()) {
-      setErroNome("Dê um nome para identificar a lavoura.");
-      return;
-    }
+  setMensagem("");
+  setErroNome("");
 
-    if (!coordenadas) {
-      setMensagem("Desenhe o polígono no mapa antes de cadastrar.");
-      return;
-    }
+  const usuarioId = localStorage.getItem("usuarioId");
 
-    setCarregando(true);
-    setMensagem("");
-    setErroNome("");
-
-    try {
-      const projection = await fetch(`${IA_API_URL}/crs`,
-        {
-          method: "POST",
-          headers:{
-            "Content-Type":"application/json"
-          },
-          body:JSON.stringify({
-            coordenadas: coordenadas
-          })
-        })
-      
-      const projecoes = await projection.json();
-      const crs = projecoes.crs;
-      const crs_transformation = projecoes.crs_transformation;
-
-      const resposta = await fetch(`${AUTH_API_URL}/lavoura`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          usuarioId: usuarioId,
-          nomeLavoura: nome,
-          coordenadas,
-          crs: crs,
-          crs_transformation: crs_transformation
-          
-        }),
-      });
-      const dados = await resposta.json();
-
-      if (resposta.ok) {
-        toast.sucesso("Lavoura cadastrada com sucesso!");
-        res_time_series = await fetch(`${IA_API_URL}/time_series`, {
-          method: "POST",
-          headers:{
-            "Content-Type": "application/json",
-          },
-
-          //substituir geometria, data_inicio e data_fim posteriormente
-          body:{
-            geometria: coordenadas,
-            data_inicio :"2024-02-18",  
-          }
-        })
-                if (dados.mapas) {
-          if (dados.mapas.status === "aceito") {
-            toast.sucesso(dados.mapas.mensagem);
-          } else {
-            toast.erro(`Lavoura salva. ${dados.mapas.mensagem}`);
-          }
-        }
-        navigate("/home");
-      } else {
-        setMensagem(dados.mensagem || "Erro ao cadastrar lavoura.");
-      }
-    } catch (erro) {
-      setMensagem(mensagemDeErro(erro, "Erro ao conectar com o servidor."));
-    } finally {
-      setCarregando(false);
-    }
+  if (!usuarioId) {
+    setMensagem("Entre na sua conta antes de cadastrar.");
+    return;
   }
 
-        async function Crs_obtido(coordenadas){
-        try{
-          const response = await fetch("http://127.0.0.1:8000/crs",
-            {
-              method:POST,
-              headers:{"Content-type": "application/json"},
-              body: JSONstringify({coordenadas}),
-            });
+  if (!nome.trim()) {
+    setErroNome("Dê um nome para identificar a lavoura.");
+    return;
+  }
 
-            if(response.ok){
-              const erro = await response.json();
-              throw new Error(erro.detail || "Erro desconhecido ao consultar o CRS");
-            }
-            const dados = await response.json();
-            return dados;
-          } catch(erro){
-            console.error("falha o obter CRS:", Error.message);
-            throw erro;
-          }
-        }
+  if (!temPoligono) {
+    setMensagem("Desenhe o contorno da lavoura primeiro.");
+    return;
+  }
+
+  const periodos = safras
+    .map((safra) => ({
+      ano: Number(safra.ano),
+      inicio: safra.inicio,
+      fim: safra.fim,
+    }))
+    .sort((a, b) => a.inicio.localeCompare(b.inicio));
+
+  const temCampoInvalido = periodos.some(
+    (safra) =>
+      !Number.isInteger(safra.ano) ||
+      safra.ano < 2017 ||
+      safra.ano > anoAtual ||
+      !safra.inicio ||
+      !safra.fim ||
+      safra.inicio < "2017-03-28" ||
+      safra.fim > hojeTexto ||
+      safra.inicio > safra.fim
+  );
+
+  if (!periodos.length || temCampoInvalido) {
+    setMensagem(
+      "Preencha o ano, o início e o fim de todas as safras. " +
+      "Use períodos entre 28/03/2017 e hoje."
+    );
+    return;
+  }
+
+  if (new Set(periodos.map((safra) => safra.ano)).size !== periodos.length) {
+    setMensagem("Informe cada ano de safra apenas uma vez.");
+    return;
+  }
+
+  const temSobreposicao = periodos.some(
+    (safra, indice) =>
+      indice > 0 &&
+      safra.inicio <= periodos[indice - 1].fim
+  );
+
+  if (temSobreposicao) {
+    setMensagem("Os períodos das safras não podem se sobrepor.");
+    return;
+  }
+
+  setCarregando(true);
+
+  try {
+    const resposta = await fetch(`${AUTH_API_URL}/lavoura`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Usuario-Id": usuarioId,
+      },
+      body: JSON.stringify({
+        usuarioId,
+        nomeLavoura: nome.trim(),
+        coordenadas,
+        safras: periodos,
+      }),
+    });
+
+    const dados = await resposta.json();
+
+    if (!resposta.ok) {
+      setMensagem(dados.mensagem || "Erro ao cadastrar lavoura.");
+      return;
+    }
+
+    toast.sucesso("Lavoura cadastrada com sucesso!");
+
+    if (dados.mapas?.status === "aceito") {
+      toast.info(
+        "Processamento solicitado. As séries das safras e os mapas " +
+        "serão gerados em segundo plano."
+      );
+    } else {
+      toast.erro(
+        "A lavoura foi salva, mas o processamento não foi confirmado. " +
+        "Use Gerar imagens no histórico para tentar novamente."
+      );
+    }
+
+    navigate("/home");
+  } catch (erro) {
+    setMensagem(
+      mensagemDeErro(
+        erro,
+        "Não foi possível confirmar o cadastro. Confira suas lavouras antes de tentar novamente."
+      )
+    );
+  } finally {
+    setCarregando(false);
+  }
+}
+
+
 
 
   if (!temPoligono) {
@@ -192,6 +246,90 @@ export default function Cadastro() {
               if (erroNome) setErroNome("");
             }}
           />
+
+          <section className="cad-safras" aria-labelledby="titulo-safras">
+  <div>
+    <h2 id="titulo-safras">Safras da lavoura</h2>
+
+    <p>
+      Informe todos os períodos que deseja analisar.
+      O ano identifica a safra pela colheita.
+    </p>
+
+    <small>
+      Imagens disponíveis a partir de 28/03/2017.
+      A disponibilidade varia conforme a região e as nuvens.
+    </small>
+  </div>
+
+  {safras.map((safra, indice) => (
+    <fieldset
+      className="cad-safra"
+      key={indice}
+      disabled={carregando}
+    >
+      <legend>Safra {indice + 1}</legend>
+
+      <div className="cad-safra-campos">
+        <TextField
+          label="Ano da safra / colheita"
+          type="number"
+          min="2017"
+          max={anoAtual}
+          step="1"
+          placeholder="Ex.: 2025"
+          value={safra.ano}
+          onChange={(evento) =>
+            alterarSafra(indice, "ano", evento.target.value)
+          }
+          required
+        />
+
+        <TextField
+          label="Início do período"
+          type="date"
+          min="2017-03-28"
+          max={safra.fim || hojeTexto}
+          value={safra.inicio}
+          onChange={(evento) =>
+            alterarSafra(indice, "inicio", evento.target.value)
+          }
+          required
+        />
+
+        <TextField
+          label="Fim do período"
+          type="date"
+          min={safra.inicio || "2017-03-28"}
+          max={hojeTexto}
+          value={safra.fim}
+          onChange={(evento) =>
+            alterarSafra(indice, "fim", evento.target.value)
+          }
+          required
+        />
+      </div>
+
+      <Button
+        type="button"
+        variant="secondary"
+        disabled={safras.length === 1 || carregando}
+        onClick={() => removerSafra(indice)}
+      >
+        Remover safra
+      </Button>
+    </fieldset>
+  ))}
+
+  <Button
+    type="button"
+    variant="secondary"
+    disabled={carregando || safras.length >= 30}
+    onClick={adicionarSafra}
+  >
+    Adicionar outra safra
+  </Button>
+</section>
 
           {mensagem && <Notice tipo="erro">{mensagem}</Notice>}
         </div>

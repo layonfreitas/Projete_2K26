@@ -4,12 +4,13 @@ import math
 from email_utils import enviar_email, montar_email_laudo
 import os
 import requests
+from datetime import date
 
 lavoura_bp = Blueprint('lavoura', __name__)
 
 mysql = None
 
-def solicitar_mapas(lavoura_id, usuario_id, coordenadas):
+def solicitar_mapas(lavoura_id, usuario_id, coordenadas, safras=None):
     base_url = os.getenv("INDICES_API_URL", "").rstrip("/")
     token = os.getenv("MAPAS_INTERNAL_TOKEN", "")
 
@@ -29,6 +30,7 @@ def solicitar_mapas(lavoura_id, usuario_id, coordenadas):
                 "lavoura_id": lavoura_id,
                 "usuario_id": int(usuario_id),
                 "coordenadas": coordenadas,
+                "safras": safras or [],
             },
             timeout=(5, 10),
         )
@@ -138,12 +140,72 @@ def init_mysql(mysql_instance):
 
 # CADASTRAR LAVOURA
 @lavoura_bp.route('/lavoura', methods=['POST'])
+
+def validar_safras(valor):
+    if not isinstance(valor, list) or not 1 <= len(valor) <= 30:
+        raise ValueError("Informe entre 1 e 30 safras.")
+
+    resultado = []
+    anos = set()
+
+    for item in valor:
+        if not isinstance(item, dict):
+            raise ValueError("Formato de safra inválido.")
+
+        ano_texto = str(item.get("ano", ""))
+
+        if not ano_texto.isdigit():
+            raise ValueError("O ano da safra deve ser um número inteiro.")
+
+        ano = int(ano_texto)
+
+        try:
+            inicio = date.fromisoformat(item["inicio"])
+            fim = date.fromisoformat(item["fim"])
+        except (KeyError, TypeError, ValueError):
+            raise ValueError(
+                "Informe início e fim válidos para todas as safras."
+            ) from None
+
+        if not 2017 <= ano <= date.today().year:
+            raise ValueError("Ano de safra inválido.")
+
+        if not date(2017, 3, 28) <= inicio <= fim <= date.today():
+            raise ValueError(
+                "Os períodos devem estar entre 28/03/2017 e hoje, "
+                "com início anterior ou igual ao fim."
+            )
+
+        if ano in anos:
+            raise ValueError("Cada ano de safra deve aparecer apenas uma vez.")
+
+        anos.add(ano)
+
+        resultado.append({
+            "ano": ano,
+            "inicio": inicio.isoformat(),
+            "fim": fim.isoformat(),
+        })
+
+    resultado.sort(key=lambda safra: safra["inicio"])
+
+    for anterior, atual in zip(resultado, resultado[1:]):
+        if atual["inicio"] <= anterior["fim"]:
+            raise ValueError("Os períodos das safras não podem se sobrepor.")
+
+    return resultado
+
 def cadastrar_lavoura():
     dados = request.get_json()
 
     usuario_id = dados.get('usuarioId')
     nome_lavoura = dados.get('nomeLavoura')
     coordenadas = dados.get('coordenadas')
+
+    try:
+        safras = validar_safras(dados.get("safras"))
+    except ValueError as erro:
+        return jsonify({"mensagem": str(erro)}), 400
 
     crs = dados.get('crs', 'EPSG:4326')
     crs_transformation = dados.get("crsTransformation")
@@ -165,27 +227,29 @@ def cadastrar_lavoura():
         cursor = mysql.connection.cursor()
 
         cursor.execute(
-            """
-            INSERT INTO lavouras
-            (
-                usuario_id,
-                nome_lavoura,
-                coordenadas,
-                area_m2,
-                crs,
-                crs_transformation
-            )
-            VALUES (%s, %s, %s, %s, %s, %s)
-            """,
-            (
-                usuario_id,
-                nome_lavoura,
-                coordenadas_json,
-                area_m2,
-                crs,
-                crs_transformation
-            )
-        )
+    """
+    INSERT INTO lavouras
+    (
+        usuario_id,
+        nome_lavoura,
+        coordenadas,
+        area_m2,
+        crs,
+        crs_transformation,
+        safras
+    )
+    VALUES (%s, %s, %s, %s, %s, %s, %s)
+    """,
+    (
+        usuario_id,
+        nome_lavoura,
+        coordenadas_json,
+        area_m2,
+        crs,
+        crs_transformation,
+        json.dumps(safras),
+    ),
+)
 
             # Guarda o ID antes de fechar o cursor.
         lavoura_id = cursor.lastrowid
@@ -199,6 +263,7 @@ def cadastrar_lavoura():
             lavoura_id,
             usuario_id,
             coordenadas,
+            safras=safras,
         )
 
         return jsonify({
@@ -710,7 +775,7 @@ def gerar_imagens_lavoura(lavoura_id):
     try:
         cursor.execute(
             """
-            SELECT usuario_id, coordenadas
+            SELECT usuario_id, coordenadas, safras
             FROM lavouras
             WHERE id = %s
             """,
@@ -728,10 +793,11 @@ def gerar_imagens_lavoura(lavoura_id):
         }), 404
 
     resultado = solicitar_mapas(
-        lavoura_id,
-        linha[0],
-        json.loads(linha[1]),
-    )
+    lavoura_id,
+    linha[0],
+    json.loads(linha[1]),
+    safras=json.loads(linha[2]) if linha[2] else [],
+)
 
     codigo = 202 if resultado["status"] == "aceito" else 503
 

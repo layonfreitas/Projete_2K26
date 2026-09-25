@@ -4,7 +4,7 @@ uvicorn[standard]
 pydantic
 python-dotenv
 flask
-xarray
+xarray>=2025.6
 
 # Google Earth Engine & Google Cloud / API Services
 earthengine-api
@@ -35,3 +35,7 @@ cloudinary
 
 #S3
 s3fs
+
+xee==0.1.2
+zarr>=2.18,<3
+shapely>=2,<3
