@@ -1,5 +1,4 @@
 """Processamento por lavoura; falhas de um índice não interrompem os demais."""
-from datetime import date, datetime
 from datetime import date, timedelta
 import logging
 import requests
@@ -12,6 +11,7 @@ from gee_auth import inicializar_ee
 from flask import Flask, jsonify, request
 from dotenv import load_dotenv
 import os
+
 
 
 load_dotenv()
@@ -85,14 +85,12 @@ def obter_classificao(lat,lon,clmi):
     classificao = dados_resposta['classificacao']
     return classificao
 
-    
-
-    
-
 def buscar_todas_lavouras():
     resposta = requests.get(api_url('/lavouras'),timeout=(15,60))
     resposta.raise_for_status()
     return resposta.json()
+
+
 
 
 def processar_lavoura(lavoura, crs=None, crs_transformation=None, safra_atual=None, graus_dia=None, data_alvo=None, janela=30, indices=None, geometria=None):
@@ -100,8 +98,8 @@ def processar_lavoura(lavoura, crs=None, crs_transformation=None, safra_atual=No
     if geometria is None: geometria = criar_geometria(lavoura['coordenadas'])
     alvo = data_alvo or date.today().isoformat()
     indice_nomes = indices if indices is not None else [n for i in INDICES for n in (i,f'z-score-{i}')]
-    resultado = {'lavouraId':lavoura['id'],'dataAlvo':alvo,'salvos':[], 'avisos':[], 'erros':[]}
-    imagem = get_indices_image(geometria,alvo,janela,30,crs,crs_transformation)
+    resultado = {'lavouraId':lavoura['id'],'dataAlvo':alvo,'salvos':[], 'avisos':[], 'erros':[], 'alertas': []}
+    imagem = get_indices_image(geometria,alvo,janela,100,crs,crs_transformation)
     if imagem is None:
         resultado['status'] = 'sem_dados'
         resultado['avisos'].append('Nenhuma cena com cobertura válida suficiente nesta janela de datas.')
@@ -109,6 +107,7 @@ def processar_lavoura(lavoura, crs=None, crs_transformation=None, safra_atual=No
         return resultado
     resultado['dataImagem'] = imagem.date().format('YYYY-MM-dd').getInfo()
     valores = obter_valores_indices(imagem,geometria)
+
     for nome in indice_nomes:
         try:
             if nome.startswith('z-score-') and nome.removeprefix('z-score-') in INDICES:
@@ -206,11 +205,11 @@ def processar_todas_lavouras():
     resultados=[]
     for lavoura in buscar_todas_lavouras():
         try:
-            safra_atual = datetime.date.today().year
+            safra_atual = date.today().year
             crs = lavoura.get('crs')
-            crs_tranformation = lavoura.get('crs_transformation')
+            crs_transformation = lavoura.get('crs_transformation')
             graus_dia = lavoura.get('graus_dia')
-            resultados.append(processar_lavoura(lavoura = lavoura, crs = crs, crs_tranformation= crs_tranformation, safra_atual = safra_atual, graus_dia = graus_dia))
+            resultados.append(processar_lavoura(lavoura = lavoura, crs = crs, crs_transformation= crs_transformation, safra_atual = safra_atual, graus_dia = graus_dia))
         except Exception as erro:
             log.exception('Falha na lavoura %s',lavoura.get('id'))
             resultados.append({'lavouraId':lavoura.get('id'),'status':'erro','erros':[str(erro)]})

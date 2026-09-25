@@ -107,6 +107,8 @@ CREATE TABLE indices_vegetacao (
 CREATE TABLE avisos (
     id INT AUTO_INCREMENT PRIMARY KEY,
     cooperativa_id INT NOT NULL,
+    produtor_id INT NOT NULL,
+    agronomo_id INT NOT NULL,
     usuario_id INT NOT NULL,
     lavoura_id INT NOT NULL,
     tipo VARCHAR(50) NOT NULL,
@@ -115,11 +117,13 @@ CREATE TABLE avisos (
     severidade ENUM('baixa', 'media','alta') DEFAULT 'media',
     lido BOOLEAN DEFAULT FALSE,
     email_enviado BOOLEAN DEFAULT FALSE,
+    mensagem TEXT NOT NULL,
+    destinatario_tipo ENUM('todos', 'produtores', 'agronomos') NOT NULL DEFAULT 'todos',
     criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (cooperativa_id) REFERENCES usuarios(id)
     FOREIGN KEY (cooperativa_id) REFERENCES usuarios(id),
-    FOREIGN KEY (usuario_id) REFERENCES usuarios(id),
-    FOREIGN KEY (lavoura_id) REFERENCES lavouras(id)
-    
+    FOREIGN KEY (produtor_id) REFERENCES usurios(id),
+    FOREIGN KEY(agronomo_id) REFERENCES usuarios(id)
 );
 
 -- ================================================================
@@ -137,3 +141,18 @@ CREATE TABLE log_auditoria (
     FOREIGN KEY (autor_id) REFERENCES usuarios(id),
     FOREIGN KEY (produtor_id) REFERENCES usuarios(id)
 );
+
+CREATE TABLE alertas (
+    id INT NOT NULL AUTO_INCREMENT,
+    usuario_id INT NOT NULL,
+    lavoura_id INT NOT NULL,
+    tipo CHAR(50) NOT NULL,
+    indices ENUM('NDVI', 'NDWI', 'NDRE', 'CLMI') NOT NULL,
+    PRIMARY KEY (id),
+    CONSTRAINT fk_alertas_usuario
+        FOREIGN KEY (usuario_id)
+        REFERENCES usuarios(id),
+    CONSTRAINT fk_alertas_lavoura
+        FOREIGN KEY (lavoura_id)
+        REFERENCES lavouras(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

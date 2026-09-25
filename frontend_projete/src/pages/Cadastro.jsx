@@ -1,6 +1,6 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { useState } from "react";
-import { AUTH_API_URL } from "../config/api";
+import { AUTH_API_URL, IA_API_URL } from "../config/api";
 import AppBar from "../components/ui/AppBar";
 import Button from "../components/ui/Button";
 import { TextField } from "../components/ui/Field";
@@ -45,6 +45,21 @@ export default function Cadastro() {
     setErroNome("");
 
     try {
+      const projection = await fetch(`${IA_API_URL}/crs`,
+        {
+          method: "POST",
+          headers:{
+            "Content-Type":"application/json"
+          },
+          body:JSON.stringify({
+            coordenadas: coordenadas
+          })
+        })
+      
+      const projecoes = await projection.json();
+      const crs = projecoes.crs;
+      const crs_transformation = projecoes.crs_transformation;
+
       const resposta = await fetch(`${AUTH_API_URL}/lavoura`, {
         method: "POST",
         headers: {
@@ -54,13 +69,27 @@ export default function Cadastro() {
           usuarioId: usuarioId,
           nomeLavoura: nome,
           coordenadas,
+          crs: crs,
+          crs_transformation: crs_transformation
+          
         }),
       });
-
       const dados = await resposta.json();
 
       if (resposta.ok) {
         toast.sucesso("Lavoura cadastrada com sucesso!");
+        res_time_series = await fetch(`${IA_API_URL}/time_series`, {
+          method: "POST",
+          headers:{
+            "Content-Type": "application/json",
+          },
+
+          //substituir geometria, data_inicio e data_fim posteriormente
+          body:{
+            geometria: coordenadas,
+            data_inicio :"2024-02-18",  
+          }
+        })
                 if (dados.mapas) {
           if (dados.mapas.status === "aceito") {
             toast.sucesso(dados.mapas.mensagem);
@@ -78,6 +107,28 @@ export default function Cadastro() {
       setCarregando(false);
     }
   }
+
+        async function Crs_obtido(coordenadas){
+        try{
+          const response = await fetch("http://127.0.0.1:8000/crs",
+            {
+              method:POST,
+              headers:{"Content-type": "application/json"},
+              body: JSONstringify({coordenadas}),
+            });
+
+            if(response.ok){
+              const erro = await response.json();
+              throw new Error(erro.detail || "Erro desconhecido ao consultar o CRS");
+            }
+            const dados = await response.json();
+            return dados;
+          } catch(erro){
+            console.error("falha o obter CRS:", Error.message);
+            throw erro;
+          }
+        }
+
 
   if (!temPoligono) {
     return (

@@ -1,4 +1,4 @@
-fastapi
+fastapi>=0.112.2
 uvicorn[standard]
 onnxruntime
 pillow
@@ -8,3 +8,4 @@ pydantic
 python-weka-wrapper3
 contextlib2
 python-dotenv
+earthengine-api

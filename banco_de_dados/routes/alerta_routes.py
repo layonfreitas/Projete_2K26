@@ -1,49 +1,52 @@
 from flask import Blueprint, jsonify, request
-from flask import Message
+from flask_mail import Message
 from app import mysql, mail
 
-avisos_bp = Blueprint('avisos' , __name__)
+avisos_bp = Blueprint('avisos', __name__)
+
+
+def _enviar_email_aviso(usuario_id, titulo, mensagem, severidade):
+    cursor = mysql.connection.cursor()
+    cursor.execute("SELECT email, nome FROM usuarios WHERE id = %s", (usuario_id,))
+    usuario = cursor.fetchone()
+    cursor.close()
+
+    if not usuario:
+        return False
+
+    email_destino, nome = usuario[0], usuario[1]
+
+    try:
+        msg = Message(
+            subject=f"[Aviso {severidade.upper()}] {titulo}",
+            recipients=[email_destino],
+            body=f"Olá, {nome}.\n\n{mensagem}\n\nAcesse o sistema para mais detalhes."
+        )
+        mail.send(msg)
+        return True
+    except Exception as e:
+        print(f"erro ao enviar email: {e}")
+        return False
+
 
 def AVISO_DOENCA(usuario_id, lavoura_id, titulo, mensagem, severidade='media', tipo='doenca_detectada'):
     cursor = mysql.connection.cursor()
     cursor.execute(
-        """ INSERT INTO avisos (usuario_id, lavoura_id, titulo, mensagem, severidade, tipo) 
-        VALUES (%s, %s, %s, %s,%s,%s)""",(usuario_id, lavoura_id, titulo, mensagem, severidade, tipo))
+        """INSERT INTO avisos (usuario_id, lavoura_id, titulo, mensagem, severidade, tipo)
+        VALUES (%s, %s, %s, %s, %s, %s)""",
+        (usuario_id, lavoura_id, titulo, mensagem, severidade, tipo)
+    )
     mysql.connection.commit()
     aviso_id = cursor.lastrowid
 
     email_ok = _enviar_email_aviso(usuario_id, titulo, mensagem, severidade)
 
     if email_ok:
-        cursor.execute("UPDATE avisos SET email_enviado = TRUE WHERE id = %s",(aviso_id))
+        cursor.execute("UPDATE avisos SET email_enviado = TRUE WHERE id = %s", (aviso_id,))
         mysql.connection.commit()
 
-        cursor.close()
-        return aviso_id
-
-    def _enviar_email_aviso(usuario_id, titulo, mensagem, severidade):
-        cursor = mysql.connection.cursor()
-        cursor.execute("SELECT email, nome FROM usuarios WHERE id = %s", (usuario_id))
-        usuario = cursor.fetchone()
-        cursor.close()
-
-        if not usuario:
-            return False
-        email_destino, nome = usuario[0], usuario[1]
-
-        try:
-            msg = Message(
-                subject=f"[Aviso {severidade.upper()}]{titulo}",
-                recipients=[email_destino],
-                body=f"Olá, {nome}.\n\n{mensagem}\n\nAcesse o sistema para mais detalhes."
-            )
-            mail.send(msg)
-            return True
-        except Exception as e:
-            print(f"erro ao enviar email: {e}")
-            return False
-
-
+    cursor.close()
+    return aviso_id
 
 
 @avisos_bp.route('/avisos', methods=['GET'])
