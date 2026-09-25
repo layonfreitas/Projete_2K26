@@ -141,3 +141,18 @@ CREATE TABLE log_auditoria (
     FOREIGN KEY (autor_id) REFERENCES usuarios(id),
     FOREIGN KEY (produtor_id) REFERENCES usuarios(id)
 );
+
+CREATE TABLE alertas (
+    id INT NOT NULL AUTO_INCREMENT,
+    usuario_id INT NOT NULL,
+    lavoura_id INT NOT NULL,
+    tipo CHAR(50) NOT NULL,
+    indices ENUM('NDVI', 'NDWI', 'NDRE', 'CLMI') NOT NULL,
+    PRIMARY KEY (id),
+    CONSTRAINT fk_alertas_usuario
+        FOREIGN KEY (usuario_id)
+        REFERENCES usuarios(id),
+    CONSTRAINT fk_alertas_lavoura
+        FOREIGN KEY (lavoura_id)
+        REFERENCES lavouras(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
