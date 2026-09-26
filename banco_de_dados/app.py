@@ -12,7 +12,7 @@ from routes.imagens_routes import acessar_imagem_bp, init_mysql as init_imagens_
 from routes.cooperativa_routes import cooperativa_bp, init_mysql as init_cooperativa_mysql
 from routes.indices_routes import indices_bp, init_mysql as init_indices_mysql
 from routes.gda_routes import gda_bp, init_mysql as init_gda_mysql
-from routes.avisos_routes import avisos_bp
+from routes.alerta_routes import alerta_bp
 
 app = Flask(__name__)
 app.config.from_object(Config)
