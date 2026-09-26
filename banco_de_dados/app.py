@@ -32,7 +32,7 @@ init_cooperativa_mysql(mysql)
 init_indices_mysql(mysql)
 init_gda_mysql(mysql)
 
-from routes.alerta_routes import alerta_bp
+from routes.alerta_routes import alertas_bp
 
 app.register_blueprint(agronomo_bp)
 app.register_blueprint(auth_bp)
