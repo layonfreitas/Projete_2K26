@@ -4,6 +4,13 @@ import xarray as xr
 import ee
 import matplotlib.pyplot as plt
 
+import io
+
+from rasterio.transform import Affine
+from rasterio.warp import reproject, transform_geom
+from rasterio.enums import Resampling
+from rasterio.features import geometry_mask
+from get_indices import validar_png
 from PIL import Image
 from get_indices import save_image_indatabase, preparar_exportacao
 from z_score import calcular_zscore_historico
@@ -118,13 +125,104 @@ def salvar_png_anomalia(
     geometria,
     data,
     classificacao,
-    pasta_id=None
+    grade_origem,
+    pasta_id=None,
 ):
-
+    # Grade de destino utilizada pelo mapa do aplicativo.
     _, meta = preparar_exportacao(
         geometria,
         usuario_id,
-        lavoura_id
+        lavoura_id,
+    )
+
+    # Grade UTM utilizada no cálculo do z-score.
+    crs_origem = grade_origem.attrs.get("crs")
+    transformacao_origem = grade_origem.attrs.get(
+        "crs_transform"
+    )
+
+    if (
+        not crs_origem
+        or transformacao_origem is None
+        or len(transformacao_origem) != 6
+    ):
+        raise ValueError(
+            "A grade do z-score não possui CRS "
+            "e transformação geográfica válidos."
+        )
+
+    with Image.open(io.BytesIO(conteudo)) as imagem:
+        origem = np.array(
+            imagem.convert("RGBA"),
+            dtype=np.uint8,
+        )
+
+    formato_esperado = (
+        grade_origem.sizes["y"],
+        grade_origem.sizes["x"],
+        4,
+    )
+
+    if origem.shape != formato_esperado:
+        raise ValueError(
+            f"PNG com formato {origem.shape}; "
+            f"esperado {formato_esperado}."
+        )
+
+    transform_origem = Affine(
+        *map(float, transformacao_origem)
+    )
+    transform_destino = Affine(
+        *map(float, meta["transformacao"])
+    )
+
+    altura = meta["altura"]
+    largura = meta["largura"]
+
+    destino = np.zeros(
+        (altura, largura, 4),
+        dtype=np.uint8,
+    )
+
+    # Reprojeta cada canal, incluindo a transparência.
+    # Vizinho mais próximo preserva as cores das classes.
+    for canal in range(4):
+        reproject(
+            source=origem[:, :, canal],
+            destination=destino[:, :, canal],
+            src_transform=transform_origem,
+            src_crs=crs_origem,
+            dst_transform=transform_destino,
+            dst_crs=meta["crs"],
+            dst_nodata=0,
+            resampling=Resampling.nearest,
+        )
+
+    # Mantém transparentes os pixels fora da lavoura.
+    contorno_projetado = transform_geom(
+        "EPSG:4326",
+        meta["crs"],
+        meta["geometria"],
+    )
+
+    dentro_da_lavoura = geometry_mask(
+        [contorno_projetado],
+        out_shape=(altura, largura),
+        transform=transform_destino,
+        invert=True,
+    )
+
+    destino[~dentro_da_lavoura] = 0
+    destino[destino[:, :, 3] == 0] = 0
+
+    buffer = io.BytesIO()
+    Image.fromarray(destino).save(buffer, format="PNG")
+    conteudo_final = buffer.getvalue()
+
+    # Confere dimensões e conta pixels com transparência > 0.
+    meta["pixelsVisiveis"] = validar_png(
+        conteudo_final,
+        meta,
     )
 
     meta.update({
@@ -140,26 +238,28 @@ def salvar_png_anomalia(
                     "z >= 2 ou z <= -2; "
                     "crítico se z >= 3.5 ou z <= -3.5"
                 )
-            )
+            ),
         },
-
         "anomalia": {
-            "anormal": classificacao["tem_anormalidade"],
-            "critica": classificacao["tem_criticidade"]
-        }
+            "anormal": bool(
+                classificacao["tem_anormalidade"]
+            ),
+            "critica": bool(
+                classificacao["tem_criticidade"]
+            ),
+        },
     })
 
     return save_image_indatabase(
-        conteudo,
+        conteudo_final,
         f"z_score_{indice}_final_{data}",
         pasta_id,
         usuario_id,
         lavoura_id,
         data,
         None,
-        meta
+        meta,
     )
-
 
 def salvar_mapa_anomalia(
     indice,
@@ -181,6 +281,15 @@ def salvar_mapa_anomalia(
         usuario_id=usuario_id,
         safra_atual=safra_atual
     )
+
+    # Confere a correspondência das coordenadas e a ordem das linhas/colunas antes de produzir o PNG.
+    z_score_final, _ = xr.align(
+        z_score_final,
+        z_scores_espacial,
+        join="exact",
+    )
+
+    z_score_final = z_score_final.transpose("y", "x")
 
     classificacao = classificar_anomalia(
         z_score_final,
@@ -208,7 +317,8 @@ def salvar_mapa_anomalia(
         geometria=geometria,
         data=data,
         classificacao=classificacao,
-        pasta_id=pasta_id
+        grade_origem=z_scores_espacial,
+        pasta_id=pasta_id,
     )
 
     return {
