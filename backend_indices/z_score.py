@@ -209,10 +209,14 @@ def calcular_zscore_historico(
         )
      
 
-        if historico.sizes.get("tempo", 0) == 0:
+        quantidade = historico.sizes.get("tempo", 0)
+
+        if quantidade < 2:
             raise SemDadosValidos(
-                f"Não há histórico válido para {indice} "
-                f"na faixa de graus-dia informada."
+                f"{indice}: apenas {quantidade} data(s) "
+                "histórica(s) na faixa de graus-dia. "
+                "Não é possível estimar a variação "
+                "histórica com menos de duas datas."
             )
 
         # Mediana espacial do histórico
@@ -229,7 +233,13 @@ def calcular_zscore_historico(
         # Preserva o sinal:
         # negativo = abaixo da mediana histórica;
         # positivo = acima da mediana histórica.
-        diferenca = z_scores_espacial - mediana
+        atual, referencia = xr.align(
+            z_scores_espacial,
+            mediana,
+            join="exact",
+        )
+
+        diferenca = atual - referencia
 
         z_score_final = (
             0.6745 * diferenca / mad.where(mad_valido)
@@ -237,82 +247,99 @@ def calcular_zscore_historico(
 
         return z_score_final.rename("z_score_final")
 
+
 def ee_image_para_xarray(
     z_score_ee,
     indice,
     geometria,
-    dimensoes=(1024, 1024),
 ):
-    # Exporta o valor e uma máscara para distinguir
-    # pixels válidos de regiões sem dados.
-    valores_ee = (
+    from shapely.geometry import Polygon
+    from xee import helpers
+    from georreferencia import normalizar_coordenadas
+
+    # Reconstrói a mesma grade usada em serie_safras.py.
+    pontos = normalizar_coordenadas(
+        geometria.getInfo()
+    )
+    poligono = Polygon(pontos)
+
+    lon = poligono.centroid.x
+    lat = poligono.centroid.y
+
+    zona = min(
+        60,
+        max(1, int((lon + 180) // 6) + 1),
+    )
+
+    codigo_epsg = (
+        32600 if lat >= 0 else 32700
+    ) + zona
+
+    crs = f"EPSG:{codigo_epsg}"
+
+    grade = helpers.fit_geometry(
+        poligono,
+        grid_crs=crs,
+        grid_scale=(10, -10),
+    )
+
+    # O tempo é apenas um índice temporário desta conversão.
+    # A data real do mapa continua em resultado["dataImagem"].
+    imagem = (
         z_score_ee
         .select([0])
-        .rename("valor")
-        .toFloat()
+        .rename("z_score")
         .clip(geometria)
+        .set("system:time_start", 0)
     )
 
-    mascara_ee = (
-        valores_ee.mask()
-        .rename("valido")
-        .unmask(0, sameFootprint=False)
-        .toFloat()
-    )
+    colecao = ee.ImageCollection.fromImages([imagem])
 
-    imagem_exportacao = (
-        valores_ee
-        .unmask(0, sameFootprint=False)
-        .addBands(mascara_ee)
-    )
+    with xr.open_dataset(
+        colecao,
+        engine="ee",
+        **grade,
+        executor_kwargs={"max_workers": 2},
+    ) as bruto:
+        renomear = {
+            "X": "x",
+            "Y": "y",
+            "lon": "x",
+            "lat": "y",
+        }
 
-    params = {
-        "region": geometria,
-        "crs": "EPSG:3857",
-        "dimensions": list(dimensoes),
-        "format": "NPY",
-    }
+        ds = bruto.rename({
+            origem: destino
+            for origem, destino in renomear.items()
+            if origem in bruto.dims
+        })
 
-    url = imagem_exportacao.getDownloadURL(params)
-
-    resposta = requests.get(url, timeout=(15, 180))
-    resposta.raise_for_status()
-
-    dados = np.load(
-        io.BytesIO(resposta.content),
-        allow_pickle=False,
-    )
-
-    # O NPY do Earth Engine é um array estruturado:
-    # cada banda aparece como um campo.
-    campos = dados.dtype.names or ()
-
-    if "valor" not in campos or "valido" not in campos:
-        raise ValueError(
-            f"Bandas inesperadas no download: {campos}"
+        atual = (
+            ds["z_score"]
+            .isel(time=0, drop=True)
+            .transpose("y", "x")
+            .load()
+            .astype("float32")
         )
 
-    valores = np.asarray(dados["valor"], dtype=np.float32)
-    validos = np.asarray(dados["valido"]) > 0
-
-    if valores.ndim != 2:
-        raise ValueError(
-            f"Esperado array 2D, recebido: {valores.shape}"
-        )
-
-    valores = np.where(
-        validos & np.isfinite(valores),
-        valores,
-        np.nan,
+    atual = atual.where(np.isfinite(atual))
+    atual.name = f"z_{indice}"
+    atual.attrs["crs"] = crs
+    atual.attrs["crs_transform"] = list(
+        grade["crs_transform"]
     )
 
-    if not np.isfinite(valores).any():
+    if not np.isfinite(atual.values).any():
         raise SemDadosValidos(
             f"Z-score de {indice}: nenhum pixel válido."
         )
 
-    return xr.DataArray(
-        valores,
-        dims=["y", "x"],
-        name=f"z_{indice}",
+    print(
+        f"[GRADE {indice}] "
+        f"CRS={crs}; "
+        f"linhas={atual.sizes['y']}; "
+        f"colunas={atual.sizes['x']}",
+        flush=True,
     )
+
+    return atual
