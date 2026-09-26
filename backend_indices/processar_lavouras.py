@@ -152,7 +152,7 @@ def processar_lavoura(lavoura, crs=None, crs_transformation=None, safra_atual=No
 
                 if resultado_anomalia['salvo']:
                     resultado['salvos'].append(f'z_score_{indice}_final')
-                    resultado['alertas'].append({"usuario_id": lavoura['usuarioId'], "lavoura_id": lavoura["id"], "critico": resultado_anomalia["tem_criticidade"], "indice": indice})
+                    resultado['alertas'].append({"usuario_id": lavoura['usuarioId'], "lavoura_id": lavoura["id"], "critico": resultado_anomalia["tem_criticidade"], "indice": indice, "url": resultado["registro"][1]})#registro[1] é a secure_url do cloudinary
                     
 
                     

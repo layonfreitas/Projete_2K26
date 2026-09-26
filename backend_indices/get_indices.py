@@ -201,7 +201,7 @@ def save_image_indatabase(imagem,nome_arquivo,pasta_id,usuario_id,lavoura_id,
     resposta.raise_for_status()
 
     log.info('Mapa salvo: lavoura %s / %s.',lavoura_id,nome_arquivo)
-    return resposta.json()
+    return [resposta.json(),response['secure_url']]
 
 
 def save_indice_valor(lavoura_id,tipo_indice,valor,data_referencia,imagem_id=None):
