@@ -44,7 +44,7 @@ app.register_blueprint(listar_imagens_bp)
 app.register_blueprint(acessar_imagem_bp)
 app.register_blueprint(indices_bp)
 app.register_blueprint(gda_bp)
-app.register_blueprint(alerta_bp)
+app.register_blueprint(alertas_bp)
 
 
 if __name__ == '__main__':
