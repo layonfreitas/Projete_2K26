@@ -93,6 +93,14 @@ def buscar_todas_lavouras():
 
 
 
+def salvar_alertas(alertas):
+    resposta = requests.post(os.environ.get("DATABASE_URL")+"/alertas", json=alertas)
+    if not resposta.ok:
+        log.exception(f"Não foi possível salvar os alertas para esta lavoura. id:{alertas["lavoura_id"]}  usuario_id: {alertas["usuario_id"]}")
+
+    else:
+        logging.info(f"Alertas salvos. id: {alertas["lavoura_id"]}  usuario_id:{alertas["usuario_id"]}")
+    
 
 def processar_lavoura(lavoura, crs=None, crs_transformation=None, safra_atual=None, graus_dia=None, data_alvo=None, janela=30, indices=None, geometria=None):
     inicializar_ee()
@@ -143,29 +151,11 @@ def processar_lavoura(lavoura, crs=None, crs_transformation=None, safra_atual=No
                 )
 
                 if resultado_anomalia['salvo']:
-                    resultado['salvos'].append('z_score_indice_final')
+                    resultado['salvos'].append(f'z_score_{indice}_final')
+                    resultado['alertas'].append({"usuario_id": lavoura['usuarioId'], "lavoura_id": lavoura["id"], "critico": resultado_anomalia["tem_criticidade"], "indice": indice})
+                    
 
-                    # NDWI baixo indica estresse hídrico (diminuição);
-                    # os demais índices são tratados como aumento anômalo.
-                    tipo_alerta = 'diminuição' if indice == 'NDWI' else 'aumento'
-
-                    if resultado_anomalia['critico']:
-                        resultado['alertas'].append(f'{indice}: anomalia crítica detectada')
-                    elif indice == 'NDWI':
-                        resultado['alertas'].append('NDWI: possível estresse hídrico detectado')
-                    else:
-                        resultado['alertas'].append(f'{indice}: comportamento anormal detectado')
-
-                    try:
-                       AVISO_DOENCA(
-                            usuario_id=lavoura['usuarioId'],
-                            lavoura_id=lavoura['id'],
-                            tipo=tipo_alerta,
-                            indice=indice,
-                        )
-                    except Exception as erro_aviso:
-                        log.exception('Falha ao salvar alerta de anomalia da lavoura %s / %s', lavoura['id'], indice)
-
+                    
             elif nome in INDICES:
                 save_indice_map(imagem, nome, geometria, lavoura['usuarioId'], lavoura['id'], valores)
             else:
@@ -198,15 +188,7 @@ def processar_lavoura(lavoura, crs=None, crs_transformation=None, safra_atual=No
         resultado["classificacao"] = classificacao
 
         if classificacao == "alta":
-            try:
-                AVISO_DOENCA(
-                    usuario_id=lavoura['usuarioId'],
-                    lavoura_id=lavoura['id'],
-                    tipo='aumento',
-                    indice='CLMI',
-                )
-            except Exception as erro_aviso:
-                log.exception('Falha ao salvar alerta de CLMI alto da lavoura %s', lavoura['id'])
+            resultado["alertas"].append({"usuario_id": lavoura['usuarioId'], "lavoura_id": lavoura["id"], "critico": True, "indice": "CLMI"})
 
     except Exception as erro:
         resultado["avisos"].append(
@@ -217,6 +199,7 @@ def processar_lavoura(lavoura, crs=None, crs_transformation=None, safra_atual=No
             "A classificação falhou após o processamento dos mapas."
         )
 
+    salvar_alertas(resultado['alertas'])
     resultado['status'] = ('parcial' if resultado['salvos'] else 'erro') if resultado['erros'] else ('concluido' if resultado['salvos'] else 'sem_dados')
     log.info('Lavoura %s: %s; %s mapas salvos.', lavoura['id'], resultado['status'], len(resultado['salvos']))
     return resultado

@@ -1,19 +1,22 @@
 from flask import Blueprint, jsonify, request
-from flask_mail import Message
-from app import mysql, mail
-
+from app import mysql
 
 alertas_bp = Blueprint('alerta', __name__)
 
 @alertas_bp.route('/alertas', methods=['POST'])
-def mandar_alerta():
+def insert_alerta():
     dados = request.get_json()
-    usuario_id = dados.get("usuario")
-    lavoura_id = dados.get("lavoura")
-    indices = dados.get("indice")
 
-    if not usuario_id or not lavoura_id or not indices:
-        return jsonify({"mensagem":"todos os campos são obrigatórios"}), 400
+    lista  = [(linha["usuario_id"], linha["lavoura_id"], linha["critico"], linha["indice"]) for linha in dados]
+    try:
+        query = "INSERT INTO alertas (usuario_id, lavoura_id, critico, indice) VALUES(%s,%s,%s,%s)"
+        cursor = mysql.connection.cursor()
+        cursor.executemany(query, lista)
+       
+        return jsonify({"mensagem": "Alerta(s) inserido(s) no banco de dados."}), 200
+
+    except Exception as erro:
+        return jsonify({"mensagem":"Não foi possivel inserir o(s) alerta(s) no banco de dados", "erro": str(erro)}), 500
 
 
 
@@ -38,10 +41,3 @@ def listar_avisos():
     return jsonify(avisos)
 
 
-@alertas_bp.route('/alertas/<int:aviso_id>/marcar-lido', methods=['PUT'])
-def marcar_lido(aviso_id):
-    cursor = mysql.connection.cursor()
-    cursor.execute("UPDATE avisos SET lido = TRUE WHERE id = %s", (aviso_id,))
-    mysql.connection.commit()
-    cursor.close()
-    return jsonify({'sucesso': True})

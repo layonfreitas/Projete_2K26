@@ -3,11 +3,111 @@ import numpy as np
 import xarray as xr
 import ee
 import matplotlib.pyplot as plt
+
 from get_indices import save_image_indatabase, preparar_exportacao
 from z_score import calcular_zscore_historico
 from dotenv import load_dotenv
 
 load_dotenv()
+
+
+def classificar_anomalia(z_score, indice):
+
+    z = z_score.to_numpy()
+
+    if indice.upper() == "NDWI":
+        mascara_aumento_anormalidade = np.zeros(
+            z.shape,
+            dtype=bool
+        )
+
+        mascara_aumento_criticidade = np.zeros(
+            z.shape,
+            dtype=bool
+        )
+
+        mascara_diminuicao_anormalidade = z <= -2
+
+        mascara_diminuicao_criticidade = z <= -3.5
+
+    else:
+        mascara_aumento_anormalidade = z >= 2
+
+        mascara_aumento_criticidade = z >= 3.5
+
+        mascara_diminuicao_anormalidade = z <= -2
+
+        mascara_diminuicao_criticidade = z <= -3.5
+
+    mascara_aumento_anormalidade = xr.DataArray(
+        mascara_aumento_anormalidade,
+        coords=z_score.coords,
+        dims=z_score.dims
+    )
+
+    mascara_aumento_criticidade = xr.DataArray(
+        mascara_aumento_criticidade,
+        coords=z_score.coords,
+        dims=z_score.dims
+    )
+
+    mascara_diminuicao_anormalidade = xr.DataArray(
+        mascara_diminuicao_anormalidade,
+        coords=z_score.coords,
+        dims=z_score.dims
+    )
+
+    mascara_diminuicao_criticidade = xr.DataArray(
+        mascara_diminuicao_criticidade,
+        coords=z_score.coords,
+        dims=z_score.dims
+    )
+
+    tem_aumento = bool(
+        mascara_aumento_anormalidade.any()
+    )
+
+    tem_diminuicao = bool(
+        mascara_diminuicao_anormalidade.any()
+    )
+
+    tem_anormalidade = (
+        tem_aumento or
+        tem_diminuicao
+    )
+
+    tem_criticidade = bool(
+        mascara_aumento_criticidade.any()
+        or
+        mascara_diminuicao_criticidade.any()
+    )
+
+    return {
+        "mascara_aumento_anormalidade":
+            mascara_aumento_anormalidade,
+
+        "mascara_aumento_criticidade":
+            mascara_aumento_criticidade,
+
+        "mascara_diminuicao_anormalidade":
+            mascara_diminuicao_anormalidade,
+
+        "mascara_diminuicao_criticidade":
+            mascara_diminuicao_criticidade,
+
+        "tem_aumento":
+            tem_aumento,
+
+        "tem_diminuicao":
+            tem_diminuicao,
+
+        "tem_anormalidade":
+            tem_anormalidade,
+
+        "tem_criticidade":
+            tem_criticidade
+    }
+
 
 def salvar_png_anomalia(
     conteudo,
@@ -19,6 +119,7 @@ def salvar_png_anomalia(
     classificacao,
     pasta_id=None
 ):
+
     _, meta = preparar_exportacao(
         geometria,
         usuario_id,
@@ -27,19 +128,24 @@ def salvar_png_anomalia(
 
     meta.update({
         "visualizacao": {
-            "tipo": "z_score_indice_final",
+            "tipo": f"z_score_{indice}_final",
             "indice": indice,
             "limiarAnormal": 2,
             "limiarCritico": 3.5,
             "regra": (
-                "z <= -2 ou z <= -3.5"
+                "z <= -2; crítico se z <= -3.5"
                 if indice.upper() == "NDWI"
-                else "abs(z) >= 2 ou abs(z) >= 3.5"
-            ),
+                else (
+                    "z >= 2 ou z <= -2; "
+                    "crítico se z >= 3.5 ou z <= -3.5"
+                )
+            )
         },
+
         "anomalia": {
-            "critica": classificacao["tem_criticidade"],
-        },
+            "anormal": classificacao["tem_anormalidade"],
+            "critica": classificacao["tem_criticidade"]
+        }
     })
 
     return save_image_indatabase(
@@ -53,6 +159,7 @@ def salvar_png_anomalia(
         meta
     )
 
+
 def salvar_mapa_anomalia(
     indice,
     lavoura_id,
@@ -64,6 +171,7 @@ def salvar_mapa_anomalia(
     data,
     pasta_id=None
 ):
+
     z_score_final = calcular_zscore_historico(
         z_scores_espacial=z_scores_espacial,
         indice=indice,
@@ -73,19 +181,21 @@ def salvar_mapa_anomalia(
         safra_atual=safra_atual
     )
 
-    classificacao = classificar_anomalia(z_score_final, indice)
+    classificacao = classificar_anomalia(
+        z_score_final,
+        indice
+    )
 
     if not classificacao["tem_anormalidade"]:
         return {
             "salvo": False,
             "temAnormalidade": False,
-            "critico": False,
-            "indice": "z_score_indice_final",
+            "temCriticidade": False,
+            "indice": f"z_score_{indice}_final"
         }
 
     conteudo = renderizar_mapa_anomalia(
         z_score_final,
-        indice,
         classificacao
     )
 
@@ -103,43 +213,106 @@ def salvar_mapa_anomalia(
     return {
         "salvo": True,
         "temAnormalidade": True,
-        "critico": classificacao["tem_criticidade"],
-        "indice": "z_score_indice_final",
-        "registro": registro,
+        "temCriticidade": classificacao["tem_criticidade"],
+        "indice": f"z_score_{indice}_final",
+        "registro": registro
     }
 
-        
-def renderizar_mapa_anomalia(z_score_final, indice, classificacao):
+
+def renderizar_mapa_anomalia(
+    z_score_final,
+    classificacao
+):
+
     import io
-    import numpy as np
-    
 
     z = z_score_final.to_numpy()
-    mascara_anormal = classificacao["mascara_anormal"].to_numpy()
-    mascara_critica = classificacao["mascara_critica"].to_numpy()
 
-    rgba = np.zeros((*z.shape, 4), dtype=np.uint8)
+    mascara_aumento_anormalidade = (
+        classificacao[
+            "mascara_aumento_anormalidade"
+        ].to_numpy()
+    )
 
-    if indice.upper() == "NDWI":
-        moderado = mascara_anormal & ~mascara_critica
-        critico = mascara_critica
-    else:
-        moderado = mascara_anormal & ~mascara_critica
-        critico = mascara_critica
+    mascara_aumento_criticidade = (
+        classificacao[
+            "mascara_aumento_criticidade"
+        ].to_numpy()
+    )
 
-    # Amarelo para anomalia moderada
-    rgba[moderado] = [255, 193, 7, 255]
-    # Vermelho para anomalia crítica
-    rgba[critico] = [220, 53, 69, 255]
+    mascara_diminuicao_anormalidade = (
+        classificacao[
+            "mascara_diminuicao_anormalidade"
+        ].to_numpy()
+    )
+
+    mascara_diminuicao_criticidade = (
+        classificacao[
+            "mascara_diminuicao_criticidade"
+        ].to_numpy()
+    )
+
+    aumento_atencao = (
+        mascara_aumento_anormalidade
+        & ~mascara_aumento_criticidade
+    )
+
+    diminuicao_atencao = (
+        mascara_diminuicao_anormalidade
+        & ~mascara_diminuicao_criticidade
+    )
+
+    rgba = np.zeros(
+        (*z.shape, 4),
+        dtype=np.uint8
+    )
+
+    # Aumento em atenção
+    rgba[aumento_atencao] = [
+        255, 193, 7, 255
+    ]
+
+    # Aumento crítico
+    rgba[mascara_aumento_criticidade] = [
+        220, 53, 69, 255
+    ]
+
+    # Diminuição em atenção
+    rgba[diminuicao_atencao] = [
+        255, 152, 0, 255
+    ]
+
+    # Diminuição crítica
+    rgba[mascara_diminuicao_criticidade] = [
+        128, 0, 0, 255
+    ]
+
     # NaN fica transparente
-    rgba[~np.isfinite(z)] = [0, 0, 0, 0]
+    rgba[~np.isfinite(z)] = [
+        0, 0, 0, 0
+    ]
 
-    figura, eixo = plt.subplots(figsize=(10, 10), dpi=150)
-    eixo.imshow(rgba, interpolation="nearest")
+    figura, eixo = plt.subplots(
+        figsize=(10, 10),
+        dpi=150
+    )
+
+    eixo.imshow(
+        rgba,
+        interpolation="nearest"
+    )
+
     eixo.axis("off")
-    figura.subplots_adjust(left=0, right=1, bottom=0, top=1)
+
+    figura.subplots_adjust(
+        left=0,
+        right=1,
+        bottom=0,
+        top=1
+    )
 
     buffer = io.BytesIO()
+
     figura.savefig(
         buffer,
         format="png",
@@ -147,15 +320,7 @@ def renderizar_mapa_anomalia(z_score_final, indice, classificacao):
         bbox_inches="tight",
         pad_inches=0
     )
+
     plt.close(figura)
 
     return buffer.getvalue()
-    
-
-
-
-
-        
-        
-
-  
