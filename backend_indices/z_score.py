@@ -135,11 +135,17 @@ def calcular_zscore_historico(
         }
     )
 
-    url = f"{usuario_id}/{lavoura_id}/{indice}_zscore.zarr"
+    bucket = os.environ["R2_BUCKET"].strip("/")
 
-    with fs.open(url, "rb") as f:
+    url = (
+        f"{bucket}/{usuario_id}/{lavoura_id}/"
+        f"{indice}_zscore.zarr"
+    )
 
-        ds = xr.open_zarr(f, consolidated=False)
+    store = fs.get_mapper(url)
+
+    with xr.open_zarr(store, consolidated=False) as ds:
+
 
         filtros = (
             (ds["safra"] != safra_atual)

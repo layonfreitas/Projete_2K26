@@ -204,7 +204,10 @@ def gerar_series_safras(dados):
         },
     )
 
+    bucket = os.environ["R2_BUCKET"].strip("/")
+
     base = (
+        f"{bucket}/"
         f"{dados['usuarioId']}/"
         f"{dados['id']}"
     )
