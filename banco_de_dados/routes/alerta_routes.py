@@ -63,5 +63,5 @@ def delete_alerta(id):
         )
 
     except Exception as erro:
-        return jsonify("mensagem": "Erro ao deletar alerta", "erro": str(erro)),500
+        return jsonify({"mensagem": "Erro ao deletar alerta", "erro": str(erro)}),500
     
