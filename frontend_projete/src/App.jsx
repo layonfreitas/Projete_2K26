@@ -157,12 +157,7 @@ function App() {
               </RotaProtegida>
             }
           />
-          <Route
-            path="/cadastroUsuario"
-            element={
-                <CadastroUsuario />
-            }
-          />
+      
 
           <Route
             path="/trocar-senha"
