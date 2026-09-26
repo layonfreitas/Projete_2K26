@@ -21,7 +21,7 @@ def insert_alerta():
 
 
 
-@alertas_bp.route('/alertas/<int: lavoura_id>', methods=['GET'])
+@alertas_bp.route('/alertas/<int:lavoura_id>', methods=['GET'])
 def listar_alertas(lavoura_id):
 
     try:
@@ -50,7 +50,7 @@ def listar_alertas(lavoura_id):
             "erro": str(erro)
         }), 500
 
-@alertas_bp.route("/alertas/<int: id>", methods = ["DELETE"])
+@alertas_bp.route("/alertas/<int:id>", methods = ["DELETE"])
 def delete_alerta(id):
     try:
         cursor = mysql.connection.cursor()
@@ -58,8 +58,8 @@ def delete_alerta(id):
             """
             DELETE FROM alertas WHERE id = %s
 
-            """
-            (id)
+            """,
+            (id,)
         )
 
     except Exception as erro:
