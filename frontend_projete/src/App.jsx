@@ -22,7 +22,7 @@ const NaoEncontrado = lazy(() => import("./pages/NaoEncontrado"));
 const Laudo = lazy(() => import("./pages/laudo"));
 const Edicao = lazy(() => import("./pages/edicao"));
 const EditarSenha = lazy(() => import("./pages/Editar_senha"));
-const CadastroUsuario = lazy(() => import("./pages/cadastroUsuario"));
+
 
 
 
