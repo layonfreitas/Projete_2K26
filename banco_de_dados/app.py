@@ -12,7 +12,7 @@ from routes.imagens_routes import acessar_imagem_bp, init_mysql as init_imagens_
 from routes.cooperativa_routes import cooperativa_bp, init_mysql as init_cooperativa_mysql
 from routes.indices_routes import indices_bp, init_mysql as init_indices_mysql
 from routes.gda_routes import gda_bp, init_mysql as init_gda_mysql
-from routes.alerta_routes import alerta_bp
+
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -21,14 +21,18 @@ CORS(app, origins=[
     "https://projete-2k26-frontend.onrender.com"
 ])
 
-mysql = MySQL(app)
+mysql = MySQL(app)  
+
 init_auth_mysql(mysql)
 init_lavoura_mysql(mysql)
 init_senha_mysql(mysql)
 init_agronomo_mysql(mysql)
 init_imagens_mysql(mysql)
-init_cooperativa_mysql(mysql)  # também inicializa auth_utils internamente
+init_cooperativa_mysql(mysql)
 init_indices_mysql(mysql)
+init_gda_mysql(mysql)
+
+from routes.alerta_routes import alerta_bp
 
 app.register_blueprint(agronomo_bp)
 app.register_blueprint(auth_bp)
@@ -40,6 +44,8 @@ app.register_blueprint(listar_imagens_bp)
 app.register_blueprint(acessar_imagem_bp)
 app.register_blueprint(indices_bp)
 app.register_blueprint(gda_bp)
-app.register_blueprint(avisos_bp)
+app.register_blueprint(alerta_bp)
+
+
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
