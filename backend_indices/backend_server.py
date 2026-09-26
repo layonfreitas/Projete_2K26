@@ -9,6 +9,15 @@ from processar_lavouras import processar_todas_lavouras, processar_lavoura
 from georreferencia import criar_geometria
 from gee_auth import inicializar_ee
 from threading import Lock
+import faulthandler
+
+faulthandler.enable()
+faulthandler.dump_traceback_later(
+    60,
+    repeat=False,
+)
+
+print("[INICIO] Carregando backend_server", flush=True)
 
 
 
@@ -242,3 +251,7 @@ def agendar_mapas(
         "status": "aceito",
         "lavouraId": day_req.lavoura_id,
     }
+
+
+faulthandler.cancel_dump_traceback_later()
+print("[INICIO] backend_server carregado", flush=True)
