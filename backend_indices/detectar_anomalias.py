@@ -187,16 +187,32 @@ def salvar_png_anomalia(
     # Reprojeta cada canal, incluindo a transparência.
     # Vizinho mais próximo preserva as cores das classes.
     for canal in range(4):
+        # Usa -1 para ausência de dados.
+        # Os valores válidos das cores continuam entre 0 e 255.
+        canal_destino = np.full(
+            (altura, largura),
+            -1,
+            dtype=np.int16,
+        )
+
         reproject(
-            source=origem[:, :, canal],
-            destination=destino[:, :, canal],
+            source=origem[:, :, canal].astype(np.int16),
+            destination=canal_destino,
             src_transform=transform_origem,
             src_crs=crs_origem,
+            src_nodata=None,
             dst_transform=transform_destino,
             dst_crs=meta["crs"],
-            dst_nodata=0,
+            dst_nodata=-1,
             resampling=Resampling.nearest,
         )
+
+        # Fora da imagem de origem, deixa zero.
+        destino[:, :, canal] = np.where(
+            canal_destino == -1,
+            0,
+            canal_destino,
+        ).astype(np.uint8)
 
     # Mantém transparentes os pixels fora da lavoura.
     contorno_projetado = transform_geom(
