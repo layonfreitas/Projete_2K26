@@ -180,7 +180,7 @@ def save_image_indatabase(imagem,nome_arquivo,pasta_id,usuario_id,lavoura_id,
         folder=pasta_id or os.environ.get('MAPAS_INDICES_FOLDER') or 'mapas_indices',
         overwrite=True,invalidate=True,resource_type='image',format='png',timeout=180)
     dados = {'usuarioId':usuario_id,'lavouraId':lavoura_id,'dataImagem':data_imagem,
-        'urlImagem':response['secure_url'],'indice':nome_arquivo.split('_')[0],
+        'urlImagem':response['secure_url'],'indice': nome_arquivo.rsplit('_', 1)[0],
         'valorIndice':valor_indice,'georreferencia':georreferencia}
     resposta = requests.post(
         api_url("/imagens"),
@@ -226,5 +226,26 @@ def save_indice_map(imagem,indice,geometria,usuario_id,lavoura_id,valores_indice
     meta['visualizacao'] = {'tipo':'indice',**vis}
     data = imagem.date().format('YYYY-MM-dd').getInfo()
     salvo = save_image_indatabase(conteudo,f'{indice}_{data}',pasta_id,usuario_id,lavoura_id,data,valor,meta)
-    save_indice_valor(lavoura_id,indice,valor,data,imagem_id=salvo.get('id'))
+    dados_imagem = salvo[0]
+
+    if not isinstance(dados_imagem, dict):
+        raise ValueError(
+            "A API /imagens retornou um formato inesperado."
+        )
+
+    imagem_id = dados_imagem.get("id")
+
+    if imagem_id is None:
+        raise ValueError(
+            "A resposta da API /imagens não contém o campo 'id'. "
+            f"Campos recebidos: {list(dados_imagem.keys())}"
+        )
+
+    save_indice_valor(
+        lavoura_id,
+        indice,
+        valor,
+        data,
+        imagem_id=imagem_id,
+    )
     return salvo

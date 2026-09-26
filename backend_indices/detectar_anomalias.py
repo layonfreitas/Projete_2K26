@@ -4,6 +4,7 @@ import xarray as xr
 import ee
 import matplotlib.pyplot as plt
 
+from PIL import Image
 from get_indices import save_image_indatabase, preparar_exportacao
 from z_score import calcular_zscore_historico
 from dotenv import load_dotenv
@@ -292,35 +293,12 @@ def renderizar_mapa_anomalia(
         0, 0, 0, 0
     ]
 
-    figura, eixo = plt.subplots(
-        figsize=(10, 10),
-        dpi=150
-    )
-
-    eixo.imshow(
-        rgba,
-        interpolation="nearest"
-    )
-
-    eixo.axis("off")
-
-    figura.subplots_adjust(
-        left=0,
-        right=1,
-        bottom=0,
-        top=1
-    )
 
     buffer = io.BytesIO()
 
-    figura.savefig(
+    Image.fromarray(rgba).save(
         buffer,
-        format="png",
-        transparent=True,
-        bbox_inches="tight",
-        pad_inches=0
+        format="PNG",
     )
-
-    plt.close(figura)
 
     return buffer.getvalue()

@@ -94,13 +94,32 @@ def buscar_todas_lavouras():
 
 
 def salvar_alertas(alertas):
-    resposta = requests.post(os.environ.get("DATABASE_URL")+"/alertas", json=alertas)
-    if not resposta.ok:
-        log.exception(f"Não foi possível salvar os alertas para esta lavoura. id:{alertas["lavoura_id"]}  usuario_id: {alertas["usuario_id"]}")
+    if not isinstance(alertas, list):
+        raise TypeError("Os alertas devem ser uma lista.")
 
-    else:
-        logging.info(f"Alertas salvos. id: {alertas["lavoura_id"]}  usuario_id:{alertas["usuario_id"]}")
-    
+    if not alertas:
+        log.info("Nenhum alerta gerado para salvar.")
+        return
+
+    resposta = requests.post(
+        api_url("/alertas"),
+        json=alertas,
+        timeout=(15, 60),
+    )
+
+    if not resposta.ok:
+        log.error(
+            "Falha ao salvar alertas. HTTP=%s; resposta=%s",
+            resposta.status_code,
+            resposta.text[:2000],
+        )
+
+    resposta.raise_for_status()
+
+    log.info(
+        "Envio de %d alerta(s) confirmado pela API.",
+        len(alertas),
+    )
 
 def processar_lavoura(lavoura, crs=None, crs_transformation=None, safra_atual=None, graus_dia=None, data_alvo=None, janela=30, indices=None, geometria=None):
     inicializar_ee()
@@ -150,9 +169,18 @@ def processar_lavoura(lavoura, crs=None, crs_transformation=None, safra_atual=No
                     data=resultado['dataImagem']
                 )
 
-                if resultado_anomalia['salvo']:
-                    resultado['salvos'].append(f'z_score_{indice}_final')
-                    resultado['alertas'].append({"usuario_id": lavoura['usuarioId'], "lavoura_id": lavoura["id"], "critico": resultado_anomalia["tem_criticidade"], "indice": indice, "url": resultado["registro"][1]})#registro[1] é a secure_url do cloudinary
+                if resultado_anomalia["salvo"]:
+                    resultado["salvos"].append(
+                        resultado_anomalia["indice"]
+                    )
+
+                    resultado["alertas"].append({
+                        "usuario_id": lavoura["usuarioId"],
+                        "lavoura_id": lavoura["id"],
+                        "critico": resultado_anomalia["temCriticidade"],
+                        "indice": indice,
+                        "url": resultado_anomalia["registro"][1],
+                    })
                     
 
                     
@@ -199,7 +227,16 @@ def processar_lavoura(lavoura, crs=None, crs_transformation=None, safra_atual=No
             "A classificação falhou após o processamento dos mapas."
         )
 
-    salvar_alertas(resultado['alertas'])
+    try:
+        salvar_alertas(resultado["alertas"])
+    except Exception as erro:
+        resultado["erros"].append(
+            f"Falha ao salvar alertas: {erro}"
+        )
+        log.exception(
+            "Falha ao salvar alertas da lavoura %s.",
+            lavoura["id"],
+        )
     resultado['status'] = ('parcial' if resultado['salvos'] else 'erro') if resultado['erros'] else ('concluido' if resultado['salvos'] else 'sem_dados')
     log.info('Lavoura %s: %s; %s mapas salvos.', lavoura['id'], resultado['status'], len(resultado['salvos']))
     return resultado

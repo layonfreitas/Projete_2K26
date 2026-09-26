@@ -5,6 +5,8 @@ import s3fs
 import numpy as np
 import xarray as xr
 import requests
+import io
+import os
 
 # A primeira cor não aparecerá, pois a classe 1 será transparente.
 PALETA = ['000000', 'fbbf24', 'dc2626', '86efac', '166534']
@@ -156,61 +158,101 @@ def calcular_zscore_historico(
         # Mediana espacial do histórico
         mediana = historico.median(dim="tempo", skipna=True)
 
-        # MAD do histórico (em torno da mediana)
-        mad = (
-            (historico - mediana)
-            .abs()
-            .median(dim="tempo", skipna=True)
+               # O MAD usa a distância absoluta em relação à mediana.
+        mad = abs(historico - mediana).median(
+            dim="tempo",
+            skipna=True,
         )
 
-        mad_valido = mad > 0
+        mad_valido = np.isfinite(mad) & (mad > 1e-9)
 
-        # Diferença entre a cena atual e a mediana histórica
-        diferenca = (z_scores_espacial - mediana).abs()
+        # Preserva o sinal:
+        # negativo = abaixo da mediana histórica;
+        # positivo = acima da mediana histórica.
+        diferenca = z_scores_espacial - mediana
 
         z_score_final = (
-            0.6745
-            * diferenca
-            / mad
-        ).where(mad_valido)
+            0.6745 * diferenca / mad.where(mad_valido)
+        )
 
         return z_score_final.rename("z_score_final")
-
 
 def ee_image_para_xarray(
     z_score_ee,
     indice,
     geometria,
-    dimensoes=(1024, 1024)
+    dimensoes=(1024, 1024),
 ):
-
-    params = {
-        'crs': 'EPSG:3857',
-        'dimensions': list(dimensoes),
-        'format': 'NUMPY_NDARRAY'
-    }
-
-    url = z_score_ee.clip(geometria).getThumbURL(params)
-
-    resp = requests.get(url, timeout=(15, 180))
-
-    resp.raise_for_status()
-
-    z_np = np.load(io.BytesIO(resp.content))
-
-    # Garante 2D (y, x)
-    if z_np.ndim == 3 and z_np.shape[0] == 1:
-        z_np = z_np[0]
-
-    if z_np.ndim != 2:
-        raise ValueError(
-            f"Esperado array 2D (y, x), obtido shape {z_np.shape}"
-        )
-
-    z_xr = xr.DataArray(
-        z_np,
-        dims=['y', 'x'],
-        name=f'z_{indice}'
+    # Exporta o valor e uma máscara para distinguir
+    # pixels válidos de regiões sem dados.
+    valores_ee = (
+        z_score_ee
+        .select([0])
+        .rename("valor")
+        .toFloat()
+        .clip(geometria)
     )
 
-    return z_xr
+    mascara_ee = (
+        valores_ee.mask()
+        .rename("valido")
+        .unmask(0, sameFootprint=False)
+        .toFloat()
+    )
+
+    imagem_exportacao = (
+        valores_ee
+        .unmask(0, sameFootprint=False)
+        .addBands(mascara_ee)
+    )
+
+    params = {
+        "region": geometria,
+        "crs": "EPSG:3857",
+        "dimensions": list(dimensoes),
+        "format": "NPY",
+    }
+
+    url = imagem_exportacao.getDownloadURL(params)
+
+    resposta = requests.get(url, timeout=(15, 180))
+    resposta.raise_for_status()
+
+    dados = np.load(
+        io.BytesIO(resposta.content),
+        allow_pickle=False,
+    )
+
+    # O NPY do Earth Engine é um array estruturado:
+    # cada banda aparece como um campo.
+    campos = dados.dtype.names or ()
+
+    if "valor" not in campos or "valido" not in campos:
+        raise ValueError(
+            f"Bandas inesperadas no download: {campos}"
+        )
+
+    valores = np.asarray(dados["valor"], dtype=np.float32)
+    validos = np.asarray(dados["valido"]) > 0
+
+    if valores.ndim != 2:
+        raise ValueError(
+            f"Esperado array 2D, recebido: {valores.shape}"
+        )
+
+    valores = np.where(
+        validos & np.isfinite(valores),
+        valores,
+        np.nan,
+    )
+
+    if not np.isfinite(valores).any():
+        raise SemDadosValidos(
+            f"Z-score de {indice}: nenhum pixel válido."
+        )
+
+    return xr.DataArray(
+        valores,
+        dims=["y", "x"],
+        name=f"z_{indice}",
+    )
