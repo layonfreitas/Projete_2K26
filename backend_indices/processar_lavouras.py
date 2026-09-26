@@ -9,6 +9,8 @@ from z_score import salvar_mapa_z_score, ee_image_para_xarray
 from detectar_anomalias import salvar_mapa_anomalia
 from georreferencia import normalizar_coordenadas, criar_geometria
 from gee_auth import inicializar_ee
+from shapely.geometry import Polygon
+from serie_safras import graus_dia_periodo
 from flask import Flask, jsonify, request
 from dotenv import load_dotenv
 import os
@@ -121,6 +123,47 @@ def salvar_alertas(alertas):
         len(alertas),
     )
 
+def obter_contexto_safra(lavoura, data_imagem):
+
+    dia_imagem = date.fromisoformat(data_imagem)
+
+    # Identifica a safra cadastrada que contém a data da imagem.
+    candidatas = [
+        safra
+        for safra in lavoura.get("safras", [])
+        if (
+            date.fromisoformat(safra["inicio"])
+            <= dia_imagem
+            <= date.fromisoformat(safra["fim"])
+        )
+    ]
+
+    if len(candidatas) != 1:
+        raise ValueError(
+            f"Informe uma safra cujo período contenha "
+            f"a data da imagem: {data_imagem}. "
+            "Não foi possível determinar o início "
+            "do acúmulo de graus-dia."
+        )
+
+    safra = candidatas[0]
+    inicio = date.fromisoformat(safra["inicio"])
+
+    pontos = normalizar_coordenadas(
+        lavoura["coordenadas"]
+    )
+    centro = Polygon(pontos).centroid
+
+    # Usa o mesmo cálculo climático empregado no histórico.
+    acumulado = graus_dia_periodo(
+        lat=centro.y,
+        lon=centro.x,
+        inicio=inicio,
+        fim=dia_imagem,
+    )
+
+    return int(safra["ano"]), float(acumulado.iloc[-1])
+
 def processar_lavoura(lavoura, crs=None, crs_transformation=None, safra_atual=None, graus_dia=None, data_alvo=None, janela=30, indices=None, geometria=None):
     inicializar_ee()
     if geometria is None: geometria = criar_geometria(lavoura['coordenadas'])
@@ -135,6 +178,39 @@ def processar_lavoura(lavoura, crs=None, crs_transformation=None, safra_atual=No
         return resultado
     resultado['dataImagem'] = imagem.date().format('YYYY-MM-dd').getInfo()
     valores = obter_valores_indices(imagem, geometria)
+
+    erro_contexto_safra = None
+
+    precisa_historico = any(
+        nome.startswith("z-score-")
+        for nome in indice_nomes
+    )
+
+    if precisa_historico and (
+        safra_atual is None or graus_dia is None
+    ):
+        try:
+            safra_atual, graus_dia = obter_contexto_safra(
+                lavoura,
+                resultado["dataImagem"],
+            )
+
+            log.info(
+                "Lavoura %s: safra=%s, imagem=%s, "
+                "graus-dia=%.2f",
+                lavoura["id"],
+                safra_atual,
+                resultado["dataImagem"],
+                graus_dia,
+            )
+
+        except Exception as erro:
+            erro_contexto_safra = str(erro)
+            log.exception(
+                "Não foi possível calcular os graus-dia "
+                "da lavoura %s.",
+                lavoura["id"],
+            )
 
     for nome in indice_nomes:
         try:
@@ -158,6 +234,9 @@ def processar_lavoura(lavoura, crs=None, crs_transformation=None, safra_atual=No
                 )
 
                 # 3) Calcula z-score final e decide sobre anomalia
+                if erro_contexto_safra is not None:
+                    raise ValueError(erro_contexto_safra)
+
                 resultado_anomalia = salvar_mapa_anomalia(
                     indice=indice,
                     lavoura_id=lavoura['id'],
