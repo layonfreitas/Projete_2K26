@@ -188,18 +188,26 @@ def calcular_zscore_historico(
             )
 
 
+        tolerancia = 100.0
+
         filtros = (
             (ds["safra"] != safra_atual)
-            & (ds["graus_dia"] >= graus_dia - 50)
-            & (ds["graus_dia"] <= graus_dia + 50)
-        )
-
-        filtros = filtros.compute()
+            & (ds["graus_dia"] >= graus_dia - tolerancia)
+            & (ds["graus_dia"] <= graus_dia + tolerancia)
+        ).compute()
 
         historico = ds["z_score"].where(
             filtros,
             drop=True,
         )
+
+        print(
+            f"[HISTÓRICO {indice}] "
+            f"Tolerância: ±{tolerancia:.0f}; "
+            f"datas selecionadas: {historico.sizes.get('tempo', 0)}",
+            flush=True,
+        )
+     
 
         if historico.sizes.get("tempo", 0) == 0:
             raise SemDadosValidos(
