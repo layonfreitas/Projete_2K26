@@ -1,4 +1,5 @@
 from flask import Blueprint, jsonify, request
+import MySQLdb.cursors
 from app import mysql
 
 alertas_bp = Blueprint('alerta', __name__)
@@ -20,24 +21,47 @@ def insert_alerta():
 
 
 
-@alertas_bp.route('/alertas', methods=['GET'])
-def listar_avisos():
-    usuario_id = request.args.get('usuario_id')  # ou pegue da sessão/token, conforme o login de vocês
-    apenas_nao_lidos = request.args.get('lido') == 'false'
+@alertas_bp.route('/alertas/<int: lavoura_id>', methods=['GET'])
+def listar_alertas(lavoura_id):
 
-    cursor = mysql.connection.cursor()
-    query = "SELECT * FROM avisos WHERE usuario_id = %s"
-    params = [usuario_id]
+    try:
 
-    if apenas_nao_lidos:
-        query += " AND lido = FALSE"
+        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
 
-    query += " ORDER BY criado_em DESC"
-    cursor.execute(query, params)
-    colunas = [desc[0] for desc in cursor.description]
-    avisos = [dict(zip(colunas, linha)) for linha in cursor.fetchall()]
-    cursor.close()
+        cursor.execute(
+            """
+           SELCT * FROM alertas WHERE lavoura_id = %s
+            """,
+            (lavoura_id)
+            
+        )
 
-    return jsonify(avisos)
+        resultados = cursor.fetchall()
 
+        cursor.close()
 
+        
+        return jsonify(resultados), 200
+
+    except Exception as erro:
+
+        return jsonify({
+            "mensagem": "Erro ao buscar alertas",
+            "erro": str(erro)
+        }), 500
+
+@alertas_bp.route("/alertas/<int: id>", methods = ["DELETE"])
+def delete_alerta(id):
+    try:
+        cursor = mysql.connection.cursor()
+        cursor.execute(
+            """
+            DELETE FROM alertas WHERE id = %s
+
+            """
+            (id)
+        )
+
+    except Exception as erro:
+        return jsonify("mensagem": "Erro ao deletar alerta", "erro": str(erro)),500
+    
