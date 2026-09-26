@@ -127,26 +127,26 @@ def obter_contexto_safra(lavoura, data_imagem):
 
     dia_imagem = date.fromisoformat(data_imagem)
 
-    # Identifica a safra cadastrada que contém a data da imagem.
+    # Considera as safras que já começaram na data da imagem.
+    # O fim informado não bloqueia mais a análise.
     candidatas = [
         safra
         for safra in lavoura.get("safras", [])
-        if (
-            date.fromisoformat(safra["inicio"])
-            <= dia_imagem
-            <= date.fromisoformat(safra["fim"])
-        )
+        if date.fromisoformat(safra["inicio"]) <= dia_imagem
     ]
 
-    if len(candidatas) != 1:
+    if not candidatas:
         raise ValueError(
-            f"Informe uma safra cujo período contenha "
-            f"a data da imagem: {data_imagem}. "
-            "Não foi possível determinar o início "
-            "do acúmulo de graus-dia."
+            f"Não há início de safra cadastrado anterior "
+            f"ou igual à data da imagem: {data_imagem}."
         )
 
-    safra = candidatas[0]
+    # Usa o início mais recente disponível.
+    safra = max(
+        candidatas,
+        key=lambda item: date.fromisoformat(item["inicio"]),
+    )
+
     inicio = date.fromisoformat(safra["inicio"])
 
     pontos = normalizar_coordenadas(
@@ -154,7 +154,6 @@ def obter_contexto_safra(lavoura, data_imagem):
     )
     centro = Polygon(pontos).centroid
 
-    # Usa o mesmo cálculo climático empregado no histórico.
     acumulado = graus_dia_periodo(
         lat=centro.y,
         lon=centro.x,
@@ -162,7 +161,19 @@ def obter_contexto_safra(lavoura, data_imagem):
         fim=dia_imagem,
     )
 
-    return int(safra["ano"]), float(acumulado.iloc[-1])
+    graus_dia = float(acumulado.iloc[-1])
+
+    log.info(
+        "Contexto da lavoura %s: safra=%s, início=%s, "
+        "imagem=%s, graus-dia=%.2f",
+        lavoura["id"],
+        safra["ano"],
+        inicio,
+        dia_imagem,
+        graus_dia,
+    )
+
+    return int(safra["ano"]), graus_dia
 
 def processar_lavoura(lavoura, crs=None, crs_transformation=None, safra_atual=None, graus_dia=None, data_alvo=None, janela=30, indices=None, geometria=None):
     inicializar_ee()
