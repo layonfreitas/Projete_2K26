@@ -153,7 +153,12 @@ def calcular_zscore_historico(
             & (ds["graus_dia"] <= graus_dia + 50)
         )
 
-        historico = ds["z_score"].where(filtros, drop=True)
+        filtros = filtros.compute()
+
+        historico = ds["z_score"].where(
+            filtros,
+            drop=True,
+        )
 
         if historico.sizes.get("tempo", 0) == 0:
             raise SemDadosValidos(
