@@ -146,6 +146,47 @@ def calcular_zscore_historico(
 
     with xr.open_zarr(store, consolidated=False) as ds:
 
+        outras_safras = ds["safra"].compute() != safra_atual
+
+        gda_historico = ds["graus_dia"].compute().where(
+            outras_safras,
+            drop=True,
+        )
+
+        valores_gda = np.asarray(
+            gda_historico.values,
+            dtype=float,
+        )
+        valores_gda = valores_gda[np.isfinite(valores_gda)]
+
+        print(
+            f"[HISTÓRICO {indice}] "
+            f"Atual: {graus_dia:.2f}; "
+            f"faixa: {graus_dia - 50:.2f} "
+            f"a {graus_dia + 50:.2f}",
+            flush=True,
+        )
+
+        if valores_gda.size:
+            mais_proximo = valores_gda[
+                np.argmin(np.abs(valores_gda - graus_dia))
+            ]
+
+            print(
+                f"[HISTÓRICO {indice}] "
+                f"Mínimo: {valores_gda.min():.2f}; "
+                f"máximo: {valores_gda.max():.2f}; "
+                f"mais próximo: {mais_proximo:.2f}; "
+                f"distância: {abs(mais_proximo - graus_dia):.2f}",
+                flush=True,
+            )
+        else:
+            print(
+                f"[HISTÓRICO {indice}] "
+                "Nenhum grau-dia válido de outra safra.",
+                flush=True,
+            )
+
 
         filtros = (
             (ds["safra"] != safra_atual)
