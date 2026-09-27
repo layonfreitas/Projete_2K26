@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#243e22">
+  <title>Criar conta · CoffeeVision</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,560;9..144,680&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/jpeg" href="favicon.jpg">
+<link rel="stylesheet" href="pagina.css">
+  <script src="config.js" defer></script>
+  <script src="cadastro.js" defer></script>
+</head>
+<body>
+  <header class="top">
+    <a class="brand brand-link" href="index.html"><span class="logo-crop"><img src="favicon.jpg" alt="" aria-hidden="true"></span><span>CoffeeVision</span></a>
+    <a href="https://projete-2k26-frontend.onrender.com/login">Já tenho conta</a>
+  </header>
+  <main class="signup-layout">
+    <div class="signup-intro">
+      <span class="eyebrow">Sua lavoura mais perto</span>
+      <h1>Comece a acompanhar o seu café.</h1>
+      <p>Crie sua conta de produtor para cadastrar a lavoura, consultar mapas, clima e diagnósticos em um só lugar.</p>
+      <div class="signup-art"><img src="favicon.jpg" alt="Logo do CoffeeVision"></div>
+      <p class="signup-note">É agrônomo? Peça à sua cooperativa para criar sua conta.</p>
+    </div>
+    <section class="signup-card" aria-labelledby="signup-title">
+      <span class="eyebrow">Cadastro de produtor</span>
+      <h2 id="signup-title">Criar conta</h2>
+      <p>Preencha os dados abaixo. Depois, entre no aplicativo com o mesmo e-mail e senha.</p>
+      <form id="cadastro-form">
+        <label for="nome">Nome completo</label>
+        <input id="nome" name="nome" type="text" autocomplete="name" maxlength="100" required>
+        <label for="email">E-mail</label>
+        <input id="email" name="email" type="email" autocomplete="email" maxlength="150" required>
+        <label for="senha">Senha</label>
+        <input id="senha" name="senha" type="password" autocomplete="new-password" minlength="8" required>
+        <label for="confirmaSenha">Confirmar senha</label>
+        <input id="confirmaSenha" name="confirmaSenha" type="password" autocomplete="new-password" minlength="8" required>
+        <p id="cadastro-status" class="form-status" role="status" aria-live="polite"></p>
+        <button class="cta signup-submit" type="submit">Criar minha conta</button>
+      </form>
+      <div id="cadastro-sucesso" class="signup-success" hidden>
+        <h3>Conta criada!</h3>
+        <p>Agora você já pode entrar no CoffeeVision e cadastrar sua lavoura.</p>
+        <a class="cta" href="https://projete-2k26-frontend.onrender.com/login">Entrar no aplicativo</a>
+      </div>
+      <p class="signup-login">Já tem conta? <a href="https://projete-2k26-frontend.onrender.com/login">Entrar no app</a></p>
+    </section>
+  </main>
+</body>
+</html>

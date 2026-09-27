@@ -1,10 +1,10 @@
 :root{
-    --coffee-950:#241509; --coffee-900:#2f1c0d; --coffee-800:#4a2e1a;
-    --cherry-600:#1b5e20; --cherry-700:#8a1f30;
-    --leaf-700:#33532f; --leaf-800:#243e22;
-    --parchment-50:#faf5e9; --parchment-100:#f1e7d2; --parchment-200:#e6d8ba;
-    --gold-500:#c1943f;
-    --ink:#241509;
+    --coffee-950:#173620; --coffee-900:#22462c; --coffee-800:#315b39;
+    --cherry-600:#2e7d32; --cherry-700:#1b5e20;
+    --leaf-700:#2e7d32; --leaf-800:#1b5e20;
+    --parchment-50:#fffdf8; --parchment-100:#f3ede0; --parchment-200:#e4dcc9;
+    --gold-500:#c6923c;
+    --ink:#241c15;
     --serif:"Fraunces",Georgia,serif;
     --sans:"Work Sans",system-ui,-apple-system,Segoe UI,sans-serif;
     padding-top:env(safe-area-inset-top,0px);
@@ -115,3 +115,48 @@
     .doenca-item{grid-template-columns:1fr; gap:.2rem;}
     .tabela-perfis{font-size:.86rem;}
   }
+/* Navegação e cadastro */
+.top-actions{display:flex;align-items:center;gap:1.2rem;font-size:.92rem;font-weight:600;}
+.top-actions a:not(.cta),.brand-link{text-decoration:none;}
+.hero-cta{display:inline-block;margin-top:.5rem;}
+.footer-login{margin:1rem auto 0;}
+.brand-link{color:inherit;}
+.signup-layout{min-height:calc(100vh - 75px);display:grid;grid-template-columns:minmax(0,1fr) minmax(340px,480px);gap:clamp(2rem,7vw,7rem);align-items:center;max-width:1140px;margin:auto;padding:clamp(2rem,6vw,5rem) 1.5rem;}
+.signup-intro h1{font-size:clamp(2.5rem,5vw,4.5rem);max-width:12ch;margin:.8rem 0 1.2rem;color:var(--leaf-800);}
+.signup-intro>p{font-size:1.05rem;color:#584c3d;}
+.eyebrow{color:var(--leaf-700);font-size:.75rem;font-weight:600;text-transform:uppercase;letter-spacing:.16em;}
+.signup-art{height:170px;max-width:480px;margin:2rem 0 1.2rem;position:relative;overflow:hidden;background:linear-gradient(165deg,#e7e3bf 0 35%,#c6d0a4 35% 55%,#78945c 55% 100%);border-radius:14px;}
+.signup-art span{position:absolute;left:1.5rem;top:1rem;font-size:.65rem;letter-spacing:.25em;font-weight:600;color:#355c36;}
+.signup-art i{position:absolute;width:65%;height:90px;border:2px solid #e2e8c4;border-radius:50%;transform:rotate(-16deg);bottom:-55px;left:15%;}
+.signup-art i:nth-of-type(2){bottom:-37px;left:28%;}.signup-art i:nth-of-type(3){bottom:-20px;left:42%;}.signup-art i:nth-of-type(4){bottom:-3px;left:55%;}
+.signup-note{font-size:.85rem!important;}
+.signup-card{background:#fffdf7;border:1px solid var(--parchment-200);border-radius:16px;padding:clamp(1.5rem,4vw,2.5rem);box-shadow:0 18px 45px rgba(36,21,9,.08);}
+.signup-card h2{font-size:2rem;margin:.6rem 0;}.signup-card>p{font-size:.94rem;color:#584c3d;}
+.signup-card form{display:flex;flex-direction:column;margin-top:1.5rem;}
+.signup-card label{font-size:.88rem;font-weight:600;margin:0 0 .35rem;}
+.signup-card input{width:100%;border:1px solid #bcb8a8;background:white;border-radius:8px;padding:.8rem .9rem;font:inherit;margin:0 0 1rem;}
+.signup-card input:focus-visible,.signup-card a:focus-visible,.signup-card button:focus-visible{outline:3px solid var(--gold-500);outline-offset:2px;}
+.signup-submit{border:0;cursor:pointer;padding:.9rem 1rem;border-radius:8px;font-size:1rem;}
+.signup-submit:disabled{opacity:.65;cursor:wait;}
+.form-status{color:#9d2637;font-size:.88rem;margin:0 0 .75rem;}
+.form-status:empty{display:none;}
+.signup-success{background:#ebf2e7;padding:1.25rem;border-radius:10px;margin:1.5rem 0;}
+.signup-success[hidden],.signup-card form[hidden]{display:none;}
+.signup-success h3{font-size:1.4rem;color:var(--leaf-800);}.signup-success p{margin:.6rem 0 1.3rem;}.signup-success .cta{display:inline-block;border-radius:8px;}
+.signup-login{margin:1.5rem 0 0!important;text-align:center;}
+@media(max-width:750px){.signup-layout{grid-template-columns:1fr;gap:1rem;}.signup-art{display:none;}.signup-intro h1{max-width:16ch;}.top-actions{gap:.6rem;}.top-actions a:not(.cta){display:none;}}
+
+/* Identidade visual do aplicativo */
+.logo-crop{display:block;width:42px;height:46px;overflow:hidden;flex:none;position:relative;}
+.logo-crop img{position:absolute;max-width:none;width:80px;height:80px;left:-19px;top:-10px;}
+.brand-link{text-decoration:none;color:var(--leaf-800);}
+.signup-art{display:grid;place-items:center;background:#f8f5ef;height:190px;border:1px solid var(--parchment-200);}
+.signup-art img{width:180px;height:180px;object-fit:contain;}
+.signup-art i,.signup-art span{display:none;}
+.cta:hover,.cta:focus-visible{background:var(--cherry-700);}
+
+/* Logo efetivamente usada no login do aplicativo */
+.logo-crop{width:48px;height:48px;border-radius:12px;overflow:hidden;}
+.logo-crop img{position:static;width:48px;height:48px;object-fit:cover;max-width:100%;}
+.signup-art{height:230px;background:#214a2a;border-color:#214a2a;overflow:hidden;}
+.signup-art img{width:200px;height:230px;object-fit:contain;}
