@@ -63,7 +63,7 @@ def insert_alerta():
 
     try:
         query = """
-            INSERT INTO alertas (usuario_id, lavoura_id, critico, indice, data_imagem, contorno)
+            INSERT INTO alertas (usuario_id, lavoura_id, critico, indices, data_imagem, contorno)
             VALUES (%s, %s, %s, %s, %s, %s)
         """
         cursor = mysql.connection.cursor()
