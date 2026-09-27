@@ -107,7 +107,7 @@ def listar_alertas(lavoura_id):
             """
            SELCT * FROM alertas WHERE lavoura_id = %s
             """,
-            (lavoura_id)
+            (lavoura_id,)
             
         )
 
