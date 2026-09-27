@@ -1,7 +1,6 @@
 import { useState, useLayoutEffect, useRef } from "react";
 import { useParams } from "react-router-dom";
-import html2canvas from "html2canvas";
-import jsPDF from "jspdf";
+import { criarLaudoPdf, nomeArquivoLaudo } from "../services/relatoriosPdf";
 import logoIcone from "../assets/logo-icone.jpeg";
 import { AUTH_API_URL } from "../config/api";
 import AppBar from "../components/ui/AppBar";
@@ -37,13 +36,17 @@ function Laudo() {
   const toast = useToast();
   const { id } = useParams();
 
-  // Referência só do CONTEÚDO do laudo (sem os botões de ação),
-  // é o que vira imagem/PDF.
-  const conteudoRef = useRef(null);
+
 
   const [gerandoPdf, setGerandoPdf] = useState(false);
   const [enviandoEmail, setEnviandoEmail] = useState(false);
 
+  const [resumo, setResumo] = useState("");
+  const [dataImagem, setDataImagem] = useState("");
+  const [responsavel, setResponsavel] = useState("");
+  const [mapa, setMapa] = useState(null);
+  const [legendaMapa, setLegendaMapa] = useState("");
+  const [carregandoMapa, setCarregandoMapa] = useState(false);
   const [observacoes, setObservacoes] = useState("");
   const [recomendacoes, setRecomendacoes] = useState("");
 
@@ -73,52 +76,50 @@ function Laudo() {
     return { lavouraId, usuarioId };
   }
 
-  // =========================================================
-  // GERAR O PDF (captura o conteúdo do laudo como imagem e
-  // monta um PDF em A4, quebrando em várias páginas se precisar)
-  // =========================================================
-  async function gerarPdf() {
-    const elemento = conteudoRef.current;
-    if (!elemento) return null;
+  async function carregarImagem(url) {
+    const imagem = new Image();
+    imagem.src = url;
+    await imagem.decode();
+    const canvas = document.createElement("canvas");
+    const escala = Math.min(1, 1800 / Math.max(imagem.width, imagem.height));
+    canvas.width = Math.round(imagem.width * escala);
+    canvas.height = Math.round(imagem.height * escala);
+    const contexto = canvas.getContext("2d");
+    contexto.fillStyle = "#ffffff";
+    contexto.fillRect(0, 0, canvas.width, canvas.height);
+    contexto.drawImage(imagem, 0, 0, canvas.width, canvas.height);
+    return canvas.toDataURL("image/jpeg", 0.92);
+  }
 
-    const canvas = await html2canvas(elemento, {
-      scale: 2,
-      useCORS: true,
-      backgroundColor: "#ffffff",
-    });
-
-    const imgData = canvas.toDataURL("image/png");
-
-    const pdf = new jsPDF("p", "mm", "a4");
-    const larguraPdf = pdf.internal.pageSize.getWidth();
-    const alturaPdf = pdf.internal.pageSize.getHeight();
-
-    const alturaImagem = (canvas.height * larguraPdf) / canvas.width;
-
-    let alturaRestante = alturaImagem;
-    let posicaoY = 0;
-
-    // primeira página
-    pdf.addImage(imgData, "PNG", 0, posicaoY, larguraPdf, alturaImagem);
-    alturaRestante -= alturaPdf;
-
-    // páginas extras, se o conteúdo for mais alto que uma página A4
-    while (alturaRestante > 0) {
-      posicaoY = alturaRestante - alturaImagem;
-      pdf.addPage();
-      pdf.addImage(imgData, "PNG", 0, posicaoY, larguraPdf, alturaImagem);
-      alturaRestante -= alturaPdf;
+  async function anexarMapa(evento) {
+    const arquivo = evento.target.files?.[0];
+    if (!arquivo) return;
+    evento.target.value = "";
+    if (!["image/png", "image/jpeg"].includes(arquivo.type) || arquivo.size > 10 * 1024 * 1024) {
+      toast.erro("Escolha uma imagem PNG ou JPEG de até 10 MB.");
+      return;
     }
+    setCarregandoMapa(true);
+    const url = URL.createObjectURL(arquivo);
+    try {
+      setMapa(await carregarImagem(url));
+    } catch {
+      toast.erro("Não foi possível abrir a imagem do mapa.");
+    } finally {
+      URL.revokeObjectURL(url);
+      setCarregandoMapa(false);
+    }
+  }
 
-    return pdf;
+  async function gerarPdf() {
+    const logo = await carregarImagem(logoIcone);
+    return criarLaudoPdf({ produtorNome, lavouraNome, dataSelecionada: dataAnalise,
+      dataImagem, resumo, observacoes, recomendacoes, responsavel,
+      logo, mapa, legendaMapa });
   }
 
   function nomeArquivoPdf() {
-    const nomeLimpo = lavouraNome
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .replace(/[^a-zA-Z0-9]+/g, "_");
-    return `laudo_${nomeLimpo}.pdf`;
+    return nomeArquivoLaudo(lavouraNome);
   }
 
   // Baixa o PDF no computador do usuário
@@ -189,12 +190,13 @@ function Laudo() {
 
       <main className="ui-conteudo">
         <div className="laudo-card">
-          <div ref={conteudoRef} className="laudo-conteudo">
+          <div className="laudo-conteudo">
             {/* CABEÇALHO */}
             <header className="laudo-header">
               <div className="laudo-header-text">
-                <h2>Laudo Técnico</h2>
-                <p>Relatório técnico de análise da lavoura</p>
+                <span className="laudo-marca">COFFEEVISION • ACOMPANHAMENTO</span>
+                <h2>Laudo da lavoura</h2>
+                <p>Observações e orientações claras para o produtor.</p>
               </div>
 
               <div className="laudo-icon">
@@ -204,7 +206,7 @@ function Laudo() {
 
             {/* INFORMAÇÕES DA LAVOURA */}
             <section className="laudo-section">
-              <h3 className="laudo-section-title">Informações da Lavoura</h3>
+              <h3 className="laudo-section-title">01 · Identificação</h3>
 
               <div className="laudo-info-grid">
                 <div className="laudo-field">
@@ -229,24 +231,49 @@ function Laudo() {
                     onChange={(e) => setDataAnalise(e.target.value)}
                   />
                 </div>
+                <div className="laudo-field">
+                  <label className="laudo-label" htmlFor="laudo-imagem-data">Data da imagem (opcional)</label>
+                  <input id="laudo-imagem-data" type="date" value={dataImagem} onChange={(e) => setDataImagem(e.target.value)} />
+                  <small>Preencha com a data de captura, quando utilizar um mapa.</small>
+                </div>
+                <div className="laudo-field">
+                  <label className="laudo-label" htmlFor="laudo-responsavel">Responsável pela análise</label>
+                  <input id="laudo-responsavel" value={responsavel} onChange={(e) => setResponsavel(e.target.value)} placeholder="Nome e registro profissional, se aplicável" />
+                </div>
+                <div className="laudo-field">
+                  <span className="laudo-label">Data de emissão</span>
+                  <span className="laudo-valor">Registrada automaticamente ao gerar o PDF.</span>
+                </div>
               </div>
             </section>
 
             {/* DIAGNÓSTICO */}
             <section className="laudo-section">
-              <h3 className="laudo-section-title">Diagnóstico</h3>
+              <h3 className="laudo-section-title">02 · Resumo da análise</h3>
 
-              <div className="laudo-diagnostico">
-                <p>
-                  Registre abaixo a interpretação da visita técnica nas observações e as
-                  orientações para o produtor nas recomendações.
-                </p>
+              <div className="laudo-field">
+                <CampoLongo rotulo="Resumo da análise" value={resumo} onChange={(e) => setResumo(e.target.value)} placeholder="Explique a situação observada e quais áreas precisam de atenção. Se a análise não estiver disponível, informe aqui." />
+              </div>
+            </section>
+
+            <section className="laudo-section">
+              <h3 className="laudo-section-title">Mapa de referência (opcional)</h3>
+              <div className="laudo-field">
+                <label className="laudo-label" htmlFor="laudo-mapa">Anexar mapa em PNG ou JPEG · até 10 MB</label>
+                <input id="laudo-mapa" type="file" accept="image/png,image/jpeg" onChange={anexarMapa} disabled={carregandoMapa || gerandoPdf || enviandoEmail} />
+                {carregandoMapa && <p role="status">Preparando mapa...</p>}
+                {mapa && <>
+                  <img className="laudo-mapa" src={mapa} alt="Mapa anexado ao laudo" />
+                  <label className="laudo-label" htmlFor="laudo-legenda">Legenda do mapa</label>
+                  <input id="laudo-legenda" value={legendaMapa} onChange={(e) => setLegendaMapa(e.target.value)} placeholder="Explique as cores e as áreas sinalizadas." />
+                  <button type="button" className="laudo-remover" onClick={() => { setMapa(null); setLegendaMapa(""); }}>Remover mapa</button>
+                </>}
               </div>
             </section>
 
             {/* OBSERVAÇÕES */}
             <section className="laudo-section">
-              <h3 className="laudo-section-title">Observações Técnicas</h3>
+              <h3 className="laudo-section-title">03 · Observações em campo</h3>
 
               <div className="laudo-field">
                 <CampoLongo
@@ -260,7 +287,7 @@ function Laudo() {
 
             {/* RECOMENDAÇÕES */}
             <section className="laudo-section">
-              <h3 className="laudo-section-title">Recomendações Técnicas</h3>
+              <h3 className="laudo-section-title">04 · Orientações ao produtor</h3>
 
               <div className="laudo-field">
                 <CampoLongo
@@ -284,7 +311,7 @@ function Laudo() {
             icon="baixar"
             onClick={baixarPdf}
             loading={gerandoPdf}
-            disabled={enviandoEmail}
+            disabled={enviandoEmail || carregandoMapa}
           >
             {gerandoPdf ? "Gerando PDF..." : "Baixar PDF"}
           </Button>
@@ -293,7 +320,7 @@ function Laudo() {
             icon="email"
             onClick={enviarPorEmail}
             loading={enviandoEmail}
-            disabled={gerandoPdf}
+            disabled={gerandoPdf || carregandoMapa}
           >
             {enviandoEmail ? "Enviando..." : "Enviar por e-mail"}
           </Button>
