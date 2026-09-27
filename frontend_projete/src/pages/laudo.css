@@ -531,3 +531,44 @@
     transition: none;
   }
 }
+
+.laudo-field select {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  min-height: 48px;
+  padding: 12px 14px;
+  border: 1px solid #cbd7ce;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #24382d;
+  font: inherit;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.laudo-field select:focus-visible {
+  outline: 3px solid #1f523b;
+  outline-offset: 3px;
+}
+
+.laudo-field select:disabled {
+  background: #f6f8f5;
+  color: #607166;
+  cursor: not-allowed;
+}
+
+.laudo-formulario:disabled select {
+  opacity: 0.7;
+}
+
+.laudo-remover + .laudo-remover {
+  margin-left: 8px;
+}
+
+@media (max-width: 420px) {
+  .laudo-remover + .laudo-remover {
+    margin-top: 8px;
+    margin-left: 0;
+  }
+}
