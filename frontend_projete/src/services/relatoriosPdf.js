@@ -230,18 +230,518 @@ function criarDocumento({ titulo, subtitulo, emissao }) {
   return { secao, paragrafo, bloco, indicadores, tabela, finalizar };
 }
 
-export function criarLaudoPdf({ produtorNome, lavouraNome, dataSelecionada, indices = {}, observacoes, recomendacoes, emissao = new Date() }) {
-  const relatorio = criarDocumento({ titulo: "Laudo técnico", subtitulo: "Análise e acompanhamento da lavoura", emissao });
-  relatorio.bloco("Identificação", `Produtor: ${texto(produtorNome)}\nLavoura: ${texto(lavouraNome)}\nData da análise: ${dataSelecionada ? dataSelecionada.split("-").reverse().join("/") : "Sem análise disponível"}`);
-  relatorio.secao("Indicadores da lavoura", 41);
-  relatorio.indicadores(["NDVI", "NDRE", "NDWI"].map((tipo) => ({
-    rotulo: tipo,
-    valor: Number.isFinite(indices[tipo]) ? indices[tipo].toFixed(6).replace(".", ",") : "Não disponível",
-  })));
-  relatorio.paragrafo("Os valores correspondem à data de análise selecionada. A interpretação e as orientações estão registradas nos campos abaixo.", { tamanho: 9, cor: COR.discreto });
-  relatorio.bloco("Observações técnicas", observacoes, "Nenhuma observação registrada.");
-  relatorio.bloco("Recomendações técnicas", recomendacoes, "Nenhuma recomendação registrada.");
-  return relatorio.finalizar();
+export function criarLaudoPdf({
+  produtorNome,
+  lavouraNome,
+  dataSelecionada,
+  dataImagem,
+  resumo,
+  observacoes,
+  recomendacoes,
+  responsavel,
+  logo,
+  mapa,
+  legendaMapa,
+  emissao = new Date(),
+}) {
+  const pdf = new jsPDF({
+    orientation: "portrait",
+    unit: "mm",
+    format: "a4",
+    compress: true,
+  });
+
+  const cores = {
+    verde: [31, 82, 59],
+    verdeEscuro: [20, 57, 40],
+    verdeClaro: [237, 245, 239],
+    texto: [37, 49, 42],
+    secundario: [94, 108, 99],
+    borda: [217, 228, 220],
+    fundo: [246, 248, 245],
+    branco: [255, 255, 255],
+    amareloClaro: [251, 246, 232],
+  };
+
+  const largura = pdf.internal.pageSize.getWidth();
+  const altura = pdf.internal.pageSize.getHeight();
+
+  const margem = 18;
+  const larguraUtil = largura - margem * 2;
+  const limiteInferior = altura - 24;
+
+  let y = 0;
+
+  function texto(valor, padrao = "Não informado") {
+    const resultado = String(valor ?? "")
+      .normalize("NFC")
+      .replace(/\r\n?/g, "\n")
+      .trim();
+
+    return resultado || padrao;
+  }
+
+  function formatarData(valor) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(valor || "")) {
+      return "Não informada";
+    }
+
+    return valor.split("-").reverse().join("/");
+  }
+
+  const dataEmissao = emissao.toLocaleDateString("pt-BR");
+  const horaEmissao = emissao.toLocaleTimeString("pt-BR", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+  pdf.setProperties({
+    title: `Laudo da lavoura - ${texto(lavouraNome)}`,
+    subject: "Análise, observações e orientações ao produtor",
+    author: "CoffeeVision",
+    creator: "CoffeeVision",
+  });
+
+  pdf.setLanguage("pt-BR");
+  pdf.setCreationDate(emissao);
+
+  function fonte(
+    tamanho = 10,
+    negrito = false,
+    cor = cores.texto
+  ) {
+    pdf.setFont("helvetica", negrito ? "bold" : "normal");
+    pdf.setFontSize(tamanho);
+    pdf.setTextColor(...cor);
+  }
+
+  function cabecalho(primeiraPagina = false) {
+    pdf.setFillColor(...cores.verde);
+    pdf.rect(0, 0, largura, 4, "F");
+
+    if (logo) {
+      const propriedades = pdf.getImageProperties(logo);
+
+      const proporcao = Math.min(
+        15 / propriedades.width,
+        15 / propriedades.height
+      );
+
+      pdf.addImage(
+        logo,
+        propriedades.fileType,
+        margem,
+        11,
+        propriedades.width * proporcao,
+        propriedades.height * proporcao
+      );
+    }
+
+    fonte(16, true, cores.verde);
+    pdf.text(
+      "CoffeeVision",
+      margem + (logo ? 20 : 0),
+      21
+    );
+
+    fonte(8, false, cores.secundario);
+    pdf.text(
+      "ACOMPANHAMENTO DA LAVOURA",
+      largura - margem,
+      20,
+      { align: "right" }
+    );
+
+    pdf.setDrawColor(...cores.borda);
+    pdf.setLineWidth(0.3);
+    pdf.line(margem, 31, largura - margem, 31);
+
+    if (primeiraPagina) {
+      fonte(26, true, cores.verdeEscuro);
+      pdf.text("Laudo da lavoura", margem, 47);
+
+      fonte(10, false, cores.secundario);
+      pdf.text(
+        "Análise, observações e orientações ao produtor",
+        margem,
+        55
+      );
+
+      fonte(8, false, cores.secundario);
+      pdf.text(
+        `Emitido em ${dataEmissao}, às ${horaEmissao}`,
+        margem,
+        63
+      );
+
+      y = 73;
+    } else {
+      fonte(10, true, cores.verde);
+      pdf.text("Laudo da lavoura", margem, 41);
+      y = 50;
+    }
+  }
+
+  function novaPagina() {
+    pdf.addPage();
+    cabecalho(false);
+  }
+
+  function garantirEspaco(espaco) {
+    if (y + espaco > limiteInferior) {
+      novaPagina();
+    }
+  }
+
+  function tituloSecao(titulo) {
+    garantirEspaco(24);
+
+    pdf.setFillColor(...cores.verde);
+    pdf.roundedRect(margem, y, 2, 7, 1, 1, "F");
+
+    fonte(13, true, cores.verde);
+    pdf.text(titulo, margem + 6, y + 5);
+
+    y += 13;
+  }
+
+  // Escreve o texto linha por linha, sem cortar palavras
+  // entre páginas nem transformar o documento em uma foto.
+  function paragrafo(
+    conteudo,
+    {
+      tamanho = 10,
+      cor = cores.texto,
+      continuacao = "",
+    } = {}
+  ) {
+    fonte(tamanho, false, cor);
+
+    const linhas = pdf.splitTextToSize(
+      texto(conteudo),
+      larguraUtil
+    );
+
+    const entrelinha = tamanho * 0.3528 * 1.5;
+
+    for (const linha of linhas) {
+      if (y + entrelinha > limiteInferior) {
+        novaPagina();
+
+        if (continuacao) {
+          tituloSecao(`${continuacao} - continuação`);
+        }
+      }
+
+      fonte(tamanho, false, cor);
+      pdf.text(linha, margem, y + tamanho * 0.3528);
+
+      y += entrelinha;
+    }
+
+    y += 5;
+  }
+
+  function campoIdentificacao(rotulo, valor) {
+    fonte(11, true);
+
+    const linhas = pdf.splitTextToSize(
+      texto(valor),
+      larguraUtil - 12
+    );
+
+    const alturaBloco = 13 + linhas.length * 5;
+
+    // Nomes muito longos usam a paginação normal.
+    if (alturaBloco > 65) {
+      garantirEspaco(20);
+
+      fonte(8, true, cores.secundario);
+      pdf.text(rotulo.toUpperCase(), margem, y + 3);
+
+      y += 8;
+
+      paragrafo(valor, {
+        continuacao: rotulo,
+      });
+
+      return;
+    }
+
+    garantirEspaco(alturaBloco + 4);
+
+    pdf.setFillColor(...cores.fundo);
+    pdf.roundedRect(
+      margem,
+      y,
+      larguraUtil,
+      alturaBloco,
+      2,
+      2,
+      "F"
+    );
+
+    fonte(8, true, cores.secundario);
+    pdf.text(
+      rotulo.toUpperCase(),
+      margem + 6,
+      y + 6
+    );
+
+    fonte(11, true);
+
+    linhas.forEach((linha, indice) => {
+      pdf.text(
+        linha,
+        margem + 6,
+        y + 13 + indice * 5
+      );
+    });
+
+    y += alturaBloco + 4;
+  }
+
+  function blocoDatas() {
+    garantirEspaco(28);
+
+    const intervalo = 4;
+    const larguraCartao = (larguraUtil - intervalo * 2) / 3;
+
+    const itens = [
+      ["DATA DA ANÁLISE", formatarData(dataSelecionada)],
+      ["DATA DA IMAGEM", formatarData(dataImagem)],
+      ["EMISSÃO DO LAUDO", dataEmissao],
+    ];
+
+    itens.forEach(([rotulo, valor], indice) => {
+      const x = margem + indice * (larguraCartao + intervalo);
+
+      pdf.setFillColor(...cores.verdeClaro);
+      pdf.roundedRect(
+        x,
+        y,
+        larguraCartao,
+        22,
+        2,
+        2,
+        "F"
+      );
+
+      fonte(7, true, cores.secundario);
+      pdf.text(rotulo, x + 4, y + 7);
+
+      fonte(11, true, cores.verde);
+      pdf.text(valor, x + 4, y + 15);
+    });
+
+    y += 29;
+  }
+
+  function secaoTexto(titulo, explicacao, valor, vazio) {
+    tituloSecao(titulo);
+
+    paragrafo(explicacao, {
+      tamanho: 9,
+      cor: cores.secundario,
+    });
+
+    paragrafo(texto(valor, vazio), {
+      continuacao: titulo,
+    });
+
+    y += 3;
+  }
+
+  function adicionarMapa() {
+    tituloSecao("03  Mapa da lavoura");
+
+    if (!mapa) {
+      paragrafo(
+        "Nenhum mapa foi anexado a este laudo. " +
+          "A localização visual das áreas analisadas não está " +
+          "representada neste documento.",
+        { tamanho: 10, cor: cores.secundario }
+      );
+
+      return;
+    }
+
+    paragrafo(
+      `Imagem de referência: ${formatarData(dataImagem)}. ` +
+        "O mapa abaixo foi anexado pelo responsável pela análise.",
+      { tamanho: 9, cor: cores.secundario }
+    );
+
+    const propriedades = pdf.getImageProperties(mapa);
+
+    const larguraMaxima = larguraUtil - 10;
+    const alturaMaxima = 105;
+
+    const escala = Math.min(
+      larguraMaxima / propriedades.width,
+      alturaMaxima / propriedades.height
+    );
+
+    const larguraImagem = propriedades.width * escala;
+    const alturaImagem = propriedades.height * escala;
+    const alturaQuadro = alturaImagem + 10;
+
+    if (y + alturaQuadro + 15 > limiteInferior) {
+      novaPagina();
+      tituloSecao("Mapa da lavoura - continuação");
+    }
+
+    pdf.setFillColor(...cores.fundo);
+    pdf.setDrawColor(...cores.borda);
+
+    pdf.roundedRect(
+      margem,
+      y,
+      larguraUtil,
+      alturaQuadro,
+      2,
+      2,
+      "FD"
+    );
+
+    pdf.addImage(
+      mapa,
+      propriedades.fileType,
+      margem + (larguraUtil - larguraImagem) / 2,
+      y + 5,
+      larguraImagem,
+      alturaImagem
+    );
+
+    y += alturaQuadro + 7;
+
+    paragrafo(
+      `Legenda: ${texto(
+        legendaMapa,
+        "Não informada pelo responsável."
+      )}`,
+      {
+        tamanho: 9,
+        continuacao: "Legenda do mapa",
+      }
+    );
+
+    y += 3;
+  }
+
+  function rodapes() {
+    const total = pdf.getNumberOfPages();
+
+    for (let pagina = 1; pagina <= total; pagina += 1) {
+      pdf.setPage(pagina);
+
+      pdf.setDrawColor(...cores.borda);
+      pdf.setLineWidth(0.3);
+
+      pdf.line(
+        margem,
+        altura - 17,
+        largura - margem,
+        altura - 17
+      );
+
+      fonte(8, false, cores.secundario);
+
+      pdf.text(
+        `CoffeeVision | Emitido em ${dataEmissao}`,
+        margem,
+        altura - 10
+      );
+
+      pdf.text(
+        `${pagina} / ${total}`,
+        largura - margem,
+        altura - 10,
+        { align: "right" }
+      );
+    }
+  }
+
+  // =========================
+  // CONTEÚDO DO DOCUMENTO
+  // =========================
+
+  cabecalho(true);
+
+  tituloSecao("01  Identificação e datas");
+
+  campoIdentificacao("Produtor", produtorNome);
+  campoIdentificacao("Lavoura", lavouraNome);
+
+  blocoDatas();
+
+  paragrafo(
+    "A data da análise indica quando a avaliação foi realizada. " +
+      "A data da imagem corresponde à captura utilizada como referência. " +
+      "A emissão indica quando este documento foi gerado.",
+    {
+      tamanho: 9,
+      cor: cores.secundario,
+    }
+  );
+
+  secaoTexto(
+    "02  Resumo da análise",
+    "Visão geral da situação observada e dos principais pontos de atenção.",
+    resumo,
+    "O resumo da análise não foi preenchido. " +
+      "Não é possível concluir a situação da lavoura a partir deste campo."
+  );
+
+  adicionarMapa();
+
+  secaoTexto(
+    "04  Observações em campo",
+    "Registros realizados durante o acompanhamento da lavoura, " +
+      "incluindo as condições observadas e a localização dos pontos avaliados.",
+    observacoes,
+    "Nenhuma observação em campo foi registrada neste laudo."
+  );
+
+  secaoTexto(
+    "05  Orientações ao produtor",
+    "Próximos passos definidos pelo responsável pela análise.",
+    recomendacoes,
+    "Nenhuma orientação foi registrada. " +
+      "Solicite ao responsável os próximos passos do acompanhamento."
+  );
+
+  tituloSecao("06  Responsável pela análise");
+
+  paragrafo(
+    texto(
+      responsavel,
+      "Responsável não informado."
+    )
+  );
+
+  tituloSecao("Como interpretar este laudo");
+
+  paragrafo(
+    "Este documento reúne as informações preenchidas pelo responsável " +
+      "no momento da emissão. Campos não informados não significam " +
+      "ausência de problemas na lavoura.\n\n" +
+      "Quando utilizadas, imagens de satélite apoiam a identificação " +
+      "de diferenças na área, mas não confirmam isoladamente a causa " +
+      "dessas diferenças. A interpretação deve considerar as " +
+      "observações em campo.\n\n" +
+      "As condições apresentadas se referem às datas indicadas neste " +
+      "documento e podem mudar ao longo do tempo.",
+    {
+      tamanho: 9,
+      cor: cores.secundario,
+      continuacao: "Como interpretar este laudo",
+    }
+  );
+
+  rodapes();
+
+  return pdf;
 }
 
 export function criarRelatorioCooperativaPdf({ dashboard, ranking, usuarios, emissao = new Date() }) {
