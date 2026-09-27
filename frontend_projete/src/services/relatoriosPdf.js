@@ -37,7 +37,7 @@ export function nomeArquivoLaudo(nome, data = new Date()) {
   return `laudo_${parte}_${dataParaArquivo(data)}.pdf`;
 }
 
-function criarDocumento({ titulo, subtitulo, emissao }) {
+function criarDocumento({ titulo, subtitulo, emissao, logo }) {
   const pdf = new jsPDF({ unit: "mm", format: "a4", compress: true, putOnlyUsedFonts: true });
   pdf.setProperties({ title: titulo, subject: subtitulo, author: "CoffeeVision", creator: "CoffeeVision" });
   pdf.setLanguage("pt-BR");
@@ -61,7 +61,8 @@ function criarDocumento({ titulo, subtitulo, emissao }) {
     pdf.setFillColor(...COR.verde);
     pdf.rect(0, 0, largura, 3, "F");
     fonte(15, true, COR.verde);
-    pdf.text("CoffeeVision", margem, 18);
+    if (logo) pdf.addImage(logo, "JPEG", margem, 7, 14, 14);
+    pdf.text("CoffeeVision", margem + (logo ? 18 : 0), 18);
     fonte(8, false, COR.discreto);
     pdf.text("GESTÃO E MONITORAMENTO AGRÍCOLA", largura - margem, 18, { align: "right" });
     pdf.setDrawColor(...COR.linha);
@@ -213,6 +214,17 @@ function criarDocumento({ titulo, subtitulo, emissao }) {
     y += 8;
   }
 
+  function imagem(mapa, legenda) {
+    if (!mapa) return;
+    const propriedades = pdf.getImageProperties(mapa);
+    const h = Math.min(100, util * propriedades.height / propriedades.width);
+    const w = h * propriedades.width / propriedades.height;
+    secao("Mapa de referência", h + 24);
+    pdf.addImage(mapa, propriedades.fileType, margem + (util - w) / 2, y, w, h);
+    y += h + 4;
+    paragrafo(texto(legenda, "Mapa anexado pelo responsável. Legenda não informada."), { tamanho: 9 });
+  }
+
   function finalizar() {
     const paginas = pdf.getNumberOfPages();
     for (let pagina = 1; pagina <= paginas; pagina += 1) {
@@ -227,20 +239,22 @@ function criarDocumento({ titulo, subtitulo, emissao }) {
   }
 
   cabecalho(true);
-  return { secao, paragrafo, bloco, indicadores, tabela, finalizar };
+  return { secao, paragrafo, bloco, indicadores, tabela, imagem, finalizar };
 }
 
-export function criarLaudoPdf({ produtorNome, lavouraNome, dataSelecionada, indices = {}, observacoes, recomendacoes, emissao = new Date() }) {
-  const relatorio = criarDocumento({ titulo: "Laudo técnico", subtitulo: "Análise e acompanhamento da lavoura", emissao });
-  relatorio.bloco("Identificação", `Produtor: ${texto(produtorNome)}\nLavoura: ${texto(lavouraNome)}\nData da análise: ${dataSelecionada ? dataSelecionada.split("-").reverse().join("/") : "Sem análise disponível"}`);
-  relatorio.secao("Indicadores da lavoura", 41);
-  relatorio.indicadores(["NDVI", "NDRE", "NDWI"].map((tipo) => ({
-    rotulo: tipo,
-    valor: Number.isFinite(indices[tipo]) ? indices[tipo].toFixed(6).replace(".", ",") : "Não disponível",
-  })));
-  relatorio.paragrafo("Os valores correspondem à data de análise selecionada. A interpretação e as orientações estão registradas nos campos abaixo.", { tamanho: 9, cor: COR.discreto });
-  relatorio.bloco("Observações técnicas", observacoes, "Nenhuma observação registrada.");
-  relatorio.bloco("Recomendações técnicas", recomendacoes, "Nenhuma recomendação registrada.");
+function dataLaudo(valor, vazio = "Não informada") {
+  return /^\d{4}-\d{2}-\d{2}$/.test(valor || "") ? valor.split("-").reverse().join("/") : vazio;
+}
+
+export function criarLaudoPdf({ produtorNome, lavouraNome, dataSelecionada, dataImagem,
+  resumo, observacoes, recomendacoes, responsavel, logo, mapa, legendaMapa, emissao = new Date() }) {
+  const relatorio = criarDocumento({ titulo: "Laudo técnico", subtitulo: "Acompanhamento da lavoura e orientações ao produtor", emissao, logo });
+  relatorio.bloco("01  Identificação", `Produtor: ${texto(produtorNome)}\nLavoura: ${texto(lavouraNome)}\nData da análise: ${dataLaudo(dataSelecionada)}\nData da imagem: ${dataLaudo(dataImagem)}\nResponsável: ${texto(responsavel)}`);
+  relatorio.bloco("02  Resumo da análise", resumo, "Análise não registrada. Não é possível concluir a situação da lavoura.");
+  relatorio.imagem(mapa, legendaMapa);
+  relatorio.bloco("03  Observações em campo", observacoes, "Nenhuma observação registrada.");
+  relatorio.bloco("04  Orientações ao produtor", recomendacoes, "Nenhuma orientação registrada.");
+  relatorio.bloco("Sobre este documento", "Este documento reúne as informações preenchidas pelo responsável. Campos não informados não indicam ausência de problemas. Quando utilizadas, imagens de satélite apoiam o acompanhamento e devem ser interpretadas junto às verificações em campo.");
   return relatorio.finalizar();
 }
 
