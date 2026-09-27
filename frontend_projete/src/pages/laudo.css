@@ -177,3 +177,15 @@
     white-space: nowrap;
   }
 }
+
+/* Formulário e PDF compartilham conteúdo; o PDF tem paginação própria. */
+.laudo-card { border-top: 5px solid var(--canopy, #1f523b); }
+.laudo-marca { display: block; color: var(--canopy, #1f523b); font-size: 11px; font-weight: 700; letter-spacing: .09em; margin-bottom: 10px; }
+.laudo-header-text p, .laudo-field small { color: var(--ink-soft); }
+.laudo-info-grid { padding: 20px; background: var(--parchment); border-radius: 12px; }
+.laudo-section { padding-bottom: 22px; border-bottom: 1px solid var(--border); }
+.laudo-section:last-child { border-bottom: 0; }
+.laudo-field input:focus-visible, .laudo-field textarea:focus-visible { outline: 3px solid var(--canopy, #1f523b); outline-offset: 2px; }
+.laudo-mapa { display: block; max-width: 100%; max-height: 400px; object-fit: contain; margin: 12px auto; }
+.laudo-remover { align-self: flex-start; border: 1px solid var(--border-strong); border-radius: 8px; padding: 10px 14px; background: var(--surface); color: var(--ink); cursor: pointer; }
+@media (max-width: 420px) { .laudo-actions { grid-template-columns: 1fr; } .laudo-info-grid { padding: 12px; } .laudo-icon { width: 56px; height: 56px; } }
