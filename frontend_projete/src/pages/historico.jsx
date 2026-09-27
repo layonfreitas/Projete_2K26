@@ -72,9 +72,6 @@ function mensagemAlerta(indice, critico) {
     "Foi registrada uma alteração que precisa ser avaliada."
   );
 }
-function mensagemAlerta(indice, critico) {
-  return MENSAGENS[indice]?.[critico ? 'critico' : 'atencao'] || 'Placeholder: alerta detectado.';
-}
 
 function HistoricoAlerta() {
   const container = useRef(null);
