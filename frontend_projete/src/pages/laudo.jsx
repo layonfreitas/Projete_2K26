@@ -176,20 +176,23 @@ export default function Laudo() {
   async function gerarPdf() {
     const logo = await carregarImagem(logoIcone);
 
-    return criarLaudoPdf({
-      produtorNome,
-      lavouraNome,
-      dataSelecionada: dataAnalise,
-      dataImagem,
-      resumo,
-      observacoes,
-      recomendacoes,
-      responsavel,
-      logo,
-      mapa,
-      legendaMapa,
-    });
-  }
+   async function gerarPdf() {
+  const logo = await carregarImagem(logoIcone);
+
+  return criarLaudoPdf({
+    produtorNome,
+    lavouraNome,
+    dataSelecionada: dataAnalise,
+    dataImagem,
+    resumo,
+    observacoes,
+    recomendacoes,
+    responsavel,
+    logo,
+    mapa,
+    legendaMapa,
+  });
+}
 
   async function baixarPdf() {
     if (ocupado) return;
