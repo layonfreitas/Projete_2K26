@@ -10,7 +10,7 @@ def insert_alerta():
 
     lista  = [(linha["usuario_id"], linha["lavoura_id"], linha["critico"], linha["indice"]) for linha in dados]
     try:
-        query = "INSERT INTO alertas (usuario_id, lavoura_id, critico, indice) VALUES(%s,%s,%s,%s)"
+        query = "INSERT INTO alertas (usuario_id, lavoura_id, critico, indices) VALUES(%s,%s,%s,%s)"
         cursor = mysql.connection.cursor()
         cursor.executemany(query, lista)
        
