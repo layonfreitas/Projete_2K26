@@ -28,23 +28,50 @@ const estilo = { color: '#2f4a33', weight: 2, fill: false };
 
 const MENSAGENS = {
   NDVI: {
-    critico: 'Placeholder: NDVI em nível crítico — ajustar texto depois.',
-    atencao: 'Placeholder: NDVI em nível de atenção — ajustar texto depois.',
+    critico:
+      "Foi identificada uma alteração acentuada no comportamento " +
+      "da vegetação. Consulte o mapa e verifique a área em campo.",
+    atencao:
+      "Foi identificada uma variação na vegetação que merece " +
+      "acompanhamento. Consulte as áreas sinalizadas no mapa.",
   },
+
   NDRE: {
-    critico: 'Placeholder: NDRE em nível crítico — ajustar texto depois.',
-    atencao: 'Placeholder: NDRE em nível de atenção — ajustar texto depois.',
+    critico:
+      "Foi identificada uma alteração acentuada na resposta " +
+      "espectral da vegetação. A causa precisa ser avaliada em campo.",
+    atencao:
+      "A resposta espectral da vegetação apresentou uma variação. " +
+      "Acompanhe a área e registre as condições observadas.",
   },
+
   NDWI: {
-    critico: 'Placeholder: NDWI em nível crítico (possível estresse hídrico) — ajustar texto depois.',
-    atencao: 'Placeholder: NDWI em nível de atenção (possível estresse hídrico) — ajustar texto depois.',
+    critico:
+      "Foi identificada uma alteração acentuada no indicador " +
+      "relacionado à água na vegetação. Verifique as condições em campo.",
+    atencao:
+      "Foi identificada uma variação no indicador relacionado " +
+      "à água na vegetação. Acompanhe as áreas sinalizadas.",
   },
+
   CLMI: {
-    critico: 'Placeholder: CLMI em nível crítico — ajustar texto depois.',
-    atencao: 'Placeholder: CLMI em nível de atenção — ajustar texto depois.',
+    critico:
+      "A classificação automática sinalizou uma condição crítica. " +
+      "Confirme o resultado com avaliação em campo.",
+    atencao:
+      "A classificação automática sinalizou uma condição que " +
+      "merece acompanhamento.",
   },
 };
 
+function mensagemAlerta(indice, critico) {
+  return (
+    MENSAGENS[indice]?.[
+      critico ? "critico" : "atencao"
+    ] ||
+    "Foi registrada uma alteração que precisa ser avaliada."
+  );
+}
 function mensagemAlerta(indice, critico) {
   return MENSAGENS[indice]?.[critico ? 'critico' : 'atencao'] || 'Placeholder: alerta detectado.';
 }
@@ -70,7 +97,20 @@ function HistoricoAlerta() {
   const [excluindoId, setExcluindoId] = useState(null);
 
   const alertaSelecionado = alertas.find(a => a.id === alertaSelecionadoId);
-  const temMapa = Boolean(alertaSelecionado?.data_imagem && alertaSelecionado?.contorno);
+  const mapasDosAlertas = {
+  NDVI: "z_score_NDVI_final",
+  NDRE: "z_score_NDRE_final",
+  NDWI: "z_score_NDWI_final",
+};
+
+const indiceMapa =
+  mapasDosAlertas[alertaSelecionado?.indice];
+
+const temMapa = Boolean(
+  alertaSelecionado?.data_imagem &&
+  alertaSelecionado?.contorno &&
+  indiceMapa
+);
 
   useEffect(() => {
     const map = L.map(container.current, { center: [-14.235, -51.925], zoom: 4, maxZoom: 17, trackResize: false });
@@ -129,12 +169,12 @@ function HistoricoAlerta() {
     setEstadoMapa({ carregando: true, erro: '', dados: null });
 
     const params = new URLSearchParams({
-      usuario_id: alertaSelecionado.usuario_id,
-      id: lavouraId,
-      data: alertaSelecionado.data_imagem,
-      indice: alertaSelecionado.indice,
-      contorno: alertaSelecionado.contorno,
-    });
+  usuario_id: String(alertaSelecionado.usuario_id),
+  id: String(lavouraId),
+  data: alertaSelecionado.data_imagem,
+  indice: indiceMapa,
+  contorno: alertaSelecionado.contorno,
+});
 
     buscarJson(`${AUTH_API_URL}/acessar_imagem?${params}`, controller.signal).then(dados => {
       if (controller.signal.aborted) return;

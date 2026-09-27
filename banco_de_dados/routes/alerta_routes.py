@@ -84,32 +84,47 @@ def insert_alerta():
 
 @alertas_bp.route('/alertas/<int:lavoura_id>', methods=['GET'])
 def listar_alertas(lavoura_id):
+    cursor = None
 
     try:
-
-        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
+        cursor = mysql.connection.cursor(
+            MySQLdb.cursors.DictCursor
+        )
 
         cursor.execute(
             """
-           SELECT * FROM alertas WHERE lavoura_id = %s
+            SELECT
+                id,
+                usuario_id,
+                lavoura_id,
+                critico,
+                indices AS indice,
+                DATE_FORMAT(data_imagem, '%%Y-%%m-%%d')
+                    AS data_imagem,
+                contorno
+            FROM alertas
+            WHERE lavoura_id = %s
+            ORDER BY data_imagem DESC, id DESC
             """,
-            (lavoura_id,)
-            
+            (lavoura_id,),
         )
 
-        resultados = cursor.fetchall()
+        resultados = list(cursor.fetchall())
 
-        cursor.close()
+        for alerta in resultados:
+            alerta["critico"] = bool(alerta["critico"])
 
-        
         return jsonify(resultados), 200
 
     except Exception as erro:
-
         return jsonify({
             "mensagem": "Erro ao buscar alertas",
-            "erro": str(erro)
+            "erro": str(erro),
         }), 500
+
+    finally:
+        if cursor is not None:
+            cursor.close()
 
 @alertas_bp.route("/alertas/<int:id>", methods=["DELETE"])
 def delete_alerta(id):

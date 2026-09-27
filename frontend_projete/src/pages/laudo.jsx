@@ -173,10 +173,7 @@ export default function Laudo() {
     setLegendaMapa("");
   }
 
-  async function gerarPdf() {
-    const logo = await carregarImagem(logoIcone);
-
-   async function gerarPdf() {
+async function gerarPdf() {
   const logo = await carregarImagem(logoIcone);
 
   return criarLaudoPdf({
