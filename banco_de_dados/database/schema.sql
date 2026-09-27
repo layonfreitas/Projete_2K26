@@ -146,8 +146,10 @@ CREATE TABLE alertas (
     id INT NOT NULL AUTO_INCREMENT,
     usuario_id INT NOT NULL,
     lavoura_id INT NOT NULL,
-    tipo CHAR(50) NOT NULL,
-    indices ENUM('NDVI', 'NDWI', 'NDRE', 'CLMI') NOT NULL,
+    critico BOOLEAN NOT NULL,
+    indice ENUM('NDVI', 'NDWI', 'NDRE', 'CLMI') NOT NULL,
+    data_imagem DATE NULL,
+    contorno INT NULL,
     PRIMARY KEY (id),
     CONSTRAINT fk_alertas_usuario
         FOREIGN KEY (usuario_id)

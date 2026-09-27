@@ -69,3 +69,204 @@
 .hist-painel {
   width: 100%;
 }
+
+/* Histórico de alertas (prefixo hist-alerta-) */
+.hist-alerta {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+}
+
+.hist-alerta-conteudo {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+}
+.hist-alerta-barra {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.hist-alerta-lavoura {
+  flex: 1;
+  max-width: 420px;
+}
+
+.hist-alerta-area {
+  display: grid;
+  grid-template-columns: 320px minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+
+/* ---------- lista de alertas ---------- */
+
+.hist-alerta-lista {
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  max-height: 640px;
+  overflow-y: auto;
+}
+
+.hist-alerta-itens {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.hist-alerta-itens li {
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+}
+
+.hist-alerta-item {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  padding: 10px 12px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--ink);
+  font-weight: 400;
+}
+
+.hist-alerta-item:hover {
+  border-color: var(--canopy);
+  background: var(--canopy-soft);
+}
+
+.hist-alerta-item.ativo {
+  border-color: var(--canopy);
+  background: var(--canopy);
+  color: #fff;
+}
+
+.hist-alerta-item.ativo p {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.hist-alerta-item strong {
+  display: block;
+  margin-top: 2px;
+  font-size: 14.5px;
+}
+
+.hist-alerta-item p {
+  margin: 4px 0 0;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--ink-soft);
+}
+
+.hist-alerta-badge {
+  display: inline-block;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.hist-alerta-badge.critico {
+  background: var(--cherry-soft);
+  color: var(--cherry);
+}
+
+.hist-alerta-badge.atencao {
+  background: var(--gold-soft);
+  color: var(--gold);
+}
+
+.hist-alerta-item.ativo .hist-alerta-badge.critico,
+.hist-alerta-item.ativo .hist-alerta-badge.atencao {
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+}
+
+.hist-alerta-excluir {
+  align-self: flex-start;
+  color: var(--cherry);
+}
+
+.hist-alerta-status,
+.hist-alerta-vazio {
+  padding: 8px 0;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+
+.hist-alerta-erro {
+  color: var(--cherry);
+}
+
+/* ---------- mapa do alerta ---------- */
+
+.hist-alerta-visao {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.hist-alerta-mapa-caixa {
+  position: relative;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+
+.hist-alerta-mapa {
+  width: 100%;
+  height: clamp(340px, 62svh, 640px);
+}
+
+.hist-alerta-status-mapa {
+  position: absolute;
+  inset: 0;
+  z-index: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px;
+  text-align: center;
+  background: rgba(255, 253, 248, 0.9);
+  color: var(--ink);
+  font-size: 13.5px;
+  font-weight: 500;
+  pointer-events: none;
+}
+
+.hist-alerta-status-mapa .ui-spinner {
+  color: var(--canopy);
+}
+
+/* ---------- celular: lista vira uma faixa acima do mapa ---------- */
+
+@media (max-width: 800px) {
+  .hist-alerta-area {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .hist-alerta-lista {
+    max-height: none;
+    padding: 12px;
+  }
+
+  .hist-alerta-lavoura {
+    max-width: none;
+  }
+}

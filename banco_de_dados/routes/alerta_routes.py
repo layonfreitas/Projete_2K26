@@ -60,32 +60,31 @@ def insert_alerta():
 
     cursor = None
 
-    try:
-        cursor = mysql.connection.cursor()
-
-        cursor.executemany(
-            """
-            INSERT INTO alertas (
-                usuario_id,
-                lavoura_id,
-                critico,
-                indices,
-                url
-            )
-            VALUES (%s, %s, %s, %s, %s)
-            """,
-            lista,
+    lista = [
+        (
+            linha["usuario_id"],
+            linha["lavoura_id"],
+            linha["critico"],
+            linha["indice"],
+            linha.get("data_imagem"),
+            linha.get("contorno"),
         )
-
+        for linha in dados
+    ]
+    try:
+        query = """
+            INSERT INTO alertas (usuario_id, lavoura_id, critico, indice, data_imagem, contorno)
+            VALUES (%s, %s, %s, %s, %s, %s)
+        """
+        cursor = mysql.connection.cursor()
+        cursor.executemany(query, lista)
         mysql.connection.commit()
+        cursor.close()
 
-        return jsonify({
-            "mensagem": "Alertas salvos com sucesso.",
-            "quantidade": len(lista),
-        }), 201
+        return jsonify({"mensagem": "Alerta(s) inserido(s) no banco de dados."}), 200
 
     except Exception as erro:
-        mysql.connection.rollback()
+        return jsonify({"mensagem": "Não foi possivel inserir o(s) alerta(s) no banco de dados", "erro": str(erro)}), 500
 
         return jsonify({
             "mensagem": "Não foi possível salvar os alertas.",
