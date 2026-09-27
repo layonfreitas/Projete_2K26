@@ -264,11 +264,14 @@ def processar_lavoura(lavoura, crs=None, crs_transformation=None, safra_atual=No
                         resultado_anomalia["indice"]
                     )
 
+                    
                     resultado["alertas"].append({
                         "usuario_id": lavoura["usuarioId"],
                         "lavoura_id": lavoura["id"],
                         "critico": resultado_anomalia["temCriticidade"],
                         "indice": indice,
+                        "data_imagem": resultado["dataImagem"],
+                        "contorno": resultado_anomalia["registro"][0].get("contorno"),
                         "url": resultado_anomalia["registro"][1],
                     })
                     

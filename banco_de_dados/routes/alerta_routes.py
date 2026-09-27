@@ -5,7 +5,6 @@ from app import mysql
 alertas_bp = Blueprint('alerta', __name__)
 
 @alertas_bp.route('/alertas', methods=['POST'])
-@alertas_bp.route('/alertas', methods=['POST'])
 def insert_alerta():
     dados = request.get_json(silent=True)
 
@@ -39,38 +38,29 @@ def insert_alerta():
                 "mensagem": "Informe usuario_id e lavoura_id."
             }), 400
 
-        # Ausente ou null no JSON vira NULL no banco.
         critico = alerta.get("critico")
 
-        if critico is not None and (
-            not isinstance(critico, (bool, int))
-            or critico not in (0, 1)
-        ):
+        # A coluna "critico" no banco é BOOLEAN NOT NULL: não aceita nulo.
+        if not isinstance(critico, (bool, int)) or critico not in (0, 1):
             return jsonify({
-                "mensagem": "critico deve ser true, false ou null."
+                "mensagem": "critico deve ser true ou false."
             }), 400
 
+        # Usa os mesmos valores já validados/normalizados acima (a versão
+        # antiga montava essa lista de novo lendo os campos "crus", o que
+        # fazia a validação de cima não valer de nada e quebrava com
+        # KeyError sempre que faltava "critico" ou vinha "indices").
         lista.append((
             alerta["usuario_id"],
             alerta["lavoura_id"],
             critico,
             indice,
-            alerta.get("url"),
+            alerta.get("data_imagem"),
+            alerta.get("contorno"),
         ))
 
     cursor = None
 
-    lista = [
-        (
-            linha["usuario_id"],
-            linha["lavoura_id"],
-            linha["critico"],
-            linha["indice"],
-            linha.get("data_imagem"),
-            linha.get("contorno"),
-        )
-        for linha in dados
-    ]
     try:
         query = """
             INSERT INTO alertas (usuario_id, lavoura_id, critico, indice, data_imagem, contorno)
@@ -79,13 +69,10 @@ def insert_alerta():
         cursor = mysql.connection.cursor()
         cursor.executemany(query, lista)
         mysql.connection.commit()
-        cursor.close()
 
         return jsonify({"mensagem": "Alerta(s) inserido(s) no banco de dados."}), 200
 
     except Exception as erro:
-        return jsonify({"mensagem": "Não foi possivel inserir o(s) alerta(s) no banco de dados", "erro": str(erro)}), 500
-
         return jsonify({
             "mensagem": "Não foi possível salvar os alertas.",
             "erro": str(erro),
@@ -124,18 +111,25 @@ def listar_alertas(lavoura_id):
             "erro": str(erro)
         }), 500
 
-@alertas_bp.route("/alertas/<int:id>", methods = ["DELETE"])
+@alertas_bp.route("/alertas/<int:id>", methods=["DELETE"])
 def delete_alerta(id):
+    cursor = None
     try:
         cursor = mysql.connection.cursor()
         cursor.execute(
-            """
-            DELETE FROM alertas WHERE id = %s
-
-            """,
-            (id,)
+            "DELETE FROM alertas WHERE id = %s",
+            (id,),
         )
+        # Faltava o commit: sem ele, a exclusão nunca era gravada de fato.
+        mysql.connection.commit()
+
+        # Faltava também o return: toda chamada bem-sucedida derrubava
+        # a API com "The view function did not return a valid response".
+        return jsonify({"mensagem": "Alerta removido."}), 200
 
     except Exception as erro:
-        return jsonify({"mensagem": "Erro ao deletar alerta", "erro": str(erro)}),500
-    
+        return jsonify({"mensagem": "Erro ao deletar alerta", "erro": str(erro)}), 500
+
+    finally:
+        if cursor is not None:
+            cursor.close()

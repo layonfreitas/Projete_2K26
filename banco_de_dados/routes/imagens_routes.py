@@ -269,10 +269,10 @@ def cadastrar_imagem():
             imagem_id = cursor.lastrowid
 
         mysql.connection.commit()
-
         return jsonify({
             "mensagem": "Imagem salva com sucesso.",
             "id": imagem_id,
+            "contorno": contorno_recebido,
         }), 200 if atualizar else 201
 
     except Exception as erro:

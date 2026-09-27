@@ -1,13 +1,12 @@
-import { useState, useEffect, useLayoutEffect, useRef } from "react";
+import { useState, useLayoutEffect, useRef } from "react";
 import { useParams } from "react-router-dom";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
-import logoCoffeeVision from "../assets/logo-coffeevision.png";
+import logoIcone from "../assets/logo-icone.jpeg";
 import { AUTH_API_URL } from "../config/api";
 import AppBar from "../components/ui/AppBar";
 import Button from "../components/ui/Button";
 import { useToast } from "../components/ui/toastContext";
-import { mensagemDeErro } from "../services/erros";
 import "./laudo.css";
 
 // Textarea que cresce junto com o texto. Assim o PDF mostra tudo que foi
@@ -48,14 +47,15 @@ function Laudo() {
   const [observacoes, setObservacoes] = useState("");
   const [recomendacoes, setRecomendacoes] = useState("");
 
-  const [tentativa, setTentativa] = useState(0);
-  const [consulta, setConsulta] = useState({
-    chave: "",
-    indicesPorData: {},
-    datas: [],
-    erro: null,
+  // Data da análise: preenchida com hoje por padrão, mas o agrônomo pode
+  // alterar livremente (o laudo não depende mais de nenhuma consulta externa).
+  const [dataAnalise, setDataAnalise] = useState(() => {
+    const hoje = new Date();
+    const ano = hoje.getFullYear();
+    const mes = String(hoje.getMonth() + 1).padStart(2, "0");
+    const dia = String(hoje.getDate()).padStart(2, "0");
+    return `${ano}-${mes}-${dia}`;
   });
-  const [dataEscolhida, setDataEscolhida] = useState(null);
 
   const produtorNome = localStorage.getItem("produtorSelecionadoNome") || "Nome do produtor";
 
@@ -72,105 +72,6 @@ function Laudo() {
 
     return { lavouraId, usuarioId };
   }
-
-  const lavouraIdConsulta = id || localStorage.getItem("lavouraId");
-  const chaveConsulta = lavouraIdConsulta ? `${lavouraIdConsulta}:${tentativa}` : "";
-
-  // A API deve retornar uma lista de { dataReferencia, tipoIndice, valor }.
-  // Uma única consulta traz os valores; a seleção de data filtra localmente.
-  useEffect(() => {
-    if (!chaveConsulta) return undefined;
-
-    const controller = new AbortController();
-
-    async function carregarIndices() {
-      try {
-        // Se o JSON vier de outra rota, altere somente esta URL.
-        const resp = await fetch(
-          `${AUTH_API_URL}/indices_vegetacao/${encodeURIComponent(lavouraIdConsulta)}`,
-          { signal: controller.signal }
-        );
-
-        if (!resp.ok) {
-          throw new Error(`Erro ao consultar índices (HTTP ${resp.status}).`);
-        }
-
-        const dados = await resp.json();
-        if (!Array.isArray(dados)) {
-          throw new Error("A API deve retornar uma lista de índices.");
-        }
-
-        const agrupados = {};
-        const tiposAceitos = ["NDVI", "NDRE", "NDWI"];
-
-        for (const item of dados) {
-          if (!item || typeof item !== "object") continue;
-
-          const data = item.dataReferencia;
-          const tipo =
-            typeof item.tipoIndice === "string" ? item.tipoIndice.trim().toUpperCase() : "";
-
-          if (
-            typeof data !== "string" ||
-            !/^\d{4}-\d{2}-\d{2}$/.test(data) ||
-            !tiposAceitos.includes(tipo)
-          )
-            continue;
-
-          // Mantém zero e números negativos; não converte null em zero.
-          const valor =
-            typeof item.valor === "number" && Number.isFinite(item.valor) ? item.valor : null;
-
-          if (!agrupados[data]) agrupados[data] = {};
-          agrupados[data][tipo] = valor;
-        }
-
-        const datas = Object.keys(agrupados).sort().reverse();
-        if (controller.signal.aborted) return;
-
-        setConsulta({ chave: chaveConsulta, indicesPorData: agrupados, datas, erro: null });
-      } catch (erro) {
-        if (controller.signal.aborted) return;
-        setConsulta({
-          chave: chaveConsulta,
-          indicesPorData: {},
-          datas: [],
-          erro: mensagemDeErro(erro, "Não foi possível carregar os índices."),
-        });
-      }
-    }
-
-    carregarIndices();
-    return () => controller.abort();
-  }, [chaveConsulta, lavouraIdConsulta]);
-
-  const consultaAtual = consulta.chave === chaveConsulta;
-  const carregandoIndices = Boolean(chaveConsulta) && !consultaAtual;
-  const erroIndices = !lavouraIdConsulta
-    ? "Não foi possível identificar a lavoura."
-    : consultaAtual
-      ? consulta.erro
-      : null;
-
-  // Datas únicas do JSON, ordenadas da mais recente para a mais antiga.
-  const datasDisponiveis = consultaAtual ? consulta.datas : [];
-  const dataSelecionada = datasDisponiveis.includes(dataEscolhida)
-    ? dataEscolhida
-    : datasDisponiveis[0] || null;
-
-  const indices = (consultaAtual && consulta.indicesPorData[dataSelecionada]) || {};
-
-  const formatarIndice = (valor) => {
-    if (carregandoIndices) return "...";
-    if (!Number.isFinite(valor)) return "--";
-    return valor.toFixed(6);
-  };
-
-  const formatarDataExibicao = (dataIso) => {
-    if (!dataIso) return "";
-    const [ano, mes, dia] = dataIso.split("-");
-    return `${dia}/${mes}/${ano}`;
-  };
 
   // =========================================================
   // GERAR O PDF (captura o conteúdo do laudo como imagem e
@@ -282,14 +183,6 @@ function Laudo() {
     }
   }
 
-  const statusAnalise = carregandoIndices
-    ? "Carregando análise..."
-    : erroIndices
-      ? "Erro ao carregar análise"
-      : dataSelecionada
-        ? "Índices carregados"
-        : "Sem análise disponível";
-
   return (
     <div className="ui-coluna ui-coluna--larga ui-coluna--sem-nav">
       <AppBar titulo="Laudo técnico" subtitulo={lavouraNome} para="/home" />
@@ -305,7 +198,7 @@ function Laudo() {
               </div>
 
               <div className="laudo-icon">
-                <img src={logoCoffeeVision} alt="CoffeeVision" />
+                <img src={logoIcone} alt="CoffeeVision" />
               </div>
             </header>
 
@@ -329,29 +222,12 @@ function Laudo() {
                     Data da análise
                   </label>
 
-                  {datasDisponiveis.length > 1 ? (
-                    <select
-                      id="laudo-data"
-                      value={dataSelecionada || ""}
-                      onChange={(e) => setDataEscolhida(e.target.value)}
-                    >
-                      {datasDisponiveis.map((data) => (
-                        <option key={data} value={data}>
-                          {formatarDataExibicao(data)}
-                        </option>
-                      ))}
-                    </select>
-                  ) : (
-                    <span className="laudo-valor" id="laudo-data">
-                      {dataSelecionada
-                        ? formatarDataExibicao(dataSelecionada)
-                        : carregandoIndices
-                          ? "Carregando análises..."
-                          : erroIndices
-                            ? "Análises indisponíveis"
-                            : "Nenhuma análise encontrada"}
-                    </span>
-                  )}
+                  <input
+                    id="laudo-data"
+                    type="date"
+                    value={dataAnalise}
+                    onChange={(e) => setDataAnalise(e.target.value)}
+                  />
                 </div>
               </div>
             </section>
@@ -361,35 +237,10 @@ function Laudo() {
               <h3 className="laudo-section-title">Diagnóstico</h3>
 
               <div className="laudo-diagnostico">
-                <div className="laudo-diagnostico-header">
-                  <span className="laudo-diagnostico-title">Resultado da análise</span>
-                  <span className="laudo-status">{statusAnalise}</span>
-                </div>
-
                 <p>
-                  Os índices disponíveis são apresentados abaixo. Registre a interpretação da
-                  análise nas observações técnicas e as orientações nas recomendações.
+                  Registre abaixo a interpretação da visita técnica nas observações e as
+                  orientações para o produtor nas recomendações.
                 </p>
-              </div>
-            </section>
-
-            {/* RESULTADOS */}
-            <section className="laudo-section">
-              <h3 className="laudo-section-title">Indicadores da Lavoura</h3>
-
-              {erroIndices && (
-                <p className="laudo-erro" role="alert">
-                  {erroIndices}
-                </p>
-              )}
-
-              <div className="laudo-resultados">
-                {["NDVI", "NDRE", "NDWI"].map((tipo) => (
-                  <div className="laudo-result-card" key={tipo}>
-                    <span className="laudo-result-label">{tipo}</span>
-                    <span className="laudo-result-value">{formatarIndice(indices[tipo])}</span>
-                  </div>
-                ))}
               </div>
             </section>
 
@@ -423,16 +274,6 @@ function Laudo() {
           </div>
           {/* fim do laudo-conteudo (o que vira PDF) */}
         </div>
-
-        {erroIndices && lavouraIdConsulta && (
-          <Button
-            variant="secondary"
-            icon="atualizar"
-            onClick={() => setTentativa((n) => n + 1)}
-          >
-            Tentar carregar os índices de novo
-          </Button>
-        )}
       </main>
 
       {/* BOTÕES */}

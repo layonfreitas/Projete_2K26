@@ -34,10 +34,13 @@
 }
 
 .laudo-icon {
-  width: 64px;
-  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 72px;
+  height: 72px;
   flex-shrink: 0;
-  overflow: hidden;
+  padding: 10px;
   border: 1px solid var(--border);
   border-radius: 14px;
   background: var(--parchment);
@@ -100,6 +103,7 @@
   font-weight: 500;
 }
 
+.laudo-field input,
 .laudo-field select,
 .laudo-field textarea {
   width: 100%;
@@ -125,66 +129,9 @@
   background: var(--parchment);
 }
 
-.laudo-diagnostico-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 12px;
-}
-
-.laudo-diagnostico-title {
-  font-size: 15px;
-  font-weight: 700;
-}
-
-.laudo-status {
-  padding: 4px 12px;
-  border-radius: 999px;
-  background: var(--canopy);
-  color: #fff;
-  font-size: 12px;
-  font-weight: 600;
-}
-
 .laudo-diagnostico p {
   font-size: 14px;
   line-height: 1.6;
-}
-
-.laudo-erro {
-  margin-bottom: 12px;
-  color: var(--cherry);
-  font-size: 14px;
-  font-weight: 500;
-}
-
-.laudo-resultados {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-}
-
-.laudo-result-card {
-  padding: 16px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--parchment);
-}
-
-.laudo-result-label {
-  display: block;
-  margin-bottom: 6px;
-  color: var(--ink-soft);
-  font-size: 12.5px;
-  font-weight: 600;
-}
-
-.laudo-result-value {
-  font-size: 19px;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
 }
 
 /* barra de ações fixa no rodapé */
@@ -216,8 +163,7 @@
     font-size: 22px;
   }
 
-  .laudo-info-grid,
-  .laudo-resultados {
+  .laudo-info-grid {
     grid-template-columns: 1fr;
   }
 
