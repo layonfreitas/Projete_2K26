@@ -105,7 +105,7 @@ def listar_alertas(lavoura_id):
 
         cursor.execute(
             """
-           SELCT * FROM alertas WHERE lavoura_id = %s
+           SELECT * FROM alertas WHERE lavoura_id = %s
             """,
             (lavoura_id,)
             
