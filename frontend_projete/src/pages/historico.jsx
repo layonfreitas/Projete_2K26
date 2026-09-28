@@ -117,7 +117,7 @@ const temMapa = Boolean(
 );
 
   useEffect(() => {
-    const map = L.map(container.current, { center: [-14.235, -51.925], zoom: 4, maxZoom: 17, scrollWheelZoom: 'center', doubleClickZoom:'center',touchZoom:'center', maxBoundsViscosity: 1, zoomAnimation: false});
+    const map = L.map(container.current, { center: [-14.235, -51.925], zoom: 4, maxZoom: 17, scrollWheelZoom: 'center', doubleClickZoom:'center',touchZoom:'center', maxBoundsViscosity: 1, zoomAnimation: true});
     mapa.current = map;
     L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
       { attribution: 'Tiles © Esri', maxNativeZoom: 19, maxZoom: 17 }).addTo(map);
