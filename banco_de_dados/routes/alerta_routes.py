@@ -90,8 +90,57 @@ def insert_alerta():
             VALUES (%s, %s, %s, %s, %s, %s)
         """
         cursor = mysql.connection.cursor()
+
+        # Salva os alertas.
         cursor.executemany(query, lista)
-        mysql.connection.commit()
+
+        # Atualiza o estado das lavouras com alerta crítico.
+        for alerta in lista:
+            (
+                usuario_id,
+                lavoura_id,
+                critico,
+                indice,
+                data_imagem,
+                contorno,
+            ) = alerta
+
+            if critico not in (True, 1):
+                continue
+
+            cursor.execute(
+                """
+                UPDATE lavouras
+                SET
+                    status = 'critico',
+                    status_data_imagem = COALESCE(
+                        %s,
+                        status_data_imagem
+                    )
+                WHERE id = %s
+                AND usuario_id = %s
+                AND (
+                    status_data_imagem IS NULL
+                    OR %s >= status_data_imagem
+                )
+                """,
+                (
+                    data_imagem,
+                    lavoura_id,
+                    usuario_id,
+                    data_imagem,
+                ),
+            )
+
+            current_app.logger.info(
+                "Alerta crítico da lavoura %s: "
+                "%s registro(s) atualizado(s).",
+                lavoura_id,
+                cursor.rowcount,
+            )
+
+        # Grava os alertas e o estado na mesma transação.
+        mysql.connection.commit()    
 
         # Os alertas já estão salvos.
         # Uma falha no e-mail não desfaz esses registros.
@@ -127,6 +176,12 @@ def insert_alerta():
         }), 200
 
     except Exception as erro:
+        mysql.connection.rollback()
+
+        current_app.logger.exception(
+            "Falha ao salvar os alertas e atualizar a lavoura."
+        )
+
         return jsonify({
             "mensagem": "Não foi possível salvar os alertas.",
             "erro": str(erro),
