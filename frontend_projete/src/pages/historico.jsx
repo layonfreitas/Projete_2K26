@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import L from "leaflet";
+import "leaflet/dist/leaflet.css"
 import "./historico.css";
 
 import { AUTH_API_URL } from "../config/api";
@@ -110,7 +111,7 @@ const temMapa = Boolean(
 );
 
   useEffect(() => {
-    const map = L.map(container.current, { center: [-14.235, -51.925], zoom: 4, maxZoom: 17, trackResize: false });
+    const map = L.map(container.current, { center: [-14.235, -51.925], zoom: 4, maxZoom: 17, scrollWheelZoom: 'center', doubleClickZoom:'center',touchZoom:'center', masBoundsViscosity: 1});
     mapa.current = map;
     L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
       { attribution: 'Tiles © Esri', maxNativeZoom: 19, maxZoom: 17 }).addTo(map);
@@ -189,7 +190,11 @@ const temMapa = Boolean(
         setEstadoMapa({ carregando: false, erro: 'Não foi possível baixar a imagem do mapa.', dados: null });
       });
       layer.addTo(map);
-      map.fitBounds(bounds, { padding: [45, 45], animate: false });
+      map.setMaxBounds(null);
+      map.setMinZoom(null);
+      map.fitBounds(bounds, {padding: [45, 45], animate: false});
+      map.setMinZoom(mapgetZoom()- 3);
+      map.setMaxBounds(bounds.pad(1.5));
     }).catch(e => {
       if (!controller.signal.aborted) setEstadoMapa({ carregando: false, erro: e.message, dados: null });
     });
