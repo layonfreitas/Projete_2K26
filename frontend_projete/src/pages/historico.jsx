@@ -199,7 +199,22 @@ const temMapa = Boolean(
       if (!controller.signal.aborted) setEstadoMapa({ carregando: false, erro: e.message, dados: null });
     });
 
-    return () => { controller.abort(); if (layer) layer.off(); };
+    return () => {
+  controller.abort();
+
+  if (layer) {
+    if (mapa.current === map) {
+      map.removeLayer(layer);
+    }
+
+    layer.off();
+  }
+
+  if (camada.current === layer) {
+    camada.current = null;
+  }
+};
+
   }, [alertaSelecionadoId, temMapa]);
 
   async function excluirAlerta(id) {
