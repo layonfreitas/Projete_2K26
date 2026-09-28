@@ -1,10 +1,11 @@
 import hashlib
 import json
 import logging
+import os
+from urllib.parse import urlsplit
 from collections import defaultdict
 from contextlib import closing
 from html import escape
-
 from email_utils import enviar_email, _moldura_html
 
 log = logging.getLogger(__name__)
@@ -12,6 +13,18 @@ log = logging.getLogger(__name__)
 
 def notificar_alertas(conexao, lista):
     """Recebe as tuplas validadas de insert_alerta, após salvar os alertas."""
+    frontend_url = os.getenv("FRONTEND_URL", "").strip().rstrip("/")
+    endereco = urlsplit(frontend_url)
+
+    if (
+        endereco.scheme not in ("https", "http")
+        or not endereco.netloc
+        or endereco.query
+        or endereco.fragment
+    ):
+        raise RuntimeError(
+            "Configure FRONTEND_URL com o endereço do aplicativo."
+        )
     grupos = defaultdict(set)
     resumo = {"enviados": 0, "repetidos": 0, "falhas": 0}
 
@@ -159,12 +172,60 @@ def notificar_alertas(conexao, lista):
                         "de produção."
                     )
 
-                    html = _moldura_html(
-                        "Sua lavoura precisa de atenção",
+                    link_lavoura = (
+                        f"{frontend_url}/login?lavouraId={lavoura_id}"
+                    )
+                    link_html = escape(link_lavoura, quote=True)
+
+                    corpo_html = (
                         '<p style="line-height:1.6;color:#3A2A1A">'
                         + escape(texto).replace("\n", "<br>")
-                        + "</p>",
+                        + "</p>"
+                        + f"""
+                        <table role="presentation" cellpadding="0"
+                               cellspacing="0" style="margin:24px 0;">
+                          <tr>
+                            <td style="background:#166534;
+                                       border-radius:8px;
+                                       text-align:center;">
+                              <a href="{link_html}"
+                                 style="display:inline-block;
+                                        padding:15px 24px;
+                                        color:#ffffff;
+                                        font-size:16px;
+                                        font-weight:bold;
+                                        text-decoration:none;">
+                                Abrir lavoura no mapa
+                              </a>
+                            </td>
+                          </tr>
+                        </table>
+
+                        <p style="font-size:13px;
+                                  line-height:1.6;
+                                  color:#6b7280;">
+                          Se necessário, entre na sua conta para
+                          acessar a lavoura.
+                        </p>
+
+                        <p style="font-size:12px;
+                                  line-height:1.6;
+                                  word-break:break-all;">
+                          Se o botão não funcionar, acesse:<br>
+                          <a href="{link_html}">{link_html}</a>
+                        </p>
+                        """
                     )
+
+                    html = _moldura_html(
+                        "Sua lavoura precisa de atenção",
+                        corpo_html,
+                    )
+
+                    # Inclui o endereço na versão sem formatação.
+                    texto += (
+                        f"\n\nAbrir lavoura no mapa: {link_lavoura}"
+                    )  
 
                     enviar_email(
                         email,
