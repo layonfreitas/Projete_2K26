@@ -1,6 +1,6 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { useState } from "react";
-import { AUTH_API_URL, IA_URL } from "../config/api";
+import { AUTH_API_URL, IA_API_URL } from "../config/api";
 import AppBar from "../components/ui/AppBar";
 import Button from "../components/ui/Button";
 import { TextField } from "../components/ui/Field";
