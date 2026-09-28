@@ -18,8 +18,9 @@ app = Flask(__name__)
 app.config.from_object(Config)
 CORS(app, origins=[
     "http://localhost:5173",
-    "https://projete-2k26-frontend.onrender.com"
-])
+    "https://projete-2k26-frontend.onrender.com",
+    "https://projete-2-k26-dyts.vercel.app",
+    ])
 
 mysql = MySQL(app)  
 
