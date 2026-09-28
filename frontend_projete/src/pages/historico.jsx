@@ -111,7 +111,7 @@ const temMapa = Boolean(
 );
 
   useEffect(() => {
-    const map = L.map(container.current, { center: [-14.235, -51.925], zoom: 4, maxZoom: 17, scrollWheelZoom: 'center', doubleClickZoom:'center',touchZoom:'center', masBoundsViscosity: 1});
+    const map = L.map(container.current, { center: [-14.235, -51.925], zoom: 4, maxZoom: 17, scrollWheelZoom: 'center', doubleClickZoom:'center',touchZoom:'center', maxBoundsViscosity: 1, zoomAnimation: false});
     mapa.current = map;
     L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
       { attribution: 'Tiles © Esri', maxNativeZoom: 19, maxZoom: 17 }).addTo(map);
@@ -191,10 +191,10 @@ const temMapa = Boolean(
       });
       layer.addTo(map);
       map.setMaxBounds(null);
-      map.setMinZoom(null);
-      map.fitBounds(bounds, {padding: [45, 45], animate: false});
-      map.setMinZoom(mapgetZoom()- 3);
-      map.setMaxBounds(bounds.pad(1.5));
+      map.setMinZoom(0);
+      map.fitBounds(bounds, {padding: [30,30], animate:false});
+      map.setMinZoom(map.getZoom()-1);
+      map.setMaxBounds(bounds.pad(0.1))
     }).catch(e => {
       if (!controller.signal.aborted) setEstadoMapa({ carregando: false, erro: e.message, dados: null });
     });

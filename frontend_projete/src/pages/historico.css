@@ -270,3 +270,15 @@
     max-width: none;
   }
 }
+
+/* Permite que o Leaflet redimensione a imagem dos índices */
+.hist-alerta-mapa img.leaflet-image-layer {
+  min-width: 0 !important;
+  min-height: 0 !important;
+  max-width: none !important;
+  max-height: none !important;
+  padding: 0 !important;
+  border: none !important;
+  border-radius: 0 !important;
+  transition: none !important;
+}
