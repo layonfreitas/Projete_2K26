@@ -1,6 +1,6 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { useState } from "react";
-import { AUTH_API_URL, IA_URL } from "../config/api";
+import { AUTH_API_URL, IA_API_URL } from "../config/api";
 import AppBar from "../components/ui/AppBar";
 import Button from "../components/ui/Button";
 import { TextField } from "../components/ui/Field";
@@ -9,6 +9,22 @@ import { useToast } from "../components/ui/toastContext";
 import { calcularAreaHectares, formatarHectares, pontosParaSvg } from "../utils/geo";
 import { mensagemDeErro } from "../services/erros";
 import "./Cadastro.css";
+
+const DATA_MINIMA = "2017-03-28";
+
+// Converte uma Date para "AAAA-MM-DD" usando a data local do usuário.
+function formatarData(data) {
+  return [
+    data.getFullYear(),
+    String(data.getMonth() + 1).padStart(2, "0"),
+    String(data.getDate()).padStart(2, "0"),
+  ].join("-");
+}
+
+function formatarDataBR(texto) {
+  const [ano, mes, dia] = texto.split("-");
+  return `${dia}/${mes}/${ano}`;
+}
 
 export default function Cadastro() {
   const navigate = useNavigate();
@@ -22,18 +38,16 @@ export default function Cadastro() {
   const [mensagem, setMensagem] = useState("");
   const [carregando, setCarregando] = useState(false);
 
-  const [safras, setSafras] = useState([
-    { ano: "", inicio: "", fim: "" },
-  ]);
+  // SAFRA ATUAL (especial): o usuário informa apenas o início.
+  // O fim é sempre o dia em que a lavoura é cadastrada.
+  const [inicioSafraAtual, setInicioSafraAtual] = useState("");
+
+  // Safras anteriores (histórico). Podem ser zero.
+  const [safras, setSafras] = useState([]);
 
   const hoje = new Date();
   const anoAtual = hoje.getFullYear();
-
-  const hojeTexto = [
-    anoAtual,
-    String(hoje.getMonth() + 1).padStart(2, "0"),
-    String(hoje.getDate()).padStart(2, "0"),
-  ].join("-");
+  const hojeTexto = formatarData(hoje);
 
   function alterarSafra(indice, campo, valor) {
     setSafras((anteriores) =>
@@ -86,54 +100,122 @@ export default function Cadastro() {
       return;
     }
 
-    const periodos = safras
-      .map((safra) => ({
-        ano: Number(safra.ano),
-        inicio: safra.inicio,
-        fim: safra.fim,
-      }))
-      .sort((a, b) => a.inicio.localeCompare(b.inicio));
+    // Data recalculada no momento do envio: é o "dia do cadastro".
+    const dataCadastro = formatarData(new Date());
+    const anoCadastro = Number(dataCadastro.slice(0, 4));
 
-    const temCampoInvalido = periodos.some(
+    // ---- Safra atual (especial) ----
+    // Fim = dia do cadastro. O ano da safra é o ano do cadastro.
+    const safraAtual = {
+      ano: anoCadastro,
+      inicio: inicioSafraAtual,
+      fim: dataCadastro,
+      atual: true,
+    };
+
+    if (
+      !safraAtual.inicio ||
+      safraAtual.inicio < DATA_MINIMA ||
+      safraAtual.inicio > safraAtual.fim
+    ) {
+      setMensagem(
+        "Informe o início da safra atual, entre 28/03/2017 e hoje."
+      );
+      return;
+    }
+
+    // ---- Safras anteriores ----
+    const periodosAnteriores = safras.map((safra) => ({
+      ano: Number(safra.ano),
+      inicio: safra.inicio,
+      fim: safra.fim,
+      atual: false,
+    }));
+
+    const temCampoInvalido = periodosAnteriores.some(
       (safra) =>
         !Number.isInteger(safra.ano) ||
         safra.ano < 2017 ||
-        safra.ano > anoAtual ||
+        safra.ano > anoCadastro ||
         !safra.inicio ||
         !safra.fim ||
-        safra.inicio < "2017-03-28" ||
-        safra.fim > hojeTexto ||
+        safra.inicio < DATA_MINIMA ||
+        safra.fim > dataCadastro ||
         safra.inicio > safra.fim
     );
 
-    if (!periodos.length || temCampoInvalido) {
+    if (temCampoInvalido) {
       setMensagem(
-        "Preencha o ano, o início e o fim de todas as safras. " +
+        "Preencha o ano, o início e o fim de todas as safras anteriores. " +
         "Use períodos entre 28/03/2017 e hoje."
       );
       return;
     }
 
+    // Todas as safras juntas (anteriores + atual), ordenadas pelo início.
+    const periodos = [...periodosAnteriores, safraAtual].sort((a, b) =>
+      a.inicio.localeCompare(b.inicio)
+    );
+
+    const rotulo = (safra) =>
+      safra.atual ? "a safra atual" : `a safra ${safra.ano}`;
+
+    // Ano da safra (colheita) não pode se repetir.
     if (new Set(periodos.map((safra) => safra.ano)).size !== periodos.length) {
-      setMensagem("Informe cada ano de safra apenas uma vez.");
+      setMensagem(
+        "Informe cada ano de safra apenas uma vez " +
+        "(a safra atual usa o ano de hoje)."
+      );
       return;
     }
 
-    const temSobreposicao = periodos.some(
-      (safra, indice) =>
-        indice > 0 &&
-        safra.inicio <= periodos[indice - 1].fim
+    // Nenhum ano de início repetido: não pode haver duas safras que
+    // começam em 2024, por exemplo.
+    const anosInicio = periodos.map((safra) => safra.inicio.slice(0, 4));
+    const anoInicioRepetido = anosInicio.find(
+      (ano, indice) => anosInicio.indexOf(ano) !== indice
     );
 
-    if (temSobreposicao) {
-      setMensagem("Os períodos das safras não podem se sobrepor.");
+    if (anoInicioRepetido) {
+      setMensagem(
+        `Mais de uma safra começa em ${anoInicioRepetido}. ` +
+        "Cada safra deve começar em um ano diferente."
+      );
       return;
+    }
+
+    // Nenhum ano de fim repetido: não pode haver duas safras que
+    // terminam em 2025, por exemplo.
+    const anosFim = periodos.map((safra) => safra.fim.slice(0, 4));
+    const anoFimRepetido = anosFim.find(
+      (ano, indice) => anosFim.indexOf(ano) !== indice
+    );
+
+    if (anoFimRepetido) {
+      setMensagem(
+        `Mais de uma safra termina em ${anoFimRepetido}. ` +
+        "Cada safra deve terminar em um ano diferente."
+      );
+      return;
+    }
+
+    // Nenhum dia em comum: o início de uma safra precisa ser depois do
+    // fim da anterior (<= também barra o mesmo dia).
+    for (let i = 1; i < periodos.length; i++) {
+      if (periodos[i].inicio <= periodos[i - 1].fim) {
+        setMensagem(
+          `${rotulo(periodos[i - 1])} e ${rotulo(periodos[i])} ` +
+          "têm dias em comum. Os períodos não podem se sobrepor " +
+          "nem compartilhar nenhum dia."
+        );
+        return;
+      }
     }
 
     setCarregando(true);
 
     try {
-      const projection = await fetch(`${IA_URL}/crs`, {
+      const projection = await fetch(`${IA_API_URL}/crs`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -175,6 +257,36 @@ export default function Cadastro() {
               "Processamento solicitado. As séries das safras e os mapas " +
               "serão gerados em segundo plano."
             );
+
+            for (const safra of periodos) {
+              // Ponto de extensão da safra atual: safra.atual === true
+              // (fim = dia do cadastro). Trate-a de forma específica aqui.
+              const respostaSerie = await fetch(`${IA_API_URL}/time_series`, {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  "coordenadas": JSON.stringify(coordenadas),
+                  "lavouraId": dados.id,
+                  "usuarioId": usuarioId,
+                  "crs": crs,
+                  "crsTransform": crs_transformation,
+                  "dataInicio": safra.inicio,
+                  "dataFim": safra.fim,
+                  "anoSafra": safra.ano,
+                },
+              });
+
+              const nomeSafra = safra.atual
+                ? "atual"
+                : String(safra.ano);
+
+              if (!respostaSerie.ok) {
+                const erroSerie = await respostaSerie.json();
+                toast.erro(`Erro ao solicitar série temporal para a safra ${nomeSafra}: ${erroSerie.mensagem || "Erro desconhecido"}`);
+              } else {
+                toast.sucesso(`Série temporal solicitada para a safra ${nomeSafra}.`);
+              }
+            }
           } else {
             toast.erro(`Lavoura salva. ${dados.mapas.mensagem}`);
             toast.erro(
@@ -267,23 +379,54 @@ export default function Cadastro() {
               <h2 id="titulo-safras">Safras da lavoura</h2>
 
               <p>
-                Informe todos os períodos que deseja analisar.
+                Informe quando a safra atual começou e, se quiser,
+                os períodos de safras anteriores.
                 O ano identifica a safra pela colheita.
               </p>
 
               <small>
                 Imagens disponíveis a partir de 28/03/2017.
                 A disponibilidade varia conforme a região e as nuvens.
+                Duas safras não podem começar no mesmo ano, terminar no
+                mesmo ano nem ter um dia em comum.
               </small>
             </div>
 
+            {/* SAFRA ATUAL (especial): só o início; o fim é hoje */}
+            <fieldset
+              className="cad-safra cad-safra--atual"
+              disabled={carregando}
+            >
+              <legend>Safra atual</legend>
+
+              <div className="cad-safra-campos cad-safra-campos--unico">
+                <TextField
+                  label="Início da safra atual"
+                  type="date"
+                  min={DATA_MINIMA}
+                  max={hojeTexto}
+                  value={inicioSafraAtual}
+                  onChange={(evento) =>
+                    setInicioSafraAtual(evento.target.value)
+                  }
+                  required
+                />
+              </div>
+
+              <p className="cad-safra-nota">
+                O fim da safra atual é hoje ({formatarDataBR(hojeTexto)}),
+                o dia do cadastro.
+              </p>
+            </fieldset>
+
+            {/* Safras anteriores */}
             {safras.map((safra, indice) => (
               <fieldset
                 className="cad-safra"
                 key={indice}
                 disabled={carregando}
               >
-                <legend>Safra {indice + 1}</legend>
+                <legend>Safra anterior {indice + 1}</legend>
 
                 <div className="cad-safra-campos">
                   <TextField
@@ -303,7 +446,7 @@ export default function Cadastro() {
                   <TextField
                     label="Início do período"
                     type="date"
-                    min="2017-03-28"
+                    min={DATA_MINIMA}
                     max={safra.fim || hojeTexto}
                     value={safra.inicio}
                     onChange={(evento) =>
@@ -315,7 +458,7 @@ export default function Cadastro() {
                   <TextField
                     label="Fim do período"
                     type="date"
-                    min={safra.inicio || "2017-03-28"}
+                    min={safra.inicio || DATA_MINIMA}
                     max={hojeTexto}
                     value={safra.fim}
                     onChange={(evento) =>
@@ -328,7 +471,7 @@ export default function Cadastro() {
                 <Button
                   type="button"
                   variant="secondary"
-                  disabled={safras.length === 1 || carregando}
+                  disabled={carregando}
                   onClick={() => removerSafra(indice)}
                 >
                   Remover safra
@@ -339,10 +482,10 @@ export default function Cadastro() {
             <Button
               type="button"
               variant="secondary"
-              disabled={carregando || safras.length >= 30}
+              disabled={carregando || safras.length >= 29}
               onClick={adicionarSafra}
             >
-              Adicionar outra safra
+              Adicionar safra anterior
             </Button>
           </section>
 

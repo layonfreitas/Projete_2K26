@@ -4,12 +4,11 @@ from pydantic import BaseModel
 from contextlib import asynccontextmanager
 from typing import List, Tuple
 import ee
-
+from georreferencia import criar_geometria
 from gee_auth import inicializar_ee
 
 
 class Coordenadas(BaseModel):
-    # Lista de pares [longitude, latitude], fechando o polígono da lavoura
     coordenadas: List[Tuple[float, float]]
 
 
@@ -27,7 +26,7 @@ async def obter_crs(dados: Coordenadas):
     try:
         colecao_nome = "COPERNICUS/S2_SR_HARMONIZED"  # ajuste pra coleção que vocês usam
 
-        geometria = ee.Geometry.Polygon([dados.coordenadas])
+        geometria = criar_geometria(dados.coordenadas)
 
         colecao = ee.ImageCollection(colecao_nome).filterBounds(geometria)
         primeira_imagem = colecao.first()

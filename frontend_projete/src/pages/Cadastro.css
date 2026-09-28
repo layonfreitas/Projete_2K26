@@ -95,3 +95,19 @@
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
+
+/* Safra atual (especial): só o início é informado; o fim é o dia do cadastro */
+.cad-safra--atual {
+  border-color: #24543a;
+  background: #eef5f0;
+}
+
+.cad-safra-campos--unico {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.cad-safra-nota {
+  margin: 0;
+  color: #59665e;
+  font-size: 13px;
+}
