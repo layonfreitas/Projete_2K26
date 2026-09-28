@@ -1,11 +1,34 @@
-from flask import Blueprint, jsonify, request
+import os
+import secrets
 import MySQLdb.cursors
+
 from app import mysql
+from flask import Blueprint, jsonify, request
+from flask import current_app
+from email_alertas import notificar_alertas
 
 alertas_bp = Blueprint('alerta', __name__)
 
 @alertas_bp.route('/alertas', methods=['POST'])
 def insert_alerta():
+        
+    token_configurado = os.getenv("ALERTAS_TOKEN", "")
+    token_recebido = request.headers.get("X-Alertas-Token", "")
+
+    if not token_configurado:
+        current_app.logger.error("ALERTAS_TOKEN não configurado.")
+        return jsonify({
+            "mensagem": "Serviço de alertas não configurado."
+        }), 503
+
+    if not secrets.compare_digest(
+        token_recebido,
+        token_configurado,
+    ):
+        return jsonify({
+            "mensagem": "Não autorizado."
+        }), 401
+    
     dados = request.get_json(silent=True)
 
     if not isinstance(dados, list) or not dados:
@@ -70,7 +93,38 @@ def insert_alerta():
         cursor.executemany(query, lista)
         mysql.connection.commit()
 
-        return jsonify({"mensagem": "Alerta(s) inserido(s) no banco de dados."}), 200
+        # Os alertas já estão salvos.
+        # Uma falha no e-mail não desfaz esses registros.
+        cursor.close()
+        cursor = None
+
+        try:
+            emails = notificar_alertas(
+                mysql.connection,
+                lista,
+            )
+        except Exception:
+            mysql.connection.rollback()
+
+            current_app.logger.exception(
+                "Alertas salvos, mas houve falha na notificação."
+            )
+
+            emails = {
+                "enviados": 0,
+                "repetidos": 0,
+                "falhas": 1,
+            }
+
+        current_app.logger.info(
+            "Resultado dos e-mails de alerta: %s",
+            emails,
+        )
+
+        return jsonify({
+            "mensagem": "Alerta(s) inserido(s) no banco de dados.",
+            "emails": emails,
+        }), 200
 
     except Exception as erro:
         return jsonify({

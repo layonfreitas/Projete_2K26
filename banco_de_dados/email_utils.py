@@ -25,6 +25,7 @@ def enviar_email(destinatario, assunto, html, texto, anexos=None):
             "Accept": "application/json",
         },
         json=payload,
+        timeout=(5, 15),
     )
 
     if resposta.status_code >= 300:
