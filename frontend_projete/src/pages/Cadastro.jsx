@@ -133,7 +133,7 @@ export default function Cadastro() {
     setCarregando(true);
 
     try {
-      const projection = await fetch(`${IA_URL}/crs`, {
+      const projection = await fetch(`${IA_API_URL}/crs`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
