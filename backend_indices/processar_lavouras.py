@@ -194,47 +194,85 @@ def obter_contexto_safra(lavoura, data_imagem):
 
     return int(safra["ano"]), graus_dia
 
-
 def publicar_estado_lavoura(lavoura, resultado, analises_concluidas):
-    obrigatorios = {"NDVI", "NDRE", "NDWI"}
+    alertas = resultado.get("alertas", [])
+
+    tem_critico = any(
+        alerta.get("critico") in (True, 1)
+        for alerta in alertas
+    )
+
     classificacao = resultado.get("classificacao")
-    completa = (
-        obrigatorios.issubset(analises_concluidas)
+
+    analise_completa = (
+        {"NDVI", "NDRE", "NDWI"}.issubset(analises_concluidas)
         and isinstance(classificacao, str)
         and bool(classificacao.strip())
-        and not resultado["erros"]
-        and not resultado["avisos"]
+        and not resultado.get("erros")
+        and not resultado.get("avisos")
     )
-    if not completa:
+
+    # Um alerta crítico já é suficiente para atualizar o estado.
+    if tem_critico:
+        estado = "critico"
+
+    # Só permite voltar para Ok após uma análise completa.
+    elif analise_completa:
+        estado = "ok"
+
+    else:
         log.warning(
-            "Lavoura %s: análise incompleta; estado anterior mantido.",
+            "Lavoura %s: análise incompleta. Estado anterior mantido.",
             lavoura["id"],
         )
         return
 
-    alertas = resultado["alertas"]
-    estado = (
-        "critico" if any(a["critico"] for a in alertas)
-        else "atencao" if alertas
-        else "ok"
-    )
+    data_imagem = resultado.get("dataImagem")
+
+    if not data_imagem:
+        log.warning(
+            "Lavoura %s: estado não atualizado por falta de data.",
+            lavoura["id"],
+        )
+        return
+
     token = os.getenv("ALERTAS_TOKEN", "")
+
     if not token:
         raise RuntimeError("Configure ALERTAS_TOKEN.")
 
     resposta = requests.post(
-        api_url(f"/lavouras/{lavoura['id']}/status-analise"),
-        headers={"X-Alertas-Token": token},
+        api_url(
+            f"/lavouras/{lavoura['id']}/status-analise"
+        ),
+        headers={
+            "X-Alertas-Token": token,
+        },
         json={
             "status": estado,
-            "data_imagem": resultado["dataImagem"],
+            "data_imagem": data_imagem,
             "coordenadas": lavoura["coordenadas"],
-            "analise_completa": True,
+            "analise_completa": analise_completa,
+            "critico_detectado": tem_critico,
         },
         timeout=(10, 30),
     )
+
+    if not resposta.ok:
+        log.error(
+            "Falha ao atualizar estado: HTTP %s; resposta=%s",
+            resposta.status_code,
+            resposta.text[:500],
+        )
+
     resposta.raise_for_status()
-    log.info("Estado da lavoura %s: %s", lavoura["id"], resposta.json())
+
+    log.info(
+        "Estado da lavoura %s: %s",
+        lavoura["id"],
+        resposta.json(),
+    )
+
 
 def processar_lavoura(lavoura, crs=None, crs_transformation=None, safra_atual=None, graus_dia=None, data_alvo=None, janela=30, indices=None, geometria=None):
     inicializar_ee()

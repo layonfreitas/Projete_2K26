@@ -707,58 +707,107 @@ function ConfirmarExclusao({ pessoa, vinculados, ocupado, erro, aoConfirmar, aoC
    ========================================================= */
 
 function SaudeLavouras({ dashboard }) {
-  const { ok, atencao, critico } = dashboard.statusLavouras;
-  const soma = ok + atencao + critico;
+  const estados = dashboard.statusLavouras || {};
+
+  // "Atenção" deixa de ser uma categoria separada.
+  // Os registros antigos entram no grupo sem alerta crítico.
+  const ok =
+    Number(estados.ok || 0) +
+    Number(estados.atencao || 0);
+
+  const critico = Number(estados.critico || 0);
+
+  const soma = ok + critico;
 
   let manchete;
+
   if (dashboard.totalLavouras === 0) {
     manchete = "Ainda não há lavouras cadastradas";
   } else if (critico > 0) {
-    manchete = `${contar(critico, "lavoura em estado crítico", "lavouras em estado crítico")}`;
-  } else if (atencao > 0) {
-    manchete = `${contar(atencao, "lavoura pede atenção", "lavouras pedem atenção")}`;
+    manchete = contar(
+      critico,
+      "lavoura em estado crítico",
+      "lavouras em estado crítico"
+    );
   } else {
-    manchete = "Todas as lavouras estão bem";
+    manchete = "Nenhuma lavoura marcada como crítica";
   }
 
   const partes = [
-    { chave: "ok", rotulo: "Ok", n: ok },
-    { chave: "atencao", rotulo: "Atenção", n: atencao },
-    { chave: "critico", rotulo: "Crítico", n: critico },
+    {
+      chave: "ok",
+      rotulo: "Ok",
+      n: ok,
+    },
+    {
+      chave: "critico",
+      rotulo: "Crítico",
+      n: critico,
+    },
   ];
 
   return (
-    <section className="cooperativa-saude" aria-labelledby="cooperativa-saude-titulo">
-      <h2 id="cooperativa-saude-titulo">Saúde das lavouras</h2>
-      <p className="cooperativa-saude-manchete">{manchete}</p>
+    <section
+      className="cooperativa-saude"
+      aria-labelledby="cooperativa-saude-titulo"
+    >
+      <h2 id="cooperativa-saude-titulo">
+        Saúde das lavouras
+      </h2>
+
+      <p className="cooperativa-saude-manchete">
+        {manchete}
+      </p>
 
       <div
         className="cooperativa-maturacao"
         role="img"
-        aria-label={`${contar(dashboard.totalLavouras, "lavoura", "lavouras")}: ${ok} ok, ${atencao} em atenção, ${critico} em estado crítico`}
+        aria-label={`${ok} sem alerta crítico e ${critico} em estado crítico`}
       >
         {soma > 0 &&
-          partes.map(
-            (p) =>
-              p.n > 0 && (
-                <span
-                  key={p.chave}
-                  className={`cooperativa-maturacao-parte cooperativa-maturacao-parte--${p.chave}`}
-                  style={{ flexGrow: p.n }}
-                />
-              )
+          partes.map(parte =>
+            parte.n > 0 ? (
+              <span
+                key={parte.chave}
+                className={
+                  "cooperativa-maturacao-parte " +
+                  `cooperativa-maturacao-parte--${parte.chave}`
+                }
+                style={{
+                  flexGrow: parte.n,
+                }}
+              />
+            ) : null
           )}
       </div>
 
       <ul className="cooperativa-legenda">
-        {partes.map((p) => (
-          <li key={p.chave} className={`cooperativa-legenda-item cooperativa-legenda-item--${p.chave}`}>
-            <span className="cooperativa-legenda-ponto" aria-hidden="true" />
-            <span className="cooperativa-legenda-rotulo">{p.rotulo}</span>
-            <strong>{p.n}</strong>
+        {partes.map(parte => (
+          <li
+            key={parte.chave}
+            className={
+              "cooperativa-legenda-item " +
+              `cooperativa-legenda-item--${parte.chave}`
+            }
+          >
+            <span
+              className="cooperativa-legenda-ponto"
+              aria-hidden="true"
+            />
+
+            <span className="cooperativa-legenda-rotulo">
+              {parte.rotulo}
+            </span>
+
+            <strong>{parte.n}</strong>
           </li>
         ))}
       </ul>
+
+      <p>
+        Ok indica ausência de alerta crítico, não ausência
+        de anomalias.
+      </p>
     </section>
   );
 }
@@ -836,7 +885,9 @@ function VisaoGeral({ dashboard, ranking, aoDirecionar, aoBaixar, baixando }) {
             {dados.lavourasEmAlerta.length > 0 && (
               <section aria-labelledby="cooperativa-alertas-titulo">
                 <div className="cooperativa-secao-topo">
-                  <h3 id="cooperativa-alertas-titulo">Lavouras que pedem atenção</h3>
+                  <h3 id="cooperativa-alertas-titulo">
+  Lavouras críticas
+</h3>
                   <span className="cooperativa-contagem">{dados.lavourasEmAlerta.length}</span>
                 </div>
                 <ul className="cooperativa-lista">

@@ -226,12 +226,22 @@ def atualizar_status_analise(lavoura_id):
         return jsonify({"mensagem": "Data da imagem inválida."}), 400
 
     if (
-        estado not in ("ok", "atencao", "critico")
-        or dados.get("analise_completa") is not True
+        estado not in ("ok", "critico")
+        or (
+            estado == "ok"
+            and dados.get("analise_completa") is not True
+        )
+        or (
+            estado == "critico"
+            and dados.get("critico_detectado") is not True
+        )
         or not isinstance(coordenadas, list)
         or len(coordenadas) < 3
         or data_imagem > date.today()
     ):
+        return jsonify({
+            "mensagem": "Análise incompleta ou dados inválidos."
+        }), 400
         return jsonify({"mensagem": "Análise incompleta ou dados inválidos."}), 400
 
     cursor = None

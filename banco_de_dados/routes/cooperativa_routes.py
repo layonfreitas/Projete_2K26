@@ -408,8 +408,8 @@ def dashboard():
                 usuarios.nome
             FROM lavouras
             JOIN usuarios ON usuarios.id = lavouras.usuario_id
-            WHERE lavouras.status IN ('atencao', 'critico')
-            ORDER BY FIELD(lavouras.status, 'critico', 'atencao')
+            WHERE lavouras.status = 'critico'
+            ORDER BY lavouras.nome_lavoura
             """
         )
 

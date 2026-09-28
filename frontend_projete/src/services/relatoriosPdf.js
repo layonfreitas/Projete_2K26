@@ -836,3 +836,107 @@ export function criarRelatorioLavourasPdf({
   return relatorio.finalizar();
 }
 
+export function criarRelatorioLavourasPdf({
+  lavouras,
+  logo,
+  emissao = new Date(),
+}) {
+  if (
+    !Array.isArray(lavouras) ||
+    lavouras.some(
+      lavoura =>
+        !lavoura ||
+        typeof lavoura !== "object"
+    )
+  ) {
+    throw new Error(
+      "Os dados do relatório são inválidos."
+    );
+  }
+
+  const estadosPdf = {
+    ok: "Ok",
+    critico: "Crítico",
+  };
+
+  // Compatibilidade com os registros antigos do banco.
+  const registros = lavouras.map(lavoura => ({
+    ...lavoura,
+    status:
+      lavoura.status === "atencao"
+        ? "ok"
+        : lavoura.status,
+  }));
+
+  const relatorio = criarDocumento({
+    titulo: "Relatório da cooperativa",
+    subtitulo:
+      "Produtores, agrônomos e situação das lavouras",
+    emissao,
+    logo,
+  });
+
+  relatorio.indicadores(
+    Object.entries(estadosPdf).map(
+      ([chave, rotulo]) => ({
+        rotulo: rotulo.toUpperCase(),
+        valor: registros.filter(
+          lavoura => lavoura.status === chave
+        ).length,
+      })
+    )
+  );
+
+  relatorio.paragrafo(
+    "Crítico: alerta crítico detectado. " +
+      "Ok: sem alerta crítico, o que não significa " +
+      "ausência de anomalias. Sem data: estado anterior " +
+      "ainda não confirmado por esta rotina.",
+    {
+      tamanho: 9,
+    }
+  );
+
+  relatorio.tabela(
+    "Lavouras cadastradas",
+    [
+      {
+        rotulo: "Produtor",
+        peso: 0.25,
+      },
+      {
+        rotulo: "Agrônomo",
+        peso: 0.25,
+      },
+      {
+        rotulo: "Lavoura",
+        peso: 0.22,
+      },
+      {
+        rotulo: "Estado",
+        peso: 0.12,
+      },
+      {
+        rotulo: "Data da imagem",
+        peso: 0.16,
+      },
+    ],
+    registros.map(lavoura => [
+      lavoura.produtor,
+      lavoura.agronomo || "Sem agrônomo",
+      lavoura.nomeLavoura,
+      estadosPdf[lavoura.status] || "Não informado",
+      /^\d{4}-\d{2}-\d{2}$/.test(
+        lavoura.dataImagem || ""
+      )
+        ? lavoura.dataImagem
+            .split("-")
+            .reverse()
+            .join("/")
+        : "Sem data",
+    ]),
+    "Nenhuma lavoura cadastrada."
+  );
+
+  return relatorio.finalizar();
+}
