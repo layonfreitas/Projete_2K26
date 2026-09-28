@@ -195,7 +195,7 @@ def notificar_alertas(conexao, lista):
                                         font-size:16px;
                                         font-weight:bold;
                                         text-decoration:none;">
-                                Abrir lavoura no mapa
+                                Ver alertas da lavoura
                               </a>
                             </td>
                           </tr>
@@ -224,7 +224,7 @@ def notificar_alertas(conexao, lista):
 
                     # Inclui o endereço na versão sem formatação.
                     texto += (
-                        f"\n\nAbrir lavoura no mapa: {link_lavoura}"
+                        f"\n\nVer alertas da lavoura: {link_lavoura}"
                     )  
 
                     enviar_email(

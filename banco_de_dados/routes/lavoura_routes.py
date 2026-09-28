@@ -305,7 +305,8 @@ def listar_todas_lavouras():
                 l.area_m2,
                 u.nome,
                 l.crs,
-                l.crs_transformation
+                l.crs_transformation,
+                l.safras
             FROM lavouras l
             JOIN usuarios u
                 ON l.usuario_id = u.id
@@ -329,7 +330,8 @@ def listar_todas_lavouras():
                 "areaM2": float(linha[4]) if linha[4] is not None else 0,
                 "produtorNome": linha[5],
                 "crs": linha[6],
-                "crsTransformation": linha[7]
+                "crsTransformation": linha[7],
+                "safras": json.loads(linha[8]) if isinstance(linha[8], (str, bytes)) else (linha[8] or []),
             })
 
         return jsonify(lavouras), 200

@@ -1,3 +1,4 @@
+import { useLocation } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css"
@@ -75,6 +76,11 @@ function mensagemAlerta(indice, critico) {
 }
 
 function HistoricoAlerta() {
+  const location = useLocation();
+  const idDoLink = new URLSearchParams(location.search).get("lavouraId");
+  const alvo = /^[1-9]\d*$/.test(idDoLink || "") ? idDoLink : null;
+  const usuarioAutenticado = localStorage.getItem("usuarioId");
+  const tipo = localStorage.getItem("usuarioTipo");
   const container = useRef(null);
   const mapa = useRef(null);
   const camada = useRef(null);
@@ -120,19 +126,54 @@ const temMapa = Boolean(
 
   useEffect(() => {
     const controller = new AbortController();
-    if (!usuarioId) return () => controller.abort();
-    setConsultaLavouras({ carregando: true, erro: '' });
-    buscarJson(`${AUTH_API_URL}/lavouras/${usuarioId}`, controller.signal).then(dados => {
+    setLavouras([]);
+    setLavouraId("");
+    setAlertas([]);
+    setConsultaLavouras({ carregando: true, erro: "" });
+
+    async function carregar() {
+      if (!usuarioAutenticado) throw new Error("Entre na sua conta.");
+      let dados;
+      if (tipo === "agronomo") {
+        const [todas, produtores] = await Promise.all([
+          buscarJson(`${AUTH_API_URL}/lavouras`, controller.signal),
+          buscarJson(`${AUTH_API_URL}/agronomo/${usuarioAutenticado}/produtores`, controller.signal),
+        ]);
+        if (!Array.isArray(todas) || !Array.isArray(produtores)) {
+          throw new Error("Resposta inválida ao consultar as lavouras.");
+        }
+        const permitidos = new Set(produtores.map(p => String(p.id)));
+        dados = todas.filter(l => permitidos.has(String(l.usuarioId)));
+        // Pelo e-mail, a lavoura vem da URL e independe da seleção anterior.
+        if (!alvo && usuarioId) {
+          dados = dados.filter(l => String(l.usuarioId) === String(usuarioId));
+        }
+      } else if (tipo === "produtor") {
+        dados = await buscarJson(
+          `${AUTH_API_URL}/lavouras/${usuarioAutenticado}`,
+          controller.signal
+        );
+      } else {
+        throw new Error("Use uma conta de produtor ou agrônomo para consultar estes alertas.");
+      }
+
+      if (!Array.isArray(dados)) throw new Error("Lista de lavouras inválida.");
+      if (alvo && !dados.some(l => String(l.id) === alvo)) {
+        throw new Error("A lavoura do link não está disponível para esta conta.");
+      }
       if (controller.signal.aborted) return;
-      if (!Array.isArray(dados)) throw new Error('Resposta inválida ao consultar as lavouras.');
       setLavouras(dados);
-      setLavouraId(anterior => dados.some(l => String(l.id) === anterior) ? anterior : String(dados[0]?.id || ''));
-      setConsultaLavouras({ carregando: false, erro: '' });
-    }).catch(e => {
-      if (!controller.signal.aborted) setConsultaLavouras({ carregando: false, erro: e.message });
+      setLavouraId(alvo || String(dados[0]?.id || ""));
+      setConsultaLavouras({ carregando: false, erro: "" });
+    }
+
+    carregar().catch(erro => {
+      if (!controller.signal.aborted) {
+        setConsultaLavouras({ carregando: false, erro: erro.message });
+      }
     });
     return () => controller.abort();
-  }, [usuarioId]);
+  }, [usuarioAutenticado, usuarioId, tipo, alvo]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -317,7 +358,15 @@ const temMapa = Boolean(
 }
 
 export default function Historico() {
-  const [abaAtiva, setAbaAtiva] = useState(ABAS[0].id);
+  const location = useLocation();
+  const abaDoLink = new URLSearchParams(location.search).get("aba");
+  const [abaAtiva, setAbaAtiva] = useState(
+    () => ABAS.some(aba => aba.id === abaDoLink) ? abaDoLink : ABAS[0].id
+  );
+
+  useEffect(() => {
+    setAbaAtiva(ABAS.some(aba => aba.id === abaDoLink) ? abaDoLink : ABAS[0].id);
+  }, [abaDoLink]);
 
   const abaSelecionada = ABAS.find((aba) => aba.id === abaAtiva);
   const ComponenteAba = abaSelecionada.componente;

@@ -194,6 +194,48 @@ def obter_contexto_safra(lavoura, data_imagem):
 
     return int(safra["ano"]), graus_dia
 
+
+def publicar_estado_lavoura(lavoura, resultado, analises_concluidas):
+    obrigatorios = {"NDVI", "NDRE", "NDWI"}
+    classificacao = resultado.get("classificacao")
+    completa = (
+        obrigatorios.issubset(analises_concluidas)
+        and isinstance(classificacao, str)
+        and bool(classificacao.strip())
+        and not resultado["erros"]
+        and not resultado["avisos"]
+    )
+    if not completa:
+        log.warning(
+            "Lavoura %s: análise incompleta; estado anterior mantido.",
+            lavoura["id"],
+        )
+        return
+
+    alertas = resultado["alertas"]
+    estado = (
+        "critico" if any(a["critico"] for a in alertas)
+        else "atencao" if alertas
+        else "ok"
+    )
+    token = os.getenv("ALERTAS_TOKEN", "")
+    if not token:
+        raise RuntimeError("Configure ALERTAS_TOKEN.")
+
+    resposta = requests.post(
+        api_url(f"/lavouras/{lavoura['id']}/status-analise"),
+        headers={"X-Alertas-Token": token},
+        json={
+            "status": estado,
+            "data_imagem": resultado["dataImagem"],
+            "coordenadas": lavoura["coordenadas"],
+            "analise_completa": True,
+        },
+        timeout=(10, 30),
+    )
+    resposta.raise_for_status()
+    log.info("Estado da lavoura %s: %s", lavoura["id"], resposta.json())
+
 def processar_lavoura(lavoura, crs=None, crs_transformation=None, safra_atual=None, graus_dia=None, data_alvo=None, janela=30, indices=None, geometria=None):
     inicializar_ee()
     if geometria is None: geometria = criar_geometria(lavoura['coordenadas'])
@@ -242,6 +284,8 @@ def processar_lavoura(lavoura, crs=None, crs_transformation=None, safra_atual=No
                 lavoura["id"],
             )
 
+    analises_concluidas = set()
+
     for nome in indice_nomes:
         try:
             if nome.startswith('z-score-') and nome.removeprefix('z-score-') in INDICES:
@@ -277,6 +321,8 @@ def processar_lavoura(lavoura, crs=None, crs_transformation=None, safra_atual=No
                     safra_atual=safra_atual,
                     data=resultado['dataImagem']
                 )
+
+                analises_concluidas.add(indice)
 
                 if resultado_anomalia["salvo"]:
                     resultado["salvos"].append(
@@ -355,6 +401,12 @@ def processar_lavoura(lavoura, crs=None, crs_transformation=None, safra_atual=No
             "Falha ao salvar alertas da lavoura %s.",
             lavoura["id"],
         )
+    try:
+        publicar_estado_lavoura(lavoura, resultado, analises_concluidas)
+    except Exception as erro:
+        resultado["erros"].append(f"Falha ao atualizar estado: {erro}")
+        log.exception("Falha ao publicar o estado da lavoura %s.", lavoura["id"])
+
     resultado['status'] = ('parcial' if resultado['salvos'] else 'erro') if resultado['erros'] else ('concluido' if resultado['salvos'] else 'sem_dados')
     log.info('Lavoura %s: %s; %s mapas salvos.', lavoura['id'], resultado['status'], len(resultado['salvos']))
     return resultado

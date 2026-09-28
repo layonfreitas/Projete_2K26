@@ -516,71 +516,36 @@ def ranking_agronomos():
 # RELATÓRIO CSV
 # ================================================================
 
-@cooperativa_bp.route(
-    "/cooperativa/relatorio.csv",
-    methods=["GET"]
-)
-@requer_tipo("cooperativa")
-def relatorio_csv():
-    cursor = None
 
+@cooperativa_bp.route("/cooperativa/relatorio", methods=["GET"])
+@requer_tipo("cooperativa")
+def dados_relatorio_cooperativa():
+    cursor = None
     try:
         cursor = mysql.connection.cursor()
-
-        cursor.execute(
-            """
-            SELECT
-                usuarios.nome,
-                agronomo.nome,
-                lavouras.nome_lavoura,
-                lavouras.status,
-                lavouras.criado_em
-            FROM lavouras
-            JOIN usuarios ON usuarios.id = lavouras.usuario_id
-            LEFT JOIN vinculos_agronomo
-                ON vinculos_agronomo.produtor_id = usuarios.id
-            LEFT JOIN usuarios AS agronomo
-                ON agronomo.id = vinculos_agronomo.agronomo_id
-            ORDER BY usuarios.nome
-            """
-        )
-
-        buffer = io.StringIO()
-        escritor = csv.writer(buffer)
-
-        escritor.writerow([
-            "Produtor",
-            "Agrônomo",
-            "Lavoura",
-            "Status",
-            "Cadastrada em",
-        ])
-
-        for linha in cursor.fetchall():
-            escritor.writerow([
-                linha[0],
-                linha[1] or "Sem agrônomo",
-                linha[2],
-                linha[3],
-                linha[4],
-            ])
-
-        return Response(
-            buffer.getvalue(),
-            mimetype="text/csv",
-            headers={
-                "Content-Disposition":
-                    "attachment; filename=relatorio_coffeevision.csv"
+        cursor.execute("""
+            SELECT l.id, p.nome, a.nome, l.nome_lavoura,
+                   l.status, l.status_data_imagem
+            FROM lavouras l
+            JOIN usuarios p ON p.id = l.usuario_id
+            LEFT JOIN vinculos_agronomo v ON v.produtor_id = p.id
+            LEFT JOIN usuarios a ON a.id = v.agronomo_id
+            ORDER BY p.nome, l.nome_lavoura, l.id
+        """)
+        return jsonify({"lavouras": [
+            {
+                "id": linha[0],
+                "produtor": linha[1],
+                "agronomo": linha[2] or "Sem agrônomo",
+                "nomeLavoura": linha[3],
+                "status": linha[4],
+                "dataImagem": linha[5].isoformat() if linha[5] else None,
             }
-        )
-
+            for linha in cursor.fetchall()
+        ]}), 200
     except Exception:
-        current_app.logger.exception("Erro ao gerar relatório")
-
-        return jsonify({
-            "mensagem": "Erro ao gerar relatório."
-        }), 500
-
+        current_app.logger.exception("Erro ao consultar relatório.")
+        return jsonify({"mensagem": "Erro ao consultar relatório."}), 500
     finally:
         if cursor is not None:
             cursor.close()

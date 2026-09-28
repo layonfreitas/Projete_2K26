@@ -202,3 +202,80 @@ def delete_alerta(id):
     finally:
         if cursor is not None:
             cursor.close()
+@alertas_bp.route("/lavouras/<int:lavoura_id>/status-analise", methods=["POST"])
+def atualizar_status_analise(lavoura_id):
+    import json
+    from datetime import date
+
+    token = os.getenv("ALERTAS_TOKEN", "")
+    recebido = request.headers.get("X-Alertas-Token", "")
+    if not token:
+        return jsonify({"mensagem": "ALERTAS_TOKEN não configurado."}), 503
+    if not secrets.compare_digest(recebido, token):
+        return jsonify({"mensagem": "Não autorizado."}), 401
+
+    dados = request.get_json(silent=True)
+    if not isinstance(dados, dict):
+        return jsonify({"mensagem": "Envie um objeto JSON."}), 400
+
+    estado = dados.get("status")
+    coordenadas = dados.get("coordenadas")
+    try:
+        data_imagem = date.fromisoformat(dados.get("data_imagem", ""))
+    except (TypeError, ValueError):
+        return jsonify({"mensagem": "Data da imagem inválida."}), 400
+
+    if (
+        estado not in ("ok", "atencao", "critico")
+        or dados.get("analise_completa") is not True
+        or not isinstance(coordenadas, list)
+        or len(coordenadas) < 3
+        or data_imagem > date.today()
+    ):
+        return jsonify({"mensagem": "Análise incompleta ou dados inválidos."}), 400
+
+    cursor = None
+    try:
+        cursor = mysql.connection.cursor()
+        cursor.execute("""
+            SELECT status_data_imagem, coordenadas
+            FROM lavouras WHERE id = %s FOR UPDATE
+        """, (lavoura_id,))
+        linha = cursor.fetchone()
+
+        if not linha:
+            mysql.connection.rollback()
+            return jsonify({"mensagem": "Lavoura não encontrada."}), 404
+
+        # Não aplica o resultado de um contorno que já foi editado.
+        atuais = json.loads(linha[1]) if isinstance(linha[1], (str, bytes)) else linha[1]
+        if atuais != coordenadas:
+            mysql.connection.rollback()
+            return jsonify({
+                "atualizado": False,
+                "mensagem": "Contorno alterado; resultado ignorado."
+            }), 200
+
+        # Uma imagem antiga não substitui um estado mais recente.
+        if linha[0] and data_imagem < linha[0]:
+            mysql.connection.rollback()
+            return jsonify({
+                "atualizado": False,
+                "mensagem": "Análise antiga; resultado ignorado."
+            }), 200
+
+        cursor.execute("""
+            UPDATE lavouras
+            SET status = %s, status_data_imagem = %s
+            WHERE id = %s
+        """, (estado, data_imagem, lavoura_id))
+        mysql.connection.commit()
+        return jsonify({"atualizado": True, "status": estado}), 200
+    except Exception:
+        mysql.connection.rollback()
+        current_app.logger.exception("Falha ao atualizar estado da lavoura.")
+        return jsonify({"mensagem": "Erro ao atualizar estado."}), 500
+    finally:
+        if cursor is not None:
+            cursor.close()
+

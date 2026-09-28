@@ -22,6 +22,8 @@ load_dotenv()
 def classificar_anomalia(z_score, indice):
 
     z = z_score.to_numpy()
+    if not np.isfinite(z).any():
+        raise ValueError("Análise sem pixels válidos; estado anterior mantido.")
 
     if indice.upper() == "NDWI":
         mascara_aumento_anormalidade = np.zeros(

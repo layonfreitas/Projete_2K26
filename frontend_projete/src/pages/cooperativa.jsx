@@ -1,3 +1,5 @@
+import logoIcone from "../assets/logo-icone.jpeg";
+import { criarRelatorioLavourasPdf, dataParaArquivo } from "../services/relatoriosPdf";
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AUTH_API_URL } from "../config/api";
@@ -924,7 +926,7 @@ function VisaoGeral({ dashboard, ranking, aoDirecionar, aoBaixar, baixando }) {
         disabled={baixando}
       >
         <Icone nome="baixar" />
-        {baixando ? "Gerando relatório…" : "Baixar relatório (CSV)"}
+        {baixando ? "Gerando relatório…" : "Baixar relatório (PDF)"}
       </button>
     </>
   );
@@ -1438,26 +1440,39 @@ function Cooperativa() {
     navigate("/editar_senha");
   }
 
+
   async function baixarRelatorio() {
+    if (baixando) return;
     setBaixando(true);
     try {
-      const resposta = await fetchAutenticado(`${AUTH_API_URL}/cooperativa/relatorio.csv`);
+      const resposta = await fetchAutenticado(
+        `${AUTH_API_URL}/cooperativa/relatorio`
+      );
       if (!resposta.ok) {
-        notificar("Não foi possível gerar o relatório. Tente de novo.", "erro");
-        return;
+        throw new Error("Não foi possível consultar os dados do relatório.");
       }
-      const blob = await resposta.blob();
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = "relatorio_coffeevision.csv";
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(url);
-      notificar("Relatório baixado.");
-    } catch {
-      notificar(ERRO_REDE, "erro");
+      const dados = await resposta.json();
+
+      const respostaLogo = await fetch(logoIcone);
+      if (!respostaLogo.ok) {
+        throw new Error("Não foi possível carregar a logo.");
+      }
+      const blob = await respostaLogo.blob();
+      const logo = await new Promise((resolve, reject) => {
+        const leitor = new FileReader();
+        leitor.onload = () => resolve(leitor.result);
+        leitor.onerror = () => reject(new Error("Erro ao carregar a logo."));
+        leitor.readAsDataURL(blob);
+      });
+
+      const pdf = criarRelatorioLavourasPdf({
+        lavouras: dados.lavouras,
+        logo,
+      });
+      pdf.save(`relatorio_coffeevision_${dataParaArquivo()}.pdf`);
+      notificar("Relatório PDF gerado.");
+    } catch (erro) {
+      notificar(erro.message || "Não foi possível gerar o PDF.", "erro");
     } finally {
       setBaixando(false);
     }

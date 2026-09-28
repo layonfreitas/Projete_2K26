@@ -37,7 +37,7 @@ export function nomeArquivoLaudo(nome, data = new Date()) {
   return `laudo_${parte}_${dataParaArquivo(data)}.pdf`;
 }
 
-function criarDocumento({ titulo, subtitulo, emissao }) {
+function criarDocumento({ titulo, subtitulo, emissao, logo }) {
   const pdf = new jsPDF({ unit: "mm", format: "a4", compress: true, putOnlyUsedFonts: true });
   pdf.setProperties({ title: titulo, subject: subtitulo, author: "CoffeeVision", creator: "CoffeeVision" });
   pdf.setLanguage("pt-BR");
@@ -61,7 +61,13 @@ function criarDocumento({ titulo, subtitulo, emissao }) {
     pdf.setFillColor(...COR.verde);
     pdf.rect(0, 0, largura, 3, "F");
     fonte(15, true, COR.verde);
-    pdf.text("CoffeeVision", margem, 18);
+    if (logo) {
+      const img = pdf.getImageProperties(logo);
+      const escala = Math.min(12 / img.width, 12 / img.height);
+      pdf.addImage(logo, img.fileType, margem, 8,
+        img.width * escala, img.height * escala);
+    }
+    pdf.text("CoffeeVision", margem + (logo ? 16 : 0), 18);
     fonte(8, false, COR.discreto);
     pdf.text("GESTÃO E MONITORAMENTO AGRÍCOLA", largura - margem, 18, { align: "right" });
     pdf.setDrawColor(...COR.linha);
@@ -788,3 +794,45 @@ export function criarRelatorioCooperativaPdf({ dashboard, ranking, usuarios, emi
   ], agronomos.map((a) => [a.nome, a.email, quantidade(carga.get(String(a.id)) || 0)]), "Nenhum agrônomo cadastrado.");
   return relatorio.finalizar();
 }
+
+export function criarRelatorioLavourasPdf({
+  lavouras, logo, emissao = new Date(),
+}) {
+  if (!Array.isArray(lavouras) || lavouras.some(l => !l || typeof l !== "object")) {
+    throw new Error("Os dados do relatório são inválidos.");
+  }
+  const relatorio = criarDocumento({
+    titulo: "Relatório da cooperativa",
+    subtitulo: "Produtores, agrônomos e situação das lavouras",
+    emissao,
+    logo,
+  });
+  relatorio.indicadores(
+    Object.entries(STATUS).map(([chave, rotulo]) => ({
+      rotulo: rotulo.toUpperCase(),
+      valor: lavouras.filter(l => l.status === chave).length,
+    }))
+  );
+  relatorio.paragrafo(
+    "Estados da última análise completa. Processamentos incompletos mantêm " +
+    "o estado anterior. Sem data: estado cadastrado sem confirmação desta rotina.",
+    { tamanho: 9 }
+  );
+  relatorio.tabela("Lavouras cadastradas", [
+    { rotulo: "Produtor", peso: 0.25 },
+    { rotulo: "Agrônomo", peso: 0.25 },
+    { rotulo: "Lavoura", peso: 0.22 },
+    { rotulo: "Estado", peso: 0.12 },
+    { rotulo: "Data da imagem", peso: 0.16 },
+  ], lavouras.map(l => [
+    l.produtor,
+    l.agronomo || "Sem agrônomo",
+    l.nomeLavoura,
+    STATUS[l.status] || "Não informado",
+    /^\d{4}-\d{2}-\d{2}$/.test(l.dataImagem || "")
+      ? l.dataImagem.split("-").reverse().join("/")
+      : "Sem data",
+  ]), "Nenhuma lavoura cadastrada.");
+  return relatorio.finalizar();
+}
+

@@ -103,16 +103,16 @@ function Login() {
       // Destino preservado pelo componente RotaProtegida.
       const voltarPara = location.state?.voltarPara;
 
-      // Permite retornar apenas à rota de mapa esperada.
+      // Permite retornar apenas às rotas internas esperadas.
       const destinoValido =
         typeof voltarPara === "string" &&
-        /^\/mapa\?lavouraId=[1-9]\d*$/.test(voltarPara);
+        /^\/(?:mapa\?lavouraId=[1-9]\d*|historico\?aba=alerta&lavouraId=[1-9]\d*)$/.test(voltarPara);
 
       let destino;
 
       if (lavouraDoEmail) {
-        // Entrou pelo e-mail: abre o mapa na lavoura do alerta.
-        destino = `/mapa?lavouraId=${lavouraDoEmail}`;
+        // Entrou pelo e-mail: abre os alertas da lavoura no histórico.
+        destino = `/historico?aba=alerta&lavouraId=${lavouraDoEmail}`;
       } else if (destinoValido) {
         // Tentou abrir o mapa antes de estar autenticado.
         destino = voltarPara;
