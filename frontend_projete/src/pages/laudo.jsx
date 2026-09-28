@@ -24,6 +24,9 @@ import AppBar from "../components/ui/AppBar";
 import Button from "../components/ui/Button";
 import { useToast } from "../components/ui/toastContext";
 
+
+
+
 import "./laudo.css";
 
 const TIPOS = {

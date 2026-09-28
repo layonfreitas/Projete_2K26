@@ -94,7 +94,6 @@ def buscar_todas_lavouras():
     return resposta.json()
 
 
-
 def salvar_alertas(alertas):
     if not isinstance(alertas, list):
         raise TypeError("Os alertas devem ser uma lista.")
@@ -103,8 +102,18 @@ def salvar_alertas(alertas):
         log.info("Nenhum alerta gerado para salvar.")
         return
 
+    token = os.getenv("ALERTAS_TOKEN", "")
+
+    if not token:
+        raise RuntimeError(
+            "Configure ALERTAS_TOKEN no backend de índices."
+        )
+
     resposta = requests.post(
         api_url("/alertas"),
+        headers={
+            "X-Alertas-Token": token,
+        },
         json=alertas,
         timeout=(15, 60),
     )
@@ -118,10 +127,20 @@ def salvar_alertas(alertas):
 
     resposta.raise_for_status()
 
+    dados = resposta.json()
+    emails = dados.get("emails", {})
+
     log.info(
-        "Envio de %d alerta(s) confirmado pela API.",
+        "%d alerta(s) salvo(s). Resultado dos e-mails: %s",
         len(alertas),
+        emails,
     )
+
+    if emails.get("falhas"):
+        log.warning(
+            "Os alertas foram salvos, mas alguma notificação "
+            "não foi concluída. Confira os logs da API."
+        )
 
 def obter_contexto_safra(lavoura, data_imagem):
 
@@ -309,8 +328,14 @@ def processar_lavoura(lavoura, crs=None, crs_transformation=None, safra_atual=No
         resultado["classificacao"] = classificacao
 
         if classificacao == "alta":
-            resultado["alertas"].append({"usuario_id": lavoura['usuarioId'], "lavoura_id": lavoura["id"], "critico": True, "indice": "CLMI"})
-
+            resultado["alertas"].append({
+                "usuario_id": lavoura["usuarioId"],
+                "lavoura_id": lavoura["id"],
+                "critico": True,
+                "indice": "CLMI",
+                "data_imagem": resultado["dataImagem"],
+                "contorno": None,
+            })
     except Exception as erro:
         resultado["avisos"].append(
             f"Classificação indisponível: {erro}"

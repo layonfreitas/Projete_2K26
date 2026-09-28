@@ -18,7 +18,7 @@ cabecalho = None
 async def lifespan(app: FastAPI):
     jvm.start()
     global modelo, cabecalho 
-    modelo, cabecalho = Classifier.deserialize("classificador_clm.model")
+    modelo, cabecalho = Classifier.deserialize("classificador_clmi.model")
 
     yield
 
