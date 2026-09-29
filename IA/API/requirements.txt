@@ -11,3 +11,4 @@ python-dotenv
 earthengine-api
 openmeteo-requests
 requests
+geemap
