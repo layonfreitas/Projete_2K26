@@ -11,9 +11,11 @@ ENV PATH="${JAVA_HOME}/bin:${PATH}"
 WORKDIR /app
 
 COPY IA/API/requirements.txt /app/IA/API/requirements.txt
+COPY backend_indices/requirements.txt /app/backend_indices/requirements.txt
 
-RUN pip install --no-cache-dir -r /app/IA/API/requirements.txt
-
+RUN pip install --no-cache-dir \
+    -r /app/IA/API/requirements.txt \
+    -r /app/backend_indices/requirements.txt
 # Preserva a estrutura usada pelo app.py para localizar gee_auth.
 COPY IA/API/ /app/IA/API/
 COPY backend_indices/ /app/backend_indices/
