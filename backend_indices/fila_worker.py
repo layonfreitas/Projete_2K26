@@ -1,51 +1,61 @@
-import logging
 import os
-import threading
 import time
-
+import logging
 import requests
+
+from dotenv import load_dotenv
 
 from processar_lavouras import processar_lavoura
 from serie_safras import gerar_series_safras
 
 
-log = logging.getLogger(__name__)
+load_dotenv()
 
 
-def obter_url_banco():
-    return os.getenv(
-        "BANCO_API_URL",
-        ""
-    ).rstrip("/")
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(message)s",
+)
 
 
-def obter_token():
-    return os.getenv(
-        "MAPAS_INTERNAL_TOKEN",
-        ""
+log = logging.getLogger("fila-worker")
+
+
+BANCO_API_URL = os.getenv(
+    "BANCO_API_URL",
+    "",
+).rstrip("/")
+
+
+MAPAS_INTERNAL_TOKEN = os.getenv(
+    "MAPAS_INTERNAL_TOKEN",
+    "")
+
+
+INTERVALO_FILA = int(
+    os.getenv(
+        "FILA_INTERVALO",
+        "2",
     )
+)
+
+
+def headers():
+
+    return {
+        "X-Mapas-Token": MAPAS_INTERNAL_TOKEN
+    }
 
 
 def pegar_proxima_tarefa():
-    base = obter_url_banco()
-    token = obter_token()
-
-    if not base:
-        raise RuntimeError(
-            "BANCO_API_URL não configurada."
-        )
-
-    if not token:
-        raise RuntimeError(
-            "MAPAS_INTERNAL_TOKEN não configurado."
-        )
 
     resposta = requests.get(
-        base + "/interno/mapas/proxima",
-        headers={
-            "X-Mapas-Token": token
-        },
-        timeout=(5, 30)
+        BANCO_API_URL
+        + "/interno/mapas/proxima",
+
+        headers=headers(),
+
+        timeout=60,
     )
 
     if resposta.status_code == 204:
@@ -60,59 +70,87 @@ def finalizar_tarefa(
     tarefa_id,
     status,
     resultado=None,
-    erro=None
+    erro=None,
 ):
-    base = obter_url_banco()
-    token = obter_token()
 
     dados = {
         "status": status,
         "resultado": resultado,
-        "erro": erro
+        "erro": erro,
     }
 
     resposta = requests.post(
-        base + f"/interno/mapas/{tarefa_id}/finalizar",
+        BANCO_API_URL
+        + f"/interno/mapas/{tarefa_id}/finalizar",
+
         json=dados,
-        headers={
-            "X-Mapas-Token": token
-        },
-        timeout=(5, 30)
+
+        headers=headers(),
+
+        timeout=60,
     )
 
     resposta.raise_for_status()
 
 
 def processar_tarefa(tarefa):
+
     tarefa_id = tarefa["tarefa_id"]
+
     dados = tarefa["dados"]
 
     lavoura_id = dados["id"]
 
     log.info(
-        "[FILA] Iniciando lavoura %s. Tarefa %s.",
+        "========================================"
+    )
+
+    log.info(
+        "[FILA] Iniciando lavoura %s",
         lavoura_id,
-        tarefa_id
+    )
+
+    log.info(
+        "[FILA] Tarefa %s",
+        tarefa_id,
     )
 
     try:
-        if dados.get("safras"):
+
+        if dados.get(
+            "gerar_series",
+            False,
+        ):
+
             try:
-                resultado_series = gerar_series_safras(
-                    dados
+
+                log.info(
+                    "[FILA] Gerando séries da lavoura %s",
+                    lavoura_id,
+                )
+
+                resultado_series = (
+                    gerar_series_safras(
+                        dados
+                    )
                 )
 
                 log.info(
-                    "[FILA] Séries da lavoura %s concluídas: %s",
-                    lavoura_id,
-                    resultado_series
+                    "[FILA] Séries concluídas: %s",
+                    resultado_series,
                 )
 
             except Exception:
+
                 log.exception(
-                    "[FILA] Falha nas séries da lavoura %s.",
-                    lavoura_id
+                    "[FILA] Erro nas séries da lavoura %s",
+                    lavoura_id,
                 )
+
+        log.info(
+            "[FILA] Gerando mapas da lavoura %s",
+            lavoura_id,
+        )
 
         resultado = processar_lavoura(
             dados
@@ -120,66 +158,118 @@ def processar_tarefa(tarefa):
 
         status = resultado.get(
             "status",
-            "erro"
+            "erro",
         )
 
         log.info(
-            "[FILA] Lavoura %s terminou com status %s.",
+            "[FILA] Lavoura %s terminou: %s",
             lavoura_id,
-            status
+            status,
         )
 
         finalizar_tarefa(
             tarefa_id=tarefa_id,
             status=status,
-            resultado=resultado
+            resultado=resultado,
+        )
+
+        log.info(
+            "[FILA] Tarefa %s finalizada.",
+            tarefa_id,
         )
 
     except Exception as erro:
+
         log.exception(
-            "[FILA] Erro processando lavoura %s.",
-            lavoura_id
+            "[FILA] Erro na lavoura %s",
+            lavoura_id,
         )
 
-        finalizar_tarefa(
-            tarefa_id=tarefa_id,
-            status="erro",
-            erro=str(erro)
+        try:
+
+            finalizar_tarefa(
+                tarefa_id=tarefa_id,
+                status="erro",
+                erro=str(erro),
+            )
+
+        except Exception:
+
+            log.exception(
+                "[FILA] Não foi possível registrar "
+                "o erro da tarefa %s",
+                tarefa_id,
+            )
+
+
+def validar_configuracao():
+
+    if not BANCO_API_URL:
+
+        raise RuntimeError(
+            "BANCO_API_URL não configurada."
+        )
+
+    if not MAPAS_INTERNAL_TOKEN:
+
+        raise RuntimeError(
+            "MAPAS_INTERNAL_TOKEN não configurado."
         )
 
 
-def worker():
+def executar_worker():
+
+    validar_configuracao()
+
     log.info(
-        "[FILA] Worker de mapas iniciado."
+        "[FILA] Worker iniciado."
+    )
+
+    log.info(
+        "[FILA] Banco: %s",
+        BANCO_API_URL,
     )
 
     while True:
+
         try:
+
             tarefa = pegar_proxima_tarefa()
 
             if tarefa is None:
-                time.sleep(1)
+
+                time.sleep(
+                    INTERVALO_FILA
+                )
+
                 continue
 
-            processar_tarefa(tarefa)
-
-        except Exception:
-            log.exception(
-                "[FILA] Erro no worker."
+            processar_tarefa(
+                tarefa
             )
 
-            time.sleep(3)
+            # Assim que termina,
+            # volta imediatamente para a fila.
+            continue
+
+        except requests.RequestException:
+
+            log.exception(
+                "[FILA] Erro de comunicação "
+                "com o banco."
+            )
+
+            time.sleep(5)
+
+        except Exception:
+
+            log.exception(
+                "[FILA] Erro inesperado no worker."
+            )
+
+            time.sleep(5)
 
 
-def iniciar_worker():
-    thread = threading.Thread(
-        target=worker,
-        name="fila-map-worker",
-        daemon=True
-    )
+if __name__ == "__main__":
 
-    thread.start()
-
-    log.info(
-        "[FILA] Thread do worker iniciada."
-    )
+    executar_worker()
