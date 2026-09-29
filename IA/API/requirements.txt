@@ -10,3 +10,4 @@ contextlib2
 python-dotenv
 earthengine-api
 openmeteo-requests
+requests
