@@ -24,7 +24,7 @@ class Req(BaseModel):
 
 
 
-
+app = FastAPI()
 
 
 @asynccontextmanager
@@ -39,12 +39,14 @@ app = FastAPI(lifespan=lifespan)
 @app.post("/time_series")
 def run_time_series(req: Req):
    try:
-    if len(dados.coordenadas) < 3:
+
+    
+    if len(req.coordenadas) < 3:
             raise ValueError("Informe pelo menos três pontos para o contorno.")
 
         # O Earth Engine recebe longitude primeiro e latitude depois.
     pontos = [[ponto.lng, ponto.lat]
-            for ponto in dados.coordenadas
+            for ponto in req.coordenadas
         ]
 
         # Fecha o contorno.
