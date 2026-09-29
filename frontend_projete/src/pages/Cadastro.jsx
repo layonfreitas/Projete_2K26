@@ -184,20 +184,9 @@ export default function Cadastro() {
       return;
     }
 
-    // Nenhum ano de fim repetido: não pode haver duas safras que
-    // terminam em 2025, por exemplo.
-    const anosFim = periodos.map((safra) => safra.fim.slice(0, 4));
-    const anoFimRepetido = anosFim.find(
-      (ano, indice) => anosFim.indexOf(ano) !== indice
-    );
+   
 
-    if (anoFimRepetido) {
-      setMensagem(
-        `Mais de uma safra termina em ${anoFimRepetido}. ` +
-        "Cada safra deve terminar em um ano diferente."
-      );
-      return;
-    }
+    
 
     // Nenhum dia em comum: o início de uma safra precisa ser depois do
     // fim da anterior (<= também barra o mesmo dia).
