@@ -27,7 +27,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 
 
-app.post("/time_series")
+@app.post("/time_series")
 def run_time_series(req: Req):
    try:
 
