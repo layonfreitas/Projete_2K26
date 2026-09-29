@@ -255,3 +255,81 @@ def agendar_mapas(
 
 faulthandler.cancel_dump_traceback_later()
 print("[INICIO] backend_server carregado", flush=True)
+
+def encaminhar_fila(caminho, token, dados=None):
+    esperado = os.getenv("MAPAS_INTERNAL_TOKEN", "")
+
+    if (
+        not esperado
+        or not secrets.compare_digest(esperado, token)
+    ):
+        raise HTTPException(
+            status_code=401,
+            detail="Credencial interna inválida.",
+        )
+
+    base = os.getenv(
+        "BANCO_API_URL",
+        "",
+    ).rstrip("/")
+
+    if not base:
+        raise HTTPException(
+            status_code=503,
+            detail="Configure BANCO_API_URL.",
+        )
+
+    try:
+        resposta = requests.post(
+            base + caminho,
+            json=dados,
+            headers={
+                "X-Mapas-Token": esperado,
+            },
+            timeout=(5, 30),
+        )
+
+        if resposta.status_code != 202:
+            raise HTTPException(
+                status_code=503,
+                detail=(
+                    "Não foi possível registrar a geração."
+                ),
+            )
+
+        return resposta.json()
+
+    except (requests.RequestException, ValueError) as erro:
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "Não foi possível confirmar "
+                "a entrada na fila."
+            ),
+        ) from erro
+
+
+@app.post("/agendar_mapas/", status_code=202)
+@app.post("/day_maps/", status_code=202)
+def agendar_mapas(
+    day_req: Day_req,
+    x_mapas_token: str = Header(default=""),
+):
+    return encaminhar_fila(
+        "/interno/mapas/enfileirar",
+        x_mapas_token,
+        {
+            "lavoura_id": day_req.lavoura_id,
+            "usuario_id": day_req.usuario_id,
+        },
+    )
+
+
+@app.post("/processar_todas_lavouras/", status_code=202)
+def processar_todas(
+    x_mapas_token: str = Header(default=""),
+):
+    return encaminhar_fila(
+        "/interno/mapas/enfileirar-todas",
+        x_mapas_token,
+    )

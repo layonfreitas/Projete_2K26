@@ -41,3 +41,6 @@ zarr>=2.18,<3
 shapely>=2,<3
 
 rasterio
+
+PyMySQL>=1.1,<2
+cryptography

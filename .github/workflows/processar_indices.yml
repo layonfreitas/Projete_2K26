@@ -2,17 +2,21 @@ name: Processar índices diários
 
 on:
   schedule:
-    - cron: "0 6 * * *"   
-  workflow_dispatch:        
+    - cron: "0 6 * * *"
+  workflow_dispatch:
 
 jobs:
   disparar-processamento:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Acordar e chamar o backend_indices
+      - name: Incluir lavouras na fila
+        env:
+          BANCO_API_URL: ${{ secrets.BANCO_API_URL }}
+          MAPAS_INTERNAL_TOKEN: ${{ secrets.MAPAS_INTERNAL_TOKEN }}
+
         run: |
-          curl -X POST "${{ secrets.BACKEND_INDICES_URL }}/processar_todas_lavouras/" \
-            --max-time 120 \
-            --retry 3 \
-            --retry-delay 15 \
-            --fail
+          curl --fail-with-body --max-time 120 \
+            --retry 3 --retry-delay 15 \
+            -X POST "${BANCO_API_URL%/}/interno/mapas/enfileirar-todas" \
+            -H "X-Mapas-Token: ${MAPAS_INTERNAL_TOKEN}"

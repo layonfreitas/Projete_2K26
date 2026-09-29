@@ -5,73 +5,50 @@ from email_utils import enviar_email, montar_email_laudo
 import os
 import requests
 from datetime import date
+from routes.fila_mapas_routes import ( enfileirar, mensagem_status,
+)
 
 lavoura_bp = Blueprint('lavoura', __name__)
 
 mysql = None
 
-def solicitar_mapas(lavoura_id, usuario_id, coordenadas, safras=None):
-    base_url = os.getenv("INDICES_API_URL", "").rstrip("/")
-    token = os.getenv("MAPAS_INTERNAL_TOKEN", "")
-
-    if not base_url or not token:
-        return {
-            "status": "nao_configurado",
-            "mensagem": "A geração de imagens não foi configurada.",
-        }
+def solicitar_mapas(
+    lavoura_id,
+    usuario_id,
+    coordenadas=None,
+    safras=None,
+):
+    cursor = mysql.connection.cursor()
 
     try:
-        resposta = requests.post(
-            f"{base_url}/agendar_mapas/",
-            headers={
-                "X-Mapas-Token": token,
-            },
-            json={
-                "lavoura_id": lavoura_id,
-                "usuario_id": int(usuario_id),
-                "coordenadas": coordenadas,
-                "safras": safras or [],
-            },
-            timeout=(5, 10),
+        resultado = enfileirar(
+            cursor,
+            lavoura_id,
+            usuario_id,
         )
 
-        if resposta.status_code == 202:
-            return {
-                "status": "aceito",
-                "mensagem": (
-                    "Geração solicitada. "
-                    "Aguarde e atualize o histórico."
-                ),
-            }
+        mysql.connection.commit()
 
-        if resposta.status_code == 409:
-            return {
-                "status": "ocupado",
-                "mensagem": (
-                    "O serviço está ocupado. "
-                    "Tente novamente pelo botão Gerar imagens "
-                    "no histórico."
-                ),
-            }
+        return resultado
 
-        current_app.logger.warning(
-            "Solicitação de mapas recusada: HTTP %s",
-            resposta.status_code,
-        )
+    except Exception:
+        mysql.connection.rollback()
 
-    except requests.RequestException:
         current_app.logger.exception(
-            "Não foi possível confirmar a geração de mapas."
+            "Falha ao registrar geração na fila."
         )
 
-    return {
-        "status": "nao_confirmado",
-        "mensagem": (
-            "Não foi possível confirmar a geração. "
-            "Consulte o histórico antes de tentar novamente."
-        ),
-    }
+        return {
+            "status": "indisponivel",
+            "mensagem": (
+                "Sua lavoura está salva, mas não foi possível "
+                "registrar a geração. "
+                "Tente novamente pelo histórico."
+            ),
+        }
 
+    finally:
+        cursor.close()
 
 def _dono_da_lavoura(cursor, lavoura_id):
     """Retorna o usuario_id dono da lavoura, ou None se ela não existir."""
@@ -252,27 +229,24 @@ def cadastrar_lavoura():
     ),
 )
 
-            # Guarda o ID antes de fechar o cursor.
+    
         lavoura_id = cursor.lastrowid
 
-        # Primeiro confirma o cadastro no banco.
-        mysql.connection.commit()
-        cursor.close()
-
-        # Depois solicita as imagens da nova lavoura.
-        mapas = solicitar_mapas(
+        # Salva a lavoura e a tarefa na mesma transação.
+        mapas = enfileirar(
+            cursor,
             lavoura_id,
             usuario_id,
-            coordenadas,
-            safras=safras,
         )
+
+        mysql.connection.commit()
+        cursor.close()
 
         return jsonify({
             "id": lavoura_id,
             "mensagem": "Lavoura cadastrada com sucesso",
             "mapas": mapas,
         }), 201
-
     except Exception as erro:
         print("ERRO AO CADASTRAR LAVOURA:", repr(erro))
 
@@ -581,23 +555,27 @@ def editar_lavoura(lavoura_id):
         mapas = None
 
         if mudou_contorno:
-            mapas = solicitar_mapas(
+            mapas = enfileirar(
+                cursor,
                 lavoura_id,
                 anterior[1],
-                coordenadas,
             )
+
+        mysql.connection.commit()
+        cursor.close()
 
         return jsonify({
             "mensagem": "Lavoura atualizada com sucesso",
             "mapas": mapas,
         }), 200
-
     except Exception as erro:
+        mysql.connection.rollback()
 
         return jsonify({
             "mensagem": "Erro ao atualizar lavoura",
-            "erro": str(erro)
+            "erro": str(erro),
         }), 500
+
 
 
 @lavoura_bp.route('/lavoura/<int:lavoura_id>', methods=['DELETE'])
@@ -773,35 +751,54 @@ def gerar_imagens_lavoura(lavoura_id):
     if not ok:
         return erro
 
+    resultado = solicitar_mapas(
+        lavoura_id,
+        request.headers.get("X-Usuario-Id"),
+    )
+
+    codigo = (
+        202
+        if resultado["status"] in {"na_fila", "processando"}
+        else 503
+    )
+
+    return jsonify(resultado), codigo
+
+@lavoura_bp.get("/lavoura/<int:lavoura_id>/mapas-status")
+def consultar_mapas_status(lavoura_id):
+    ok, erro = _exige_dono(lavoura_id)
+
+    if not ok:
+        return erro
+
     cursor = mysql.connection.cursor()
 
     try:
         cursor.execute(
             """
-            SELECT usuario_id, coordenadas, safras
-            FROM lavouras
-            WHERE id = %s
+            SELECT id, status, email_enviado_em
+            FROM fila_mapas
+            WHERE lavoura_id = %s
+            ORDER BY id DESC
+            LIMIT 1
             """,
             (lavoura_id,),
         )
 
         linha = cursor.fetchone()
 
+        if not linha:
+            return jsonify(
+                status="sem_solicitacao",
+                mensagem="Nenhuma geração solicitada.",
+            )
+
+        return jsonify(
+            tarefa_id=linha[0],
+            status=linha[1],
+            mensagem=mensagem_status(linha[1]),
+            email_enviado=bool(linha[2]),
+        )
+
     finally:
         cursor.close()
-
-    if not linha:
-        return jsonify({
-            "mensagem": "Lavoura não encontrada."
-        }), 404
-
-    resultado = solicitar_mapas(
-    lavoura_id,
-    linha[0],
-    json.loads(linha[1]),
-    safras=json.loads(linha[2]) if linha[2] else [],
-)
-
-    codigo = 202 if resultado["status"] == "aceito" else 503
-
-    return jsonify(resultado), codigo

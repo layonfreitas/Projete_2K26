@@ -1,13 +1,12 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { useState } from "react";
-import { AUTH_API_URL, IA_API_URL } from "../config/api";
+import { useRef, useState } from "react";
+import { AUTH_API_URL } from "../config/api";
 import AppBar from "../components/ui/AppBar";
 import Button from "../components/ui/Button";
 import { TextField } from "../components/ui/Field";
 import { EmptyState, Notice } from "../components/ui/States";
-import { useToast } from "../components/ui/toastContext";
+import StatusMapas from "../components/StatusMapas";
 import { calcularAreaHectares, formatarHectares, pontosParaSvg } from "../utils/geo";
-import { mensagemDeErro } from "../services/erros";
 import "./Cadastro.css";
 
 const DATA_MINIMA = "2017-03-28";
@@ -29,9 +28,12 @@ function formatarDataBR(texto) {
 export default function Cadastro() {
   const navigate = useNavigate();
   const location = useLocation();
-  const toast = useToast();
+  const envio = useRef(false);
 
   const coordenadas = location.state?.coordenadas;
+
+  const [cadastroSalvo, setCadastroSalvo] = useState(null);
+  const [cadastroIncerto, setCadastroIncerto] = useState(false);
 
   const [nome, setNome] = useState("");
   const [erroNome, setErroNome] = useState("");
@@ -78,7 +80,7 @@ export default function Cadastro() {
   async function salvarCadastro(evento) {
     evento.preventDefault();
 
-    if (carregando) return;
+    if (envio.current || cadastroSalvo || cadastroIncerto) return;
 
     setMensagem("");
     setErroNome("");
@@ -201,132 +203,70 @@ export default function Cadastro() {
       }
     }
 
+    envio.current = true;
     setCarregando(true);
-
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 30000);
     try {
-      const projection = await fetch(`${IA_API_URL}/crs`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          coordenadas: coordenadas,
-        }),
-      });
-
-      const projecoes = await projection.json();
-      const crs = projecoes.crs;
-      const crs_transformation = projecoes.crs_transformation;
-
-      let graus_dia;
-
-      try {
-        const respostaGDA = await fetch(`${IA_API_URL}/gda_to_js`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            "lat": coordenadas[0]["lat"],
-            "lon": coordenadas[0]["lng"],
-            "dataInicio": safraAtual.inicio,
-            "dataFim": safraAtual.fim
-          })
-        });
-
-        if (!respostaGDA.ok) {
-          throw new Error("Falha na resposta do serviço.");
-        }
-
-        const dadosGDA = await respostaGDA.json();
-        graus_dia = dadosGDA.gda;
-      } catch {
-        // Nada foi salvo: mostra o aviso e deixa o usuário tentar de novo.
-        setMensagem("Não foi possível cadastrar a lavoura.");
-        return;
-      }
-
+      // Séries, projeção e graus-dia são calculados pelo servidor.
       const resposta = await fetch(`${AUTH_API_URL}/lavoura`, {
         method: "POST",
+        signal: controller.signal,
         headers: {
           "Content-Type": "application/json",
           "X-Usuario-Id": usuarioId,
         },
         body: JSON.stringify({
-          usuarioId: usuarioId,
-          nomeLavoura: nome.trim(),
-          coordenadas,
-          crs: crs,
-          crs_transformation: crs_transformation,
-          gda: graus_dia,
-          safras: periodos,
+          usuarioId, nomeLavoura: nome.trim(), coordenadas, safras: periodos,
         }),
       });
-
-      const dados = await resposta.json();
-
+      const dados = await resposta.json().catch(() => null);
       if (resposta.ok) {
-        toast.sucesso("Lavoura cadastrada com sucesso!");
-
-        if (dados.mapas) {
-          if (dados.mapas.status === "aceito") {
-            toast.sucesso(dados.mapas.mensagem);
-            toast.info(
-              "Processamento solicitado. As séries das safras e os mapas " +
-              "serão gerados em segundo plano."
-            );
-
-            for (const safra of periodos) {
-              // Ponto de extensão da safra atual: safra.atual === true
-              // (fim = dia do cadastro). Trate-a de forma específica aqui.
-              const respostaSerie = await fetch(`${IA_API_URL}/time_series`, {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                  "coordenadas": JSON.stringify(coordenadas),
-                  "lavouraId": dados.id,
-                  "usuarioId": usuarioId,
-                  "crs": crs,
-                  "crsTransform": crs_transformation,
-                  "dataInicio": safra.inicio,
-                  "dataFim": safra.fim,
-                  "anoSafra": safra.ano,
-                },
-              });
-
-              const nomeSafra = safra.atual
-                ? "atual"
-                : String(safra.ano);
-
-              if (!respostaSerie.ok) {
-                const erroSerie = await respostaSerie.json();
-                toast.erro(`Erro ao solicitar série temporal para a safra ${nomeSafra}: ${erroSerie.mensagem || "Erro desconhecido"}`);
-              } else {
-                toast.sucesso(`Série temporal solicitada para a safra ${nomeSafra}.`);
-              }
-            }
-          } else {
-            toast.erro(`Lavoura salva. ${dados.mapas.mensagem}`);
-            toast.erro(
-              "A lavoura foi salva, mas o processamento não foi confirmado. " +
-              "Use Gerar imagens no histórico para tentar novamente."
-            );
-          }
-        }
-        navigate("/home");
+        if (!dados?.id) throw new Error("Resposta sem confirmação.");
+        setCadastroSalvo(dados);
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      } else if (resposta.status >= 500) {
+        setCadastroIncerto(true);
+        setMensagem("O servidor não confirmou o cadastro. Confira suas lavouras antes de tentar novamente para evitar duplicação.");
       } else {
-        setMensagem(dados.mensagem || "Erro ao cadastrar lavoura.");
+        setMensagem(dados?.mensagem || "Revise os dados e tente novamente.");
       }
-    } catch (erro) {
-      setMensagem(
-        mensagemDeErro(
-          erro,
-          "Não foi possível confirmar o cadastro. Confira suas lavouras antes de tentar novamente."
-        )
-      );
+    } catch {
+      setCadastroIncerto(true);
+      setMensagem("A conexão foi interrompida e não conseguimos confirmar o cadastro. Confira suas lavouras antes de tentar novamente.");
     } finally {
+      clearTimeout(timer);
+      envio.current = false;
       setCarregando(false);
     }
+  }
+
+  if (cadastroSalvo) {
+    return (
+      <div className="ui-coluna ui-coluna--sem-nav">
+        <AppBar titulo="Lavoura cadastrada" para="/home" />
+        <div className="ui-conteudo">
+          <div className="ui-cartao ui-formulario">
+            <Notice tipo="sucesso">
+              <strong>{nome} foi cadastrada com sucesso.</strong>
+            </Notice>
+            <Notice tipo="info">
+              Geração registrada. {cadastroSalvo.mapas?.email_previsto
+                ? "Enviaremos um e-mail ao finalizar o processamento."
+                : "Acompanhe o andamento pelo histórico da lavoura."}
+            </Notice>
+            <StatusMapas lavouraId={cadastroSalvo.id} />
+            <p>Você pode continuar usando o CoffeeVision. Não é necessário manter esta página aberta.</p>
+            <Button block onClick={() => navigate(`/historico?lavoura=${cadastroSalvo.id}`)}>
+              Acompanhar no histórico
+            </Button>
+            <Button variant="secondary" block onClick={() => navigate("/home")}>
+              Ir para minhas lavouras
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   if (!temPoligono) {
@@ -384,6 +324,7 @@ export default function Cadastro() {
             label="Nome da lavoura"
             placeholder="Ex.: Lavoura Boa Vista"
             autoComplete="off"
+            disabled={carregando || cadastroIncerto}
             error={erroNome}
             value={nome}
             onChange={(e) => {
@@ -413,7 +354,7 @@ export default function Cadastro() {
             {/* SAFRA ATUAL (especial): só o início; o fim é hoje */}
             <fieldset
               className="cad-safra cad-safra--atual"
-              disabled={carregando}
+              disabled={carregando || cadastroIncerto}
             >
               <legend>Safra atual</legend>
 
@@ -442,7 +383,7 @@ export default function Cadastro() {
               <fieldset
                 className="cad-safra"
                 key={indice}
-                disabled={carregando}
+                disabled={carregando || cadastroIncerto}
               >
                 <legend>Safra anterior {indice + 1}</legend>
 
@@ -489,7 +430,7 @@ export default function Cadastro() {
                 <Button
                   type="button"
                   variant="secondary"
-                  disabled={carregando}
+                  disabled={carregando || cadastroIncerto}
                   onClick={() => removerSafra(indice)}
                 >
                   Remover safra
@@ -500,21 +441,25 @@ export default function Cadastro() {
             <Button
               type="button"
               variant="secondary"
-              disabled={carregando || safras.length >= 29}
+              disabled={carregando || cadastroIncerto || safras.length >= 29}
               onClick={adicionarSafra}
             >
               Adicionar safra anterior
             </Button>
           </section>
 
-          {mensagem && <Notice tipo="erro">{mensagem}</Notice>}
+          {mensagem && <Notice tipo={cadastroIncerto ? "aviso" : "erro"}>{mensagem}</Notice>}
+          {carregando && <Notice tipo="info">Salvando o cadastro e registrando a geração na fila…</Notice>}
+          {cadastroIncerto && (
+            <Button block onClick={() => navigate("/home")}>Conferir minhas lavouras</Button>
+          )}
         </div>
 
         <div className="ui-acoes-pagina">
-          <Button type="submit" size="lg" block loading={carregando}>
+          <Button type="submit" size="lg" block loading={carregando} disabled={cadastroIncerto}>
             {carregando ? "Salvando…" : "Salvar cadastro"}
           </Button>
-          <Button variant="secondary" block onClick={() => navigate("/mapa")}>
+          <Button variant="secondary" block disabled={carregando} onClick={() => navigate("/mapa")}>
             Voltar ao mapa
           </Button>
         </div>
@@ -522,3 +467,4 @@ export default function Cadastro() {
     </div>
   );
 }
+
