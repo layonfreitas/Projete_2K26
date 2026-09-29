@@ -1,13 +1,13 @@
 import openmeteo_requests
 
-def get_graus_dia_data(latitude, longitude, date): 
+def get_graus_dia_data(latitude, longitude, dataInicio, dataFim): 
     Tb  = 10.0
     url = "https://api.open-meteo.com/v1/forecast"
     params = {
         "latitude": latitude,
         "longitude": longitude,
-        "start_date": date,
-        "end_date": date,
+        "start_date": dataFim,
+        "end_date": dataInicio,
         "daily": "temperature_2m_max,temperature_2m_min",
         "timezone": "auto"
     }

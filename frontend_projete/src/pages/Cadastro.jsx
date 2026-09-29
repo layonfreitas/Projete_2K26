@@ -9,6 +9,7 @@ import { useToast } from "../components/ui/toastContext";
 import { calcularAreaHectares, formatarHectares, pontosParaSvg } from "../utils/geo";
 import { mensagemDeErro } from "../services/erros";
 import "./Cadastro.css";
+import {fetchWeatherApi} from "openmeteo"
 
 const DATA_MINIMA = "2017-03-28";
 
@@ -218,6 +219,34 @@ export default function Cadastro() {
       const crs = projecoes.crs;
       const crs_transformation = projecoes.crs_transformation;
 
+      let graus_dia;
+
+      try {
+        const respostaGDA = await fetch(`${IA_API_URL}/gda_to_js`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            "lat": coordenadas[0]["lat"],
+            "lon": coordenadas[0]["lng"],
+            "dataInicio": safraAtual.inicio,
+            "dataFim": safraAtual.fim
+          })
+        });
+
+        if (!respostaGDA.ok) {
+          throw new Error("Falha na resposta do serviço.");
+        }
+
+        const dadosGDA = await respostaGDA.json();
+        graus_dia = dadosGDA.gda;
+      } catch {
+        // Nada foi salvo: mostra o aviso e deixa o usuário tentar de novo.
+        setMensagem("Não foi possível cadastrar a lavoura.");
+        return;
+      }
+
       const resposta = await fetch(`${AUTH_API_URL}/lavoura`, {
         method: "POST",
         headers: {
@@ -230,6 +259,7 @@ export default function Cadastro() {
           coordenadas,
           crs: crs,
           crs_transformation: crs_transformation,
+          gda: graus_dia,
           safras: periodos,
         }),
       });
