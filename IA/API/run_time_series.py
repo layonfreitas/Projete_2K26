@@ -7,7 +7,7 @@ from datetime  import date
 from contextlib import asynccontextmanager
 from georreferencia import criar_geometria
 class Req(BaseModel):
-    coordenadas: List[Tuple[float, float]]
+    coordenadas: List[Ponto]
     dataInicio: date
     dataFim: date
     usuarioId : int
@@ -15,6 +15,12 @@ class Req(BaseModel):
     ano: int
     crs: str
     crsTransform: list[float]
+
+
+class Ponto(BaseModel):
+    lat: float = Field(ge=-90, le=90)
+    lng: float = Field(ge=-180, le=180)
+
 
 
 
