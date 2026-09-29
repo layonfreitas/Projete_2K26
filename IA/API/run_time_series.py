@@ -38,22 +38,7 @@ def run_time_series(req: Req):
    try:
 
     
-    if len(req.coordenadas) < 3:
-            raise ValueError("Informe pelo menos três pontos para o contorno.")
-
-        # O Earth Engine recebe longitude primeiro e latitude depois.
-    pontos = [[ponto.lng, ponto.lat]
-            for ponto in req.coordenadas
-        ]
-
-        # Fecha o contorno.
-    if pontos[0] != pontos[-1]:
-            pontos.append(pontos[0])
-
-    geometria = ee.Geometry.Polygon(
-                [pontos],
-                proj="EPSG:4326",
-            )
+    geometria = criar_geometria(req.coordenadas)
     resposta =  make_time_series(geometria, req.dataInicio.isoformat(), req.dataFim.isoformat(), req.usuarioId, req.lavouraId, req.ano, req.crs, req.crsTransform )
     return resposta
 
