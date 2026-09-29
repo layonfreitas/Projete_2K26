@@ -153,51 +153,102 @@ async def zonas_de_manejo(zona_de_manejo_req: Zona_de_manejo_req):
 
 def _gerar_mapas_agendados(dados):
     try:
-        print("[MAPAS] Entrou em _gerar_mapas_agendados", flush=True)
-        print(f"[MAPAS] Dados recebidos: {dados}", flush=True)
+        from shapely.geometry import Polygon
+        from xee import helpers
 
-        if dados.get("safras"):
-            try:
-                from serie_safras import gerar_series_safras
+        from georreferencia import normalizar_coordenadas
+        from serie_temporal import make_time_series
 
-                print("[MAPAS] Iniciando séries de safras", flush=True)
+        safras = sorted(
+            dados.get("safras") or [],
+            key=lambda safra: safra["inicio"],
+        )
 
-                resultado_series = gerar_series_safras(dados)
+        if safras:
+            inicializar_ee()
+
+            geometria = criar_geometria(
+                dados["coordenadas"]
+            )
+
+            pontos = normalizar_coordenadas(
+                dados["coordenadas"]
+            )
+
+            poligono = Polygon(pontos)
+            lon = poligono.centroid.x
+            lat = poligono.centroid.y
+
+            zona = min(
+                60,
+                max(1, int((lon + 180) // 6) + 1),
+            )
+
+            codigo = (
+                32600 if lat >= 0 else 32700
+            ) + zona
+
+            crs = f"EPSG:{codigo}"
+
+            grade = helpers.fit_geometry(
+                poligono,
+                grid_crs=crs,
+                grid_scale=(10, -10),
+            )
+
+            for posicao, safra in enumerate(safras):
+                print(
+                    "[SERIE] Chamando make_time_series: "
+                    f"lavoura={dados['id']} "
+                    f"safra={safra['ano']}",
+                    flush=True,
+                )
+
+                resultado = make_time_series(
+                    geometria=geometria,
+                    data_inicio=safra["inicio"],
+                    data_fim=safra["fim"],
+                    usuario_id=dados["usuarioId"],
+                    lavoura_id=dados["id"],
+                    ano=safra["ano"],
+                    crs=crs,
+                    crsTransform=list(
+                        grade["crs_transform"]
+                    ),
+                    # Recria o conjunto na primeira safra.
+                    # As seguintes acrescentam suas datas.
+                    reiniciar=(posicao == 0),
+                )
 
                 print(
-                    f"[MAPAS] Séries concluídas: {resultado_series}",
-                    flush=True
+                    f"[SERIE] Resultado: {resultado}",
+                    flush=True,
                 )
-
-            except Exception:
-                logging.exception(
-                    "[MAPAS] Falha na série temporal da lavoura %s",
-                    dados["id"],
-                )
-
-        try:
+        else:
             print(
-                f"[MAPAS] INICIANDO processar_lavoura para {dados['id']}",
-                flush=True
+                "[SERIE] Nenhuma safra recebida; "
+                "serão processados somente os mapas.",
+                flush=True,
             )
 
-            resultado = processar_lavoura(dados)
+        # Executa depois que todas as séries foram salvas.
+        resultado_mapas = processar_lavoura(dados)
 
-            print(
-                f"[MAPAS] processar_lavoura TERMINOU: {resultado}",
-                flush=True
-            )
+        print(
+            f"[MAPAS] Resultado: {resultado_mapas}",
+            flush=True,
+        )
 
-        except Exception:
-            logging.exception(
-                "[MAPAS] ERRO dentro de processar_lavoura para %s",
-                dados["id"],
-            )
+    except Exception:
+        logging.exception(
+            "[PROCESSAMENTO] Falha na lavoura %s",
+            dados["id"],
+        )
 
     finally:
-        print("[MAPAS] Liberando lock", flush=True)
         _processamento_lock.release()
 
+        
 @app.post("/agendar_mapas/", status_code=202)
 def agendar_mapas(
     day_req: Day_req,
