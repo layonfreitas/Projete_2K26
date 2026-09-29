@@ -307,6 +307,152 @@ def incluir_todas():
     finally:
         cursor.close()
 
+@fila_bp.get("/interno/mapas/proxima")
+def proxima_tarefa():
+    cursor = mysql.connection.cursor()
+
+    try:
+        cursor.execute(
+            """
+            SELECT
+                id,
+                lavoura_id,
+                usuario_id,
+                dados
+            FROM fila_mapas
+            WHERE status = 'na_fila'
+            ORDER BY id ASC
+            LIMIT 1
+            FOR UPDATE
+            """
+        )
+
+        tarefa = cursor.fetchone()
+
+        if not tarefa:
+            mysql.connection.commit()
+            return "", 204
+
+        tarefa_id = tarefa[0]
+        lavoura_id = tarefa[1]
+        usuario_id = tarefa[2]
+        dados = decodificar(tarefa[3])
+
+        cursor.execute(
+            """
+            UPDATE fila_mapas
+            SET
+                status = 'processando',
+                iniciado_em = UTC_TIMESTAMP()
+            WHERE id = %s
+              AND status = 'na_fila'
+            """,
+            (tarefa_id,)
+        )
+
+        mysql.connection.commit()
+
+        return jsonify(
+            tarefa_id=tarefa_id,
+            lavoura_id=lavoura_id,
+            usuario_id=usuario_id,
+            dados=dados
+        ), 200
+
+    except Exception:
+        mysql.connection.rollback()
+
+        current_app.logger.exception(
+            "Falha ao retirar tarefa da fila."
+        )
+
+        return jsonify(
+            mensagem="Não foi possível obter a próxima tarefa."
+        ), 503
+
+    finally:
+        cursor.close()
+
+
+@fila_bp.post("/interno/mapas/<int:tarefa_id>/finalizar")
+def finalizar_tarefa(tarefa_id):
+    dados = request.get_json(silent=True) or {}
+
+    status = dados.get(
+        "status",
+        "erro"
+    )
+
+    resultado = dados.get(
+        "resultado"
+    )
+
+    erro = dados.get(
+        "erro"
+    )
+
+    status_validos = {
+        "concluido",
+        "parcial",
+        "sem_dados",
+        "erro",
+        "cancelado"
+    }
+
+    if status not in status_validos:
+        return jsonify(
+            mensagem="Status inválido."
+        ), 400
+
+    cursor = mysql.connection.cursor()
+
+    try:
+        cursor.execute(
+            """
+            UPDATE fila_mapas
+            SET
+                status = %s,
+                finalizado_em = UTC_TIMESTAMP(),
+                resultado = %s,
+                erro = %s
+            WHERE id = %s
+            """,
+            (
+                status,
+                json.dumps(resultado)
+                if resultado is not None
+                else None,
+                erro,
+                tarefa_id
+            )
+        )
+
+        mysql.connection.commit()
+
+        if cursor.rowcount == 0:
+            return jsonify(
+                mensagem="Tarefa não encontrada."
+            ), 404
+
+        return jsonify(
+            status=status,
+            tarefa_id=tarefa_id
+        ), 200
+
+    except Exception:
+        mysql.connection.rollback()
+
+        current_app.logger.exception(
+            "Falha ao finalizar tarefa %s.",
+            tarefa_id
+        )
+
+        return jsonify(
+            mensagem="Não foi possível finalizar a tarefa."
+        ), 503
+
+    finally:
+        cursor.close()
 
 @fila_bp.post("/interno/mapas/<int:tarefa_id>/notificar")
 def notificar(tarefa_id):

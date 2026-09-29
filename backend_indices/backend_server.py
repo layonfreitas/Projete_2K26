@@ -8,8 +8,10 @@ from datetime import date
 from processar_lavouras import processar_todas_lavouras, processar_lavoura
 from georreferencia import criar_geometria
 from gee_auth import inicializar_ee
+from fila_worker import iniciar_worker
 from threading import Lock
 import faulthandler
+import requests
 
 faulthandler.enable()
 faulthandler.dump_traceback_later(
@@ -333,3 +335,7 @@ def processar_todas(
         "/interno/mapas/enfileirar-todas",
         x_mapas_token,
     )
+
+
+
+iniciar_worker()
