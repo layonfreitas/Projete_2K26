@@ -406,7 +406,7 @@ def make_time_series(geometria, data_inicio, data_fim, usuario_id: int, lavoura_
     ds = ds.resample(time="1D").mean().transpose("tempo", "y", "x")
     lon, lat = lavoura.centroid().coordinates().getInfo()
     dias = [str(d)[:10] for d in ds.tempo.values]
-    graus_dia_acum = np.cumsum([get_graus_dia_data(d, lat, lon) for d in dias])
+    graus_dia_acum = np.cumsum([get_graus_dia_data(lat, lon, d, d) for d in dias])
     global indices
     for indice in indices:
         saida = (
@@ -418,37 +418,3 @@ def make_time_series(geometria, data_inicio, data_fim, usuario_id: int, lavoura_
         saida.to_zarr(url, mode="w", consolidated=False, storage_options=credentials_r2)
 
     return {"mensagem": "Série temporal criada", "status": 200}
-
-    
-
-    
-   
-    
-        
-
-        
-
-
-    
-
-
-    
-
-            
-            
-
-        
-
-
-        
-    
-
-
-
-
-
-
-
-
-
-
