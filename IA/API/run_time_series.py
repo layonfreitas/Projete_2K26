@@ -2,18 +2,15 @@ from serie_temporal import make_time_series
 from gee_auth import inicializar_ee
 from fastapi import FastAPI, HTTPException  
 from pydantic import BaseModel, Field
-from typing import List
+from typing import List, Tuple
 from datetime  import date
 from contextlib import asynccontextmanager
 from georreferencia import criar_geometria
 import ee 
 
-class Ponto(BaseModel):
-    lat: float = Field(ge=-90, le=90)
-    lng: float = Field(ge=-180, le=180)
 
 class Req(BaseModel):
-    coordenadas: List[Ponto]
+    coordenadas: List[Tuple[float, float]]
     dataInicio: date
     dataFim: date
     usuarioId : int
@@ -57,7 +54,7 @@ def run_time_series(req: Req):
                 [pontos],
                 proj="EPSG:4326",
             )
-    resposta =  make_time_series(geometria, req.dataInicio, req.dataFim, req.usuarioId, req.lavouraID, req.ano, req.crs, req.crsTransform )
+    resposta =  make_time_series(geometria, req.dataInicio.isoformat(), req.dataFim.isoformat(), req.usuarioId, req.lavouraId, req.ano, req.crs, req.crsTransform )
     return resposta
 
    except Exception as e:
