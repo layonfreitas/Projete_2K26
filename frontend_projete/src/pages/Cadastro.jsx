@@ -9,7 +9,6 @@ import { useToast } from "../components/ui/toastContext";
 import { calcularAreaHectares, formatarHectares, pontosParaSvg } from "../utils/geo";
 import { mensagemDeErro } from "../services/erros";
 import "./Cadastro.css";
-import {fetchWeatherApi} from "openmeteo"
 
 const DATA_MINIMA = "2017-03-28";
 
