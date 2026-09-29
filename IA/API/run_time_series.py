@@ -1,11 +1,15 @@
 from serie_temporal import make_time_series 
 from gee_auth import inicializar_ee
 from fastapi import FastAPI, HTTPException  
-from pydantic import BaseModel
-from typing import List, Tuple
+from pydantic import BaseModel, Field
+from typing import List
 from datetime  import date
 from contextlib import asynccontextmanager
 from georreferencia import criar_geometria
+class Ponto(BaseModel):
+    lat: float = Field(ge=-90, le=90)
+    lng: float = Field(ge=-180, le=180)
+    
 class Req(BaseModel):
     coordenadas: List[Ponto]
     dataInicio: date
@@ -17,9 +21,6 @@ class Req(BaseModel):
     crsTransform: list[float]
 
 
-class Ponto(BaseModel):
-    lat: float = Field(ge=-90, le=90)
-    lng: float = Field(ge=-180, le=180)
 
 
 
