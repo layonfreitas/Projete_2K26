@@ -9,3 +9,4 @@ python-weka-wrapper3
 contextlib2
 python-dotenv
 earthengine-api
+openmeteo-requests
