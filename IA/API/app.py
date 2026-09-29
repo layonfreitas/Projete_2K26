@@ -24,6 +24,8 @@ os.chdir(BASE_DIR)
 from classificar import app as classificar_app
 from CLMI_clf import app as clmi_app
 from get_crs import app as crs_app
+from gda_to_js import app as gda_app
+
 
 
 app = FastAPI(
@@ -47,6 +49,7 @@ app.add_middleware(
 app.include_router(classificar_app.router)
 app.include_router(clmi_app.router)
 app.include_router(crs_app.router)
+app.include_router(gda_app.router)
 
 
 if __name__ == "__main__":
