@@ -25,7 +25,7 @@ from classificar import app as classificar_app
 from CLMI_clf import app as clmi_app
 from get_crs import app as crs_app
 from gda_to_js import app as gda_app
-
+from run_time_series import app as time_series_app
 
 
 app = FastAPI(
@@ -50,7 +50,7 @@ app.include_router(classificar_app.router)
 app.include_router(clmi_app.router)
 app.include_router(crs_app.router)
 app.include_router(gda_app.router)
-
+app.include_router(time_series_app.router)
 
 if __name__ == "__main__":
     uvicorn.run(
