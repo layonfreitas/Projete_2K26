@@ -150,43 +150,52 @@ async def zonas_de_manejo(zona_de_manejo_req: Zona_de_manejo_req):
         "mensagem": "Zonas de manejo criadas.",
         "arquivo": arquivo
     }
+
 def _gerar_mapas_agendados(dados):
     try:
+        print("[MAPAS] Entrou em _gerar_mapas_agendados", flush=True)
+        print(f"[MAPAS] Dados recebidos: {dados}", flush=True)
+
         if dados.get("safras"):
             try:
                 from serie_safras import gerar_series_safras
 
+                print("[MAPAS] Iniciando séries de safras", flush=True)
+
                 resultado_series = gerar_series_safras(dados)
 
-                logging.info(
-                    "Resultado das séries da lavoura %s: %s",
-                    dados["id"],
-                    resultado_series,
+                print(
+                    f"[MAPAS] Séries concluídas: {resultado_series}",
+                    flush=True
                 )
 
             except Exception:
                 logging.exception(
-                    "Falha na série temporal da lavoura %s",
+                    "[MAPAS] Falha na série temporal da lavoura %s",
                     dados["id"],
                 )
 
-        # Uma falha na série não impede a tentativa de gerar os mapas.
         try:
+            print(
+                f"[MAPAS] INICIANDO processar_lavoura para {dados['id']}",
+                flush=True
+            )
+
             resultado = processar_lavoura(dados)
 
-            logging.info(
-                "Resultado dos mapas da lavoura %s: %s",
-                dados["id"],
-                resultado,
+            print(
+                f"[MAPAS] processar_lavoura TERMINOU: {resultado}",
+                flush=True
             )
 
         except Exception:
             logging.exception(
-                "Erro ao gerar mapas da lavoura %s",
+                "[MAPAS] ERRO dentro de processar_lavoura para %s",
                 dados["id"],
             )
 
     finally:
+        print("[MAPAS] Liberando lock", flush=True)
         _processamento_lock.release()
 
 @app.post("/agendar_mapas/", status_code=202)
