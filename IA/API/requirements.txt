@@ -11,16 +11,6 @@ python-dotenv
 earthengine-api
 openmeteo-requests
 requests
-geemap
 s3fs
 xarray>=2025.6
-pandas
-scipy
-Pillow
-scikit-image
-scikit-fuzzy
-xee==0.1.2
-zarr>=2.18,<3
-shapely>=2,<3
-
-rasterio
+ee
