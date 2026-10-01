@@ -1,12 +1,14 @@
 import os
 import base64
 import tempfile
+from pathlib import Path
 
+from dotenv import load_dotenv
 import google.auth
 
-# Escopos exigidos pelo Earth Engine. google.auth.default() sozinho não
-# define escopo nenhum quando usa uma chave de service account, e sem
-# escopo o Google recusa o token com "invalid_scope".
+BASE_DIR = Path(__file__).resolve().parent
+load_dotenv(BASE_DIR.parent / "IA" / "API" / ".env")
+
 EE_SCOPES = [
     "https://www.googleapis.com/auth/earthengine",
     "https://www.googleapis.com/auth/devstorage.full_control",

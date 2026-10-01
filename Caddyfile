@@ -1,0 +1,25 @@
+:8080 {
+    handle /api/* {
+        uri strip_prefix /api
+        reverse_proxy localhost:5000
+    }
+
+    handle /ia/* {
+        uri strip_prefix /ia
+        reverse_proxy localhost:8000
+    }
+
+    handle /clima/* {
+        uri strip_prefix /clima
+        reverse_proxy localhost:5001
+    }
+
+    handle /indices/* {
+        uri strip_prefix /indices
+        reverse_proxy localhost:8001
+    }
+
+    handle {
+        reverse_proxy localhost:5173
+    }
+}

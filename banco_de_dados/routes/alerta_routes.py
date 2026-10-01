@@ -2,12 +2,17 @@ import os
 import secrets
 import MySQLdb.cursors
 
-from app import mysql
 from flask import Blueprint, jsonify, request
 from flask import current_app
 from email_alertas import notificar_alertas
 
 alertas_bp = Blueprint('alerta', __name__)
+
+mysql = None
+
+def init_mysql(mysql_instance):
+    global mysql
+    mysql = mysql_instance
 
 @alertas_bp.route('/alertas', methods=['POST'])
 def insert_alerta():

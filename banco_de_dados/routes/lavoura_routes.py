@@ -610,6 +610,13 @@ def remover_lavoura(lavoura_id):
     try:
         cursor = mysql.connection.cursor()
 
+        # Tabelas com FK para lavouras: apagar antes da própria lavoura.
+        for tabela in ("alertas", "gda", "emails_alertas"):
+            cursor.execute(
+                f"DELETE FROM {tabela} WHERE lavoura_id = %s",
+                (lavoura_id,)
+            )
+
         cursor.execute(
             """
             DELETE FROM indices_vegetacao

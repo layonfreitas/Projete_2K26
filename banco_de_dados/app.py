@@ -12,6 +12,7 @@ from routes.imagens_routes import acessar_imagem_bp, init_mysql as init_imagens_
 from routes.cooperativa_routes import cooperativa_bp, init_mysql as init_cooperativa_mysql
 from routes.indices_routes import indices_bp, init_mysql as init_indices_mysql
 from routes.gda_routes import gda_bp, init_mysql as init_gda_mysql
+from routes.alerta_routes import alertas_bp, init_mysql as init_alerta_mysql
 
 
 app = Flask(__name__)
@@ -20,6 +21,8 @@ CORS(app, origins=[
     "http://localhost:5173",
     "https://projete-2k26-frontend.onrender.com",
     "https://projete-2-k26-dyts.vercel.app",
+    "https://matched-admit-days-neighborhood.trycloudflare.com",
+    "https://alberta-strength-musician-arabic.trycloudflare.com",
     ])
 
 mysql = MySQL(app)  
@@ -32,8 +35,8 @@ init_imagens_mysql(mysql)
 init_cooperativa_mysql(mysql)
 init_indices_mysql(mysql)
 init_gda_mysql(mysql)
+init_alerta_mysql(mysql)
 
-from routes.alerta_routes import alertas_bp
 
 app.register_blueprint(agronomo_bp)
 app.register_blueprint(auth_bp)

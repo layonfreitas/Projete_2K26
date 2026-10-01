@@ -244,6 +244,15 @@ def deletar_usuario(usuario_id):
                 "SELECT id FROM lavouras WHERE usuario_id = %s"
             )
 
+            for tabela in ("alertas", "gda", "emails_alertas"):
+                cursor.execute(
+                    f"""
+                    DELETE FROM {tabela}
+                    WHERE lavoura_id IN ({lavouras_do_produtor})
+                    """,
+                    (usuario_id,)
+                )
+
             cursor.execute(
                 f"""
                 DELETE FROM indices_vegetacao
@@ -923,7 +932,7 @@ def marcar_todos_avisos_lidos():
 # ================================================================
 
 @cooperativa_bp.route(
-    "/usuario/<int:usuario_id>/senha",
+    "/cooperativa/usuario/<int:usuario_id>/senha",
     methods=["PUT"]
 )
 @requer_tipo("produtor", "agronomo", "cooperativa")
