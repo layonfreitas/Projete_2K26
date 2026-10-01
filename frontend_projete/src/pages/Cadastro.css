@@ -8,7 +8,7 @@
   display: block;
   width: 100%;
   height: auto;
-  max-height: 200px;
+  max-height: 220px;
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   background: var(--canopy-soft);
@@ -90,10 +90,8 @@
   margin-bottom: 14px;
 }
 
-@media (min-width: 700px) {
-  .cad-safra-campos {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
+.cad-safra-campos {
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
 }
 
 /* Safra atual (especial): só o início é informado; o fim é o dia do cadastro */
@@ -110,4 +108,29 @@
   margin: 0;
   color: #59665e;
   font-size: 13px;
+}
+
+/* ---------- tela cheia: resumo à esquerda, safras à direita ---------- */
+.ui-conteudo.cad-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+}
+
+.cad-safras-cartao .cad-safras {
+  margin-top: 0;
+}
+
+@media (min-width: 960px) {
+  .ui-conteudo.cad-layout {
+    grid-template-columns: minmax(320px, 400px) minmax(0, 1fr);
+    grid-template-areas:
+      "resumo safras"
+      "acoes  safras";
+    gap: 20px 28px;
+  }
+
+  .cad-resumo-cartao { grid-area: resumo; }
+  .cad-safras-cartao { grid-area: safras; }
+  .cad-acoes { grid-area: acoes; }
 }

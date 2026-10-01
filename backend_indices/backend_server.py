@@ -26,6 +26,8 @@ from dotenv import load_dotenv
 load_dotenv()
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
 
+INDICES_URL = os.getenv("INDICES_URL", "http://localhost:8001")
+
 
 class Coordenada(BaseModel):
     lat: float

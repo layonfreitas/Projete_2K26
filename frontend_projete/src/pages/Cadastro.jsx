@@ -62,7 +62,7 @@ export default function Cadastro() {
   function adicionarSafra() {
     setSafras((anteriores) => [
       ...anteriores,
-      { ano: "", inicio: "", fim: "" },
+      { inicio: "", fim: "" },
     ]);
   }
 
@@ -126,27 +126,27 @@ export default function Cadastro() {
 
     // ---- Safras anteriores ----
     const periodosAnteriores = safras.map((safra) => ({
-      ano: Number(safra.ano),
+      ano: safra.inicio ? Number(safra.inicio.slice(0, 4)) : null,
       inicio: safra.inicio,
       fim: safra.fim,
       atual: false,
     }));
 
     const temCampoInvalido = periodosAnteriores.some(
-      (safra) =>
-        !Number.isInteger(safra.ano) ||
-        safra.ano < 2017 ||
-        safra.ano > anoCadastro ||
-        !safra.inicio ||
-        !safra.fim ||
-        safra.inicio < DATA_MINIMA ||
-        safra.fim > dataCadastro ||
-        safra.inicio > safra.fim
-    );
+  (safra) =>
+    !safra.inicio ||
+    !safra.fim ||
+    !Number.isInteger(safra.ano) ||
+    safra.ano < 2017 ||
+    safra.ano > anoCadastro ||
+    safra.inicio < DATA_MINIMA ||
+    safra.fim > dataCadastro ||
+    safra.inicio > safra.fim
+);
 
     if (temCampoInvalido) {
       setMensagem(
-        "Preencha o ano, o início e o fim de todas as safras anteriores. " +
+        "Preencha o início e o fim de todas as safras anteriores. " +
         "Use períodos entre 28/03/2017 e hoje."
       );
       return;
@@ -239,6 +239,8 @@ export default function Cadastro() {
       }
 
       if (!dados.id) throw new Error("Resposta sem identificação da lavoura");
+      // contorno já virou lavoura: descarta o rascunho guardado no mapa
+      try { sessionStorage.removeItem("cv_rascunho_contorno"); } catch { /* ignora */ }
       setCadastroSalvo(dados);
     } catch (erro) {
       console.error("[CADASTRO] Não foi possível confirmar o resultado", erro);
@@ -267,7 +269,7 @@ export default function Cadastro() {
         "Confira o histórico antes de solicitar novamente.",
     };
     return (
-      <div className="ui-coluna ui-coluna--sem-nav">
+      <div className="ui-coluna ui-coluna--cheia ui-coluna--sem-nav">
         <AppBar titulo="Cadastro concluído" para="/home" />
         <div className="ui-conteudo">
           <div className="ui-cartao ui-formulario" role="status" aria-live="polite">
@@ -285,7 +287,7 @@ export default function Cadastro() {
 
   if (!temPoligono) {
     return (
-      <div className="ui-coluna ui-coluna--sem-nav">
+      <div className="ui-coluna ui-coluna--cheia ui-coluna--sem-nav">
         <AppBar titulo="Cadastro da lavoura" para="/mapa" />
         <div className="ui-conteudo">
           <EmptyState
@@ -303,15 +305,15 @@ export default function Cadastro() {
   }
 
   return (
-    <div className="ui-coluna ui-coluna--sem-nav">
+    <div className="ui-coluna ui-coluna--cheia ui-coluna--sem-nav">
       <AppBar
         titulo="Cadastro da lavoura"
         subtitulo="Dê um nome para a área que você marcou."
         para="/mapa"
       />
 
-      <form className="ui-conteudo" onSubmit={salvarCadastro} noValidate>
-        <div className="ui-cartao ui-formulario">
+      <form className="ui-conteudo cad-layout" onSubmit={salvarCadastro} noValidate>
+        <div className="ui-cartao ui-formulario cad-resumo-cartao">
           <div className="cad-resumo">
             <svg
               className="cad-contorno"
@@ -345,7 +347,9 @@ export default function Cadastro() {
               if (erroNome) setErroNome("");
             }}
           />
+        </div>
 
+        <div className="ui-cartao ui-formulario cad-safras-cartao">
           <section className="cad-safras" aria-labelledby="titulo-safras">
             <div>
               <h2 id="titulo-safras">Safras da lavoura</h2>
@@ -401,19 +405,7 @@ export default function Cadastro() {
                 <legend>Safra anterior {indice + 1}</legend>
 
                 <div className="cad-safra-campos">
-                  <TextField
-                    label="Ano da safra / colheita"
-                    type="number"
-                    min="2017"
-                    max={anoAtual}
-                    step="1"
-                    placeholder="Ex.: 2025"
-                    value={safra.ano}
-                    onChange={(evento) =>
-                      alterarSafra(indice, "ano", evento.target.value)
-                    }
-                    required
-                  />
+                 
 
                   <TextField
                     label="Início do período"
@@ -460,11 +452,10 @@ export default function Cadastro() {
               Adicionar safra anterior
             </Button>
           </section>
-
-          {mensagem && <Notice tipo="erro">{mensagem}</Notice>}
         </div>
 
-        <div className="ui-acoes-pagina">
+        <div className="ui-acoes-pagina cad-acoes">
+          {mensagem && <Notice tipo="erro">{mensagem}</Notice>}
           <Button type="submit" size="lg" block loading={carregando} disabled={cadastroIncerto}>
             {carregando ? "Salvando…" : "Salvar cadastro"}
           </Button>

@@ -37,7 +37,7 @@ cloudinary
 s3fs
 
 xee==0.1.2
-zarr>=2.18,<3
+zarr>=3,<4
 shapely>=2,<3
 
 rasterio

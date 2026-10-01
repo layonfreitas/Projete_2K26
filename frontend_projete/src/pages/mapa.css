@@ -2,6 +2,7 @@
   position: relative;
   width: 100%;
   height: 100svh;
+  height: 100dvh; /* acompanha a barra do navegador no celular */
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -121,9 +122,66 @@
 }
 
 #mapa {
+  position: relative;
+  z-index: 0;
+  /* isolation: os z-index internos do Leaflet (painéis 200–700, controles
+     1000) ficam presos dentro do mapa e não passam por cima da busca,
+     das sugestões de cidade, dos painéis nem da navbar. */
+  isolation: isolate;
   flex: 1;
   width: 100%;
   min-height: 0;
+  background: #1f2a22; /* fundo enquanto os tiles carregam */
+}
+
+/* controles do Leaflet maiores para o toque e alinhados à identidade */
+#mapa .leaflet-touch .leaflet-bar a,
+#mapa .leaflet-bar a {
+  width: 40px;
+  height: 40px;
+  line-height: 40px;
+  font-size: 20px;
+}
+
+#mapa .leaflet-bar,
+#mapa .leaflet-control-layers {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow-md);
+  overflow: hidden;
+}
+
+#mapa .leaflet-control-layers-toggle {
+  width: 40px;
+  height: 40px;
+}
+
+#mapa .leaflet-control-layers-expanded {
+  padding: 10px 14px;
+  font: 500 14px/1.6 var(--font-body);
+  color: var(--ink);
+}
+
+/* a navbar ocupa o rodapé: o mapa ganha respiro para a atribuição
+   (©) não ficar escondida atrás dela */
+#mapa .leaflet-bottom {
+  bottom: calc(72px + 28px + env(safe-area-inset-bottom, 0px));
+}
+
+@media (min-width: 540px) {
+  #mapa .leaflet-bottom {
+    bottom: calc(72px + 34px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+@media (min-width: 900px) {
+  .busca-cidade {
+    max-width: 560px;
+  }
+
+  .barra-superior {
+    padding-inline: 20px;
+  }
 }
 
 /* a navbar flutua por cima do mapa — garante que fique acima
@@ -412,4 +470,12 @@
 
 .mapa-painel-seta:hover {
   background: transparent;
+}
+
+/* telas largas: a navbar fica estreita e centralizada, então a atribuição
+   do mapa (canto direito) não precisa mais fugir dela */
+@media (min-width: 1000px) {
+  #mapa .leaflet-bottom {
+    bottom: 0;
+  }
 }

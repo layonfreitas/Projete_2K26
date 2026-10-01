@@ -8,6 +8,7 @@ from z_score import calcular_z_score
 import requests
 import xarray as xr
 import s3fs
+import time
 
 
 
@@ -21,6 +22,8 @@ credentials_r2 = {
 }
 
 indices = ["NDVI", "NDRE", "NDWI"]
+
+
 
 def add_NDVI_zscore(image):
     ndvi = image.normalizedDifference(["B8","B4"]).rename("NDVI")
@@ -245,6 +248,24 @@ def make_time_series(
 
             padronizados = {}
 
+        for dia in dias.unique().sort_values():
+            posicoes = np.flatnonzero(dias == dia)
+
+            # Carrega apenas um dia por vez.
+            t0 = time.perf_counter()
+            cena = (
+                ds.isel(time=posicoes)
+                .load()
+                .mean("time", skipna=True)
+            )
+            log.info(
+                "[SERIE] %s: GEE %.1fs",
+                dia.date(),
+                time.perf_counter() - t0,
+            )
+
+            padronizados = {}
+
             for indice in bandas:
                 valores = cena[indice].transpose("y", "x")
                 mediana = valores.median(skipna=True)
@@ -255,6 +276,73 @@ def make_time_series(
                     * (valores - mediana)
                     / mad.where(mad > 1e-9)
                 ).astype("float32")
+
+            if not any(
+                np.isfinite(valores.values).any()
+                for valores in padronizados.values()
+            ):
+                log.info(
+                    "[SERIE] Dia descartado: %s; "
+                    "sem pixels válidos ou MAD zero.",
+                    dia.date(),
+                )
+                continue
+
+            for indice, valores in padronizados.items():
+                saida = (
+                    valores.rename("z_score")
+                    .expand_dims(tempo=[dia.to_datetime64()])
+                    .to_dataset()
+                    .assign_coords(
+                        graus_dia=(
+                            "tempo",
+                            [float(graus_dia.loc[dia])],
+                        ),
+                        safra=(
+                            "tempo",
+                            np.array([ano], dtype="int32"),
+                        ),
+                    )
+                )
+
+                saida.attrs.update(
+                    crs=crs,
+                    crs_transform=list(grade["crs_transform"]),
+                )
+
+                criar = (
+                    reiniciar and dias_salvos == 0
+                ) or not existentes[indice]
+
+                opcoes = {
+                    "mode": "w" if criar else "a",
+                    "consolidated": False,
+                    "zarr_format": 2,
+                }
+
+                if criar:
+                    saida.tempo.encoding.update(
+                        units="days since 1970-01-01",
+                        dtype="int64",
+                    )
+                else:
+                    opcoes["append_dim"] = "tempo"
+
+                t1 = time.perf_counter()
+                saida.to_zarr(
+                    fs.get_mapper(caminhos[indice]),
+                    **opcoes,
+                )
+                log.info(
+                    "[SERIE] %s %s: R2 %.1fs",
+                    dia.date(),
+                    indice,
+                    time.perf_counter() - t1,
+                )
+
+                existentes[indice] = True
+
+            dias_salvos += 1
 
             if not any(
                 np.isfinite(valores.values).any()

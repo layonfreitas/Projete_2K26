@@ -53,6 +53,36 @@ function obterPontos(valor) {
     );
 }
 
+// O contorno que o produtor está desenhando fica guardado na sessão:
+// se ele for ao cadastro e voltar, os pontos continuam no mapa.
+const CHAVE_RASCUNHO = "cv_rascunho_contorno";
+
+function lerRascunho() {
+  try {
+    const v = JSON.parse(sessionStorage.getItem(CHAVE_RASCUNHO));
+    return Array.isArray(v)
+      ? v.filter(p => Number.isFinite(p?.lat) && Number.isFinite(p?.lng))
+      : [];
+  } catch {
+    return [];
+  }
+}
+
+function salvarRascunho(coords) {
+  try {
+    if (coords.length) {
+      sessionStorage.setItem(
+        CHAVE_RASCUNHO,
+        JSON.stringify(coords.map(c => ({ lat: c.lat, lng: c.lng })))
+      );
+    } else {
+      sessionStorage.removeItem(CHAVE_RASCUNHO);
+    }
+  } catch {
+    /* sessionStorage indisponível: segue sem rascunho */
+  }
+}
+
 const CORES_LAVOURAS = [
   "#e53935",
   "#1e88e5",
@@ -140,6 +170,8 @@ export default function Mapa() {
     setAreaHectares(calcularAreaHectares(coords));
     setTotalPontos(coords.length);
 
+    if (ehProdutor) salvarRascunho(coords);
+
     if (coords.length < 2) return;
 
     const estilo = {
@@ -220,7 +252,7 @@ export default function Mapa() {
       center: [-14.235, -51.9253],
       zoom: 4,
       minZoom: 4,
-      maxZoom: 17,
+      maxZoom: 19,
       maxBounds: BRASIL,
       maxBoundsViscosity: 1,
     });
@@ -229,56 +261,54 @@ export default function Mapa() {
 
     atual.fitBounds(BRASIL);
 
-    L.tileLayer(
+    // Satélite: acima do zoom 16 a Esri não tem imagem em boa parte do
+    // interior (o mapa "sumia" em branco). maxNativeZoom faz o Leaflet
+    // ampliar o último nível disponível em vez de pedir tiles inexistentes.
+    const satelite = L.tileLayer(
       "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
       {
         attribution: "Tiles © Esri",
-        maxZoom: 17,
+        maxZoom: 19,
+        maxNativeZoom: 16,
       }
     ).addTo(atual);
+
+    const ruas = L.tileLayer(
+      "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+      {
+        attribution: "© OpenStreetMap",
+        maxZoom: 19,
+      }
+    );
+
+    L.control
+      .layers({ "Satélite": satelite, "Mapa": ruas }, null, {
+        position: "topright",
+      })
+      .addTo(atual);
+
+    // Recalcula o tamanho sempre que o espaço do mapa muda (girar o
+    // celular, barra do navegador subindo/descendo, painéis abrindo).
+    const observador =
+      typeof ResizeObserver !== "undefined"
+        ? new ResizeObserver(() => {
+            if (mapa.current === atual) atual.invalidateSize({ pan: false });
+          })
+        : null;
+
+    observador?.observe(container.current);
 
     camadaCadastro.current = L.layerGroup().addTo(atual);
     pontosCadastro.current = [];
 
     if (ehProdutor) {
-      atual.on("click", e => {
-        const marcador = L.marker(e.latlng, {
+      const criarPonto = (latlng, inserir) => {
+        const marcador = L.marker(latlng, {
           draggable: true,
           autoPan: true,
         }).addTo(camadaCadastro.current);
 
         const ponto = { marcador };
-
-        let inserir = pontosCadastro.current.length;
-
-        if (inserir >= 3) {
-          const clique = atual.latLngToLayerPoint(e.latlng);
-
-          let distanciaMinima = Infinity;
-
-          pontosCadastro.current.forEach((item, indice) => {
-            const proximo =
-              pontosCadastro.current[
-                (indice + 1) % pontosCadastro.current.length
-              ];
-
-            const distancia =
-              L.LineUtil.pointToSegmentDistance(
-                clique,
-                atual.latLngToLayerPoint(
-                  item.marcador.getLatLng()
-                ),
-                atual.latLngToLayerPoint(
-                  proximo.marcador.getLatLng()
-                )
-              );
-
-            if (distancia < distanciaMinima) {
-              distanciaMinima = distancia;
-              inserir = indice + 1;
-            }
-          });
-        }
 
         pontosCadastro.current.splice(inserir, 0, ponto);
 
@@ -329,10 +359,58 @@ export default function Mapa() {
 
         setConfirmado(false);
         redesenhar();
+      };
+
+      atual.on("click", e => {
+        let inserir = pontosCadastro.current.length;
+
+        if (inserir >= 3) {
+          const clique = atual.latLngToLayerPoint(e.latlng);
+
+          let distanciaMinima = Infinity;
+
+          pontosCadastro.current.forEach((item, indice) => {
+            const proximo =
+              pontosCadastro.current[
+                (indice + 1) % pontosCadastro.current.length
+              ];
+
+            const distancia =
+              L.LineUtil.pointToSegmentDistance(
+                clique,
+                atual.latLngToLayerPoint(
+                  item.marcador.getLatLng()
+                ),
+                atual.latLngToLayerPoint(
+                  proximo.marcador.getLatLng()
+                )
+              );
+
+            if (distancia < distanciaMinima) {
+              distanciaMinima = distancia;
+              inserir = indice + 1;
+            }
+          });
+        }
+
+        criarPonto(e.latlng, inserir);
       });
+
+      // Restaura o contorno que estava sendo desenhado.
+      const rascunho = lerRascunho();
+
+      if (rascunho.length) {
+        rascunho.forEach((p, i) => criarPonto(L.latLng(p.lat, p.lng), i));
+
+        atual.fitBounds(
+          L.latLngBounds(rascunho.map(p => [p.lat, p.lng])),
+          { padding: [60, 60], maxZoom: 17, animate: false }
+        );
+      }
     }
 
     return () => {
+      observador?.disconnect();
       atual.remove();
 
       mapa.current = null;
@@ -363,7 +441,7 @@ export default function Mapa() {
     atual.stop();
 
     // Sem ID na URL: navbar abre a visão geral.
-    if (!alvo) {
+    if (!alvo && !pontosCadastro.current.length) {
       atual.fitBounds(BRASIL, {
         animate: false,
       });
@@ -681,6 +759,7 @@ export default function Mapa() {
 
     pontosCadastro.current = [];
     desenho.current = null;
+    salvarRascunho([]);
 
     setConfirmado(false);
     setAreaHectares(0);

@@ -30,7 +30,7 @@
 
 .mapa-edicao-container {
   width: 100%;
-  height: clamp(280px, 48svh, 420px);
+  height: clamp(320px, 56svh, 560px);
   overflow: hidden;
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
@@ -90,4 +90,40 @@
   color: var(--cherry);
   font-size: 13.5px;
   font-weight: 500;
+}
+
+/* ---------- tela cheia: formulários à esquerda, mapa grande à direita ---------- */
+.ui-conteudo.edi-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+}
+
+.edi-area-cartao {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+@media (min-width: 960px) {
+  .ui-conteudo.edi-grid {
+    grid-template-columns: minmax(320px, 400px) minmax(0, 1fr);
+    grid-template-areas:
+      "nome  area"
+      "perigo area";
+    gap: 20px 28px;
+  }
+
+  .edi-nome-cartao { grid-area: nome; }
+  .edi-area-cartao { grid-area: area; }
+  .edi-perigo-cartao { grid-area: perigo; }
+
+  .edi-area-cartao .mapa-edicao-container {
+    height: clamp(460px, calc(100svh - 230px), 820px);
+  }
+
+  .edi-area-cartao .edi-botoes {
+    grid-template-columns: repeat(2, minmax(0, 260px));
+    justify-content: end;
+  }
 }

@@ -303,7 +303,7 @@ function removerPonto(index) {
 
   if (carregando) {
     return (
-      <div className="ui-coluna ui-coluna--sem-nav">
+      <div className="ui-coluna ui-coluna--cheia ui-coluna--sem-nav">
         <AppBar titulo="Editar lavoura" para="/home" />
         <div className="ui-conteudo" aria-busy="true">
           <Skeleton linhas={2} altura={150} />
@@ -314,7 +314,7 @@ function removerPonto(index) {
 
   if (erro) {
     return (
-      <div className="ui-coluna ui-coluna--sem-nav">
+      <div className="ui-coluna ui-coluna--cheia ui-coluna--sem-nav">
         <AppBar titulo="Editar lavoura" para="/home" />
         <div className="ui-conteudo">
           <ErrorState mensagem={erro} aoTentar={tentarDeNovo} />
@@ -331,19 +331,19 @@ function removerPonto(index) {
   // ==================================================
 
   return (
-    <div className="ui-coluna ui-coluna--sem-nav">
+    <div className="ui-coluna ui-coluna--cheia ui-coluna--sem-nav">
       <AppBar
         titulo="Editar lavoura"
         subtitulo={nomeSalvo || "Altere as informações da sua lavoura."}
         para="/home"
       />
 
-      <div className="ui-conteudo">
+      <div className="ui-conteudo edi-grid">
         {/* ======================================
             ALTERAR NOME
         ====================================== */}
 
-        <form className="ui-cartao ui-formulario" onSubmit={salvarNome} noValidate>
+        <form className="ui-cartao ui-formulario edi-nome-cartao" onSubmit={salvarNome} noValidate>
           <div>
             <h2 className="edi-titulo">Nome da lavoura</h2>
             <p className="edi-texto">Altere o nome utilizado para identificar esta lavoura.</p>
@@ -370,7 +370,7 @@ function removerPonto(index) {
             EDITAR ÁREA
         ====================================== */}
 
-        <section className="ui-cartao ui-formulario">
+        <section className="ui-cartao ui-formulario edi-area-cartao">
           <div className="edi-cabecalho-area">
             <div>
               <h2 className="edi-titulo">Área da lavoura</h2>
@@ -452,7 +452,7 @@ function removerPonto(index) {
             REMOVER
         ====================================== */}
 
-        <section className="ui-cartao edi-perigo">
+        <section className="ui-cartao edi-perigo edi-perigo-cartao">
           <div>
             <h2 className="edi-titulo">Remover lavoura</h2>
             <p className="edi-texto">
