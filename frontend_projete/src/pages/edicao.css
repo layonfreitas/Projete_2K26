@@ -127,3 +127,97 @@
     justify-content: end;
   }
 }
+
+/* ---------- safra ---------- */
+.edi-safra-cartao {
+  gap: 14px;
+}
+
+.edi-safra-atual,
+.edi-nova-safra {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.edi-safra-atual {
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--canopy-soft);
+}
+
+.edi-safra-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.edi-safra-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--canopy-dark);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.edi-safra-datas {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.edi-safra-datas span {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+
+.edi-safra-datas small {
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.edi-safra-datas strong {
+  font-size: 13px;
+}
+
+.edi-sem-safra {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-md);
+}
+
+.edi-sem-safra span {
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+@media (max-width: 420px) {
+  .edi-safra-datas {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (min-width: 960px) {
+  .ui-conteudo.edi-grid {
+    grid-template-areas:
+      "nome   area"
+      "safra  area"
+      "perigo area";
+  }
+
+  .edi-safra-cartao { grid-area: safra; }
+}

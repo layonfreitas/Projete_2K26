@@ -151,7 +151,13 @@ def obter_contexto_safra(lavoura, data_imagem):
     candidatas = [
         safra
         for safra in lavoura.get("safras", [])
-        if date.fromisoformat(safra["inicio"]) <= dia_imagem
+        if (
+            date.fromisoformat(safra["inicio"]) <= dia_imagem
+            and (
+                safra.get("atual", False)
+                or dia_imagem <= date.fromisoformat(safra["fim"])
+            )
+        )
     ]
 
     if not candidatas:

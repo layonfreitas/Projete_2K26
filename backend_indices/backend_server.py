@@ -14,7 +14,6 @@ from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 import queue
-from collections import deque
 import time
 import faulthandler
 
@@ -102,7 +101,6 @@ _fila = queue.Queue()
 _fila_lock = Lock()
 _pendentes = []      # trabalhos aguardando, em ordem
 _atual = None        # trabalho em execução
-_historico = deque(maxlen=30)   # resultado dos últimos trabalhos (para /fila/)
 
 FUSO = ZoneInfo(os.getenv("AGENDAMENTO_FUSO", "America/Sao_Paulo"))
 HORA_DIARIA = os.getenv("PROCESSAMENTO_DIARIO_HORA", "06:00")
@@ -159,33 +157,21 @@ def _worker():
                 _pendentes.remove(trabalho)
             _atual = trabalho
 
-        registro = {
-            "tipo": trabalho["tipo"],
-            "chave": trabalho["chave"],
-            "inicio": datetime.now(FUSO).isoformat(timespec="seconds"),
-        }
-
         try:
             with _processamento_lock:
                 logging.info(
                     "[FILA] Iniciando %s (%s)",
                     trabalho["tipo"], trabalho["chave"],
                 )
-                retorno = trabalho["funcao"](*trabalho["args"])
-            registro["status"] = "ok"
-            registro["resultado"] = retorno
-        except Exception as erro:
-            registro["status"] = "erro"
-            registro["erro"] = f"{type(erro).__name__}: {erro}"
+                trabalho["funcao"](*trabalho["args"])
+        except Exception:
             logging.exception(
                 "[FILA] Falha no trabalho %s (%s)",
                 trabalho["tipo"], trabalho["chave"],
             )
         finally:
-            registro["fim"] = datetime.now(FUSO).isoformat(timespec="seconds")
             with _fila_lock:
                 _atual = None
-                _historico.appendleft(registro)
             _fila.task_done()
 
 
@@ -200,7 +186,7 @@ def _executar_todas(diario=False):
     global _espera_agendador_ate
 
     try:
-        resultados = processar_todas_lavouras()
+        processar_todas_lavouras()
     except Exception:
         # Evita tentar de novo a cada minuto se algo estiver fora do ar.
         _espera_agendador_ate = time.time() + 30 * 60
@@ -213,12 +199,6 @@ def _executar_todas(diario=False):
             )
         except OSError:
             logging.exception("[AGENDADOR] Não consegui gravar a data da última execução.")
-
-    return [
-        {"lavoura": r.get("lavouraId"), "status": r.get("status"),
-         "erros": r.get("erros") or None, "avisos": r.get("avisos") or None}
-        for r in (resultados or [])
-    ]
 
 
 def _agendador():
@@ -338,7 +318,6 @@ def estado_da_fila():
                 {"posicao": i + 1 + (1 if _atual else 0), "tipo": t["tipo"], "chave": t["chave"], "entrou_em": t["entrou_em"]}
                 for i, t in enumerate(_pendentes)
             ],
-            "ultimos_trabalhos": list(_historico),
             "agendador": {
                 "ativo": AGENDADOR_ATIVO,
                 "hora": HORA_DIARIA,
@@ -364,14 +343,6 @@ async def zonas_de_manejo(zona_de_manejo_req: Zona_de_manejo_req):
     }
 
 def _gerar_mapas_agendados(dados):
-    """Gera as séries históricas das safras e, depois, os mapas do dia.
-
-    Uma falha na série de uma safra (ex.: sem imagem nos meses informados)
-    NÃO impede a geração dos mapas: o erro fica registrado e segue adiante.
-    Devolve um resumo que aparece em GET /fila/ (ultimos_trabalhos).
-    """
-    resumo = {"lavoura": dados["id"], "series": [], "mapas": None}
-
     try:
         from shapely.geometry import Polygon
         from xee import helpers
@@ -385,38 +356,38 @@ def _gerar_mapas_agendados(dados):
         )
 
         if safras:
-            try:
-                inicializar_ee()
+            inicializar_ee()
 
-                geometria = criar_geometria(dados["coordenadas"])
-                pontos = normalizar_coordenadas(dados["coordenadas"])
+            geometria = criar_geometria(
+                dados["coordenadas"]
+            )
 
-                poligono = Polygon(pontos)
-                lon = poligono.centroid.x
-                lat = poligono.centroid.y
+            pontos = normalizar_coordenadas(
+                dados["coordenadas"]
+            )
 
-                zona = min(60, max(1, int((lon + 180) // 6) + 1))
-                codigo = (32600 if lat >= 0 else 32700) + zona
-                crs = f"EPSG:{codigo}"
+            poligono = Polygon(pontos)
+            lon = poligono.centroid.x
+            lat = poligono.centroid.y
 
-                grade = helpers.fit_geometry(
-                    poligono,
-                    grid_crs=crs,
-                    grid_scale=(10, -10),
-                )
-            except Exception as erro:
-                logging.exception(
-                    "[SERIE] Não foi possível preparar a grade da lavoura %s.",
-                    dados["id"],
-                )
-                resumo["series"].append(
-                    {"erro": f"{type(erro).__name__}: {erro}"}
-                )
-                safras = []
+            zona = min(
+                60,
+                max(1, int((lon + 180) // 6) + 1),
+            )
 
-            salvou_alguma = False
+            codigo = (
+                32600 if lat >= 0 else 32700
+            ) + zona
 
-            for safra in safras:
+            crs = f"EPSG:{codigo}"
+
+            grade = helpers.fit_geometry(
+                poligono,
+                grid_crs=crs,
+                grid_scale=(10, -10),
+            )
+
+            for posicao, safra in enumerate(safras):
                 print(
                     "[SERIE] Chamando make_time_series: "
                     f"lavoura={dados['id']} "
@@ -424,37 +395,26 @@ def _gerar_mapas_agendados(dados):
                     flush=True,
                 )
 
-                try:
-                    resultado = make_time_series(
-                        geometria=geometria,
-                        data_inicio=safra["inicio"],
-                        data_fim=safra["fim"],
-                        usuario_id=dados["usuarioId"],
-                        lavoura_id=dados["id"],
-                        ano=safra["ano"],
-                        crs=crs,
-                        crsTransform=list(grade["crs_transform"]),
-                        # Recria o conjunto na primeira safra gravada.
-                        # As seguintes acrescentam suas datas.
-                        reiniciar=not salvou_alguma,
-                    )
-                    salvou_alguma = True
-                    resumo["series"].append(
-                        {"ano": safra["ano"], "status": "ok"}
-                    )
-                    print(f"[SERIE] Resultado: {resultado}", flush=True)
+                resultado = make_time_series(
+                    geometria=geometria,
+                    data_inicio=safra["inicio"],
+                    data_fim=safra["fim"],
+                    usuario_id=dados["usuarioId"],
+                    lavoura_id=dados["id"],
+                    ano=safra["ano"],
+                    crs=crs,
+                    crsTransform=list(
+                        grade["crs_transform"]
+                    ),
+                    # Recria o conjunto na primeira safra.
+                    # As seguintes acrescentam suas datas.
+                    reiniciar=(posicao == 0),
+                )
 
-                except Exception as erro:
-                    # Segue para as demais safras e para os mapas.
-                    logging.exception(
-                        "[SERIE] Falha na lavoura %s, safra %s",
-                        dados["id"], safra["ano"],
-                    )
-                    resumo["series"].append({
-                        "ano": safra["ano"],
-                        "status": "erro",
-                        "erro": f"{type(erro).__name__}: {erro}",
-                    })
+                print(
+                    f"[SERIE] Resultado: {resultado}",
+                    flush=True,
+                )
         else:
             print(
                 "[SERIE] Nenhuma safra recebida; "
@@ -462,28 +422,19 @@ def _gerar_mapas_agendados(dados):
                 flush=True,
             )
 
-        # Executa mesmo que alguma série tenha falhado.
+        # Executa depois que todas as séries foram salvas.
         resultado_mapas = processar_lavoura(dados)
-        resumo["mapas"] = {
-            "status": resultado_mapas.get("status"),
-            "salvos": resultado_mapas.get("salvos"),
-            "erros": resultado_mapas.get("erros") or None,
-            "avisos": resultado_mapas.get("avisos") or None,
-        }
 
-        print(f"[MAPAS] Resultado: {resultado_mapas}", flush=True)
+        print(
+            f"[MAPAS] Resultado: {resultado_mapas}",
+            flush=True,
+        )
 
-    except Exception as erro:
+    except Exception:
         logging.exception(
             "[PROCESSAMENTO] Falha na lavoura %s",
             dados["id"],
         )
-        resumo["mapas"] = {
-            "status": "erro",
-            "erros": [f"{type(erro).__name__}: {erro}"],
-        }
-
-    return resumo
 
 
 @app.post("/agendar_mapas/", status_code=202)

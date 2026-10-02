@@ -200,15 +200,48 @@ def validar_safras(valor):
             "ano": ano,
             "inicio": inicio.isoformat(),
             "fim": fim.isoformat(),
+            "atual": bool(item.get("atual", False)),
         })
 
     resultado.sort(key=lambda safra: safra["inicio"])
+
+    atuais = [safra for safra in resultado if safra.get("atual")]
+    if len(atuais) > 1:
+        raise ValueError("A lavoura pode ter apenas uma safra atual.")
+
+    if atuais and atuais[0] is not resultado[-1]:
+        raise ValueError("A safra atual deve ser a safra mais recente.")
 
     for anterior, atual in zip(resultado, resultado[1:]):
         if atual["inicio"] <= anterior["fim"]:
             raise ValueError("Os períodos das safras não podem se sobrepor.")
 
     return resultado
+
+
+def _normalizar_safras_armazenadas(valor):
+    """Mantém compatibilidade com lavouras antigas, salvas antes do campo atual."""
+    if not isinstance(valor, list):
+        return []
+
+    safras = [dict(item) for item in valor if isinstance(item, dict)]
+    if not safras:
+        return []
+
+    tinha_marcacao = any("atual" in item for item in safras)
+
+    if not tinha_marcacao:
+        mais_recente = max(
+            range(len(safras)),
+            key=lambda i: safras[i].get("inicio", ""),
+        )
+        for i, safra in enumerate(safras):
+            safra["atual"] = i == mais_recente
+    else:
+        for safra in safras:
+            safra["atual"] = bool(safra.get("atual", False))
+
+    return safras
 
 # CADASTRAR LAVOURA
 @lavoura_bp.route('/lavoura', methods=['POST'])
@@ -434,7 +467,8 @@ def buscar_lavoura(lavoura_id):
                 l.coordenadas,
                 l.area_m2,
                 l.usuario_id,
-                u.nome
+                u.nome,
+                l.safras
             FROM lavouras l
             JOIN usuarios u
                 ON l.usuario_id = u.id
@@ -468,7 +502,10 @@ def buscar_lavoura(lavoura_id):
 
             "usuarioId": linha[4],
 
-            "produtorNome": linha[5]
+            "produtorNome": linha[5],
+            "safras": _normalizar_safras_armazenadas(
+                json.loads(linha[6]) if linha[6] else []
+            ),
         }
 
         return jsonify(lavoura), 200
@@ -616,6 +653,171 @@ def editar_lavoura(lavoura_id):
             "erro": str(erro)
         }), 500
 
+
+
+@lavoura_bp.route('/lavoura/<int:lavoura_id>/safra/encerrar', methods=['POST'])
+def encerrar_safra_atual(lavoura_id):
+    ok, erro = _exige_dono(lavoura_id)
+    if not ok:
+        return erro
+
+    dados = request.get_json(silent=True) or {}
+    fim_texto = dados.get("fim") or date.today().isoformat()
+
+    try:
+        fim = date.fromisoformat(fim_texto)
+    except (TypeError, ValueError):
+        return jsonify({"mensagem": "Informe uma data final válida."}), 400
+
+    if fim > date.today():
+        return jsonify({"mensagem": "A data de encerramento não pode estar no futuro."}), 400
+
+    cursor = mysql.connection.cursor()
+
+    try:
+        cursor.execute(
+            "SELECT safras FROM lavouras WHERE id = %s",
+            (lavoura_id,),
+        )
+        linha = cursor.fetchone()
+
+        if not linha:
+            return jsonify({"mensagem": "Lavoura não encontrada."}), 404
+
+        armazenadas = json.loads(linha[0]) if linha[0] else []
+        safras = _normalizar_safras_armazenadas(armazenadas)
+        indice_atual = next(
+            (i for i, safra in enumerate(safras) if safra.get("atual")),
+            None,
+        )
+
+        if indice_atual is None:
+            return jsonify({"mensagem": "Esta lavoura não possui uma safra atual para encerrar."}), 409
+
+        inicio = date.fromisoformat(safras[indice_atual]["inicio"])
+        if fim < inicio:
+            return jsonify({
+                "mensagem": "A data de encerramento não pode ser anterior ao início da safra."
+            }), 400
+
+        safras[indice_atual]["fim"] = fim.isoformat()
+        safras[indice_atual]["atual"] = False
+        safras = validar_safras(safras)
+
+        cursor.execute(
+            "UPDATE lavouras SET safras = %s WHERE id = %s",
+            (json.dumps(safras), lavoura_id),
+        )
+        mysql.connection.commit()
+
+        return jsonify({
+            "mensagem": "Safra atual encerrada com sucesso.",
+            "safras": safras,
+        }), 200
+
+    except ValueError as erro_validacao:
+        mysql.connection.rollback()
+        return jsonify({"mensagem": str(erro_validacao)}), 400
+    except Exception as erro_interno:
+        mysql.connection.rollback()
+        return jsonify({
+            "mensagem": "Erro ao encerrar a safra atual.",
+            "erro": str(erro_interno),
+        }), 500
+    finally:
+        cursor.close()
+
+
+@lavoura_bp.route('/lavoura/<int:lavoura_id>/safra/iniciar', methods=['POST'])
+def iniciar_nova_safra(lavoura_id):
+    ok, erro = _exige_dono(lavoura_id)
+    if not ok:
+        return erro
+
+    dados = request.get_json(silent=True) or {}
+    inicio_texto = dados.get("inicio")
+
+    try:
+        inicio = date.fromisoformat(inicio_texto)
+    except (TypeError, ValueError):
+        return jsonify({"mensagem": "Informe uma data inicial válida."}), 400
+
+    hoje = date.today()
+    if not date(2017, 3, 28) <= inicio <= hoje:
+        return jsonify({
+            "mensagem": "O início da nova safra deve estar entre 28/03/2017 e hoje."
+        }), 400
+
+    cursor = mysql.connection.cursor()
+
+    try:
+        cursor.execute(
+            "SELECT usuario_id, coordenadas, safras FROM lavouras WHERE id = %s",
+            (lavoura_id,),
+        )
+        linha = cursor.fetchone()
+
+        if not linha:
+            return jsonify({"mensagem": "Lavoura não encontrada."}), 404
+
+        usuario_id, coordenadas_json, safras_json = linha
+        armazenadas = json.loads(safras_json) if safras_json else []
+        safras = _normalizar_safras_armazenadas(armazenadas)
+
+        if any(safra.get("atual") for safra in safras):
+            return jsonify({
+                "mensagem": "Encerre a safra atual antes de iniciar uma nova."
+            }), 409
+
+        if safras:
+            ultima = max(safras, key=lambda safra: safra["fim"])
+            ultimo_fim = date.fromisoformat(ultima["fim"])
+            if inicio <= ultimo_fim:
+                return jsonify({
+                    "mensagem": (
+                        "A nova safra deve começar depois do encerramento da safra anterior "
+                        f"({ultimo_fim.strftime('%d/%m/%Y')})."
+                    )
+                }), 400
+
+        safras.append({
+            "ano": inicio.year,
+            "inicio": inicio.isoformat(),
+            "fim": hoje.isoformat(),
+            "atual": True,
+        })
+        safras = validar_safras(safras)
+
+        cursor.execute(
+            "UPDATE lavouras SET safras = %s WHERE id = %s",
+            (json.dumps(safras), lavoura_id),
+        )
+        mysql.connection.commit()
+
+        mapas = solicitar_mapas(
+            lavoura_id,
+            usuario_id,
+            json.loads(coordenadas_json),
+            safras=safras,
+        )
+
+        return jsonify({
+            "mensagem": "Nova safra iniciada com sucesso.",
+            "safras": safras,
+            "mapas": mapas,
+        }), 201
+
+    except ValueError as erro_validacao:
+        mysql.connection.rollback()
+        return jsonify({"mensagem": str(erro_validacao)}), 400
+    except Exception as erro_interno:
+        mysql.connection.rollback()
+        return jsonify({
+            "mensagem": "Erro ao iniciar a nova safra.",
+            "erro": str(erro_interno),
+        }), 500
+    finally:
+        cursor.close()
 
 @lavoura_bp.route('/lavoura/<int:lavoura_id>', methods=['DELETE'])
 def remover_lavoura(lavoura_id):
@@ -826,7 +1028,6 @@ def gerar_imagens_lavoura(lavoura_id):
     safras=json.loads(linha[2]) if linha[2] else [],
 )
 
-    # "na_fila" também é sucesso: o pedido foi aceito e aguarda a vez.
-    codigo = 202 if resultado["status"] in ("aceito", "na_fila") else 503
+    codigo = 202 if resultado["status"] == "aceito" else 503
 
     return jsonify(resultado), codigo

@@ -252,7 +252,7 @@ export default function Mapa() {
       center: [-14.235, -51.9253],
       zoom: 4,
       minZoom: 4,
-      maxZoom: 19,
+      maxZoom: 17,
       maxBounds: BRASIL,
       maxBoundsViscosity: 1,
     });
@@ -268,8 +268,8 @@ export default function Mapa() {
       "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
       {
         attribution: "Tiles © Esri",
-        maxZoom: 19,
-        maxNativeZoom: 16,
+        maxZoom: 17,
+        maxNativeZoom: 18,
       }
     ).addTo(atual);
 
@@ -277,7 +277,7 @@ export default function Mapa() {
       "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
       {
         attribution: "© OpenStreetMap",
-        maxZoom: 19,
+        maxZoom: 17,
       }
     );
 
