@@ -36,6 +36,23 @@ def solicitar_mapas(lavoura_id, usuario_id, coordenadas, safras=None):
         )
 
         if resposta.status_code == 202:
+            try:
+                dados_fila = resposta.json()
+            except ValueError:
+                dados_fila = {}
+
+            posicao = dados_fila.get("posicao")
+
+            if dados_fila.get("status") == "na_fila" and posicao:
+                return {
+                    "status": "na_fila",
+                    "posicao": posicao,
+                    "mensagem": (
+                        f"O serviço está ocupado. Sua lavoura entrou na fila "
+                        f"(posição {posicao}) e será processada automaticamente."
+                    ),
+                }
+
             return {
                 "status": "aceito",
                 "mensagem": (
@@ -809,6 +826,7 @@ def gerar_imagens_lavoura(lavoura_id):
     safras=json.loads(linha[2]) if linha[2] else [],
 )
 
-    codigo = 202 if resultado["status"] == "aceito" else 503
+    # "na_fila" também é sucesso: o pedido foi aceito e aguarda a vez.
+    codigo = 202 if resultado["status"] in ("aceito", "na_fila") else 503
 
     return jsonify(resultado), codigo

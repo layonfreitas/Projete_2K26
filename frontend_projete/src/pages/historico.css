@@ -6,8 +6,8 @@
 }
 
 .hist-conteudo {
-  max-width: 1280px;
-  margin: 0 auto;
+  max-width: none;
+  margin: 0;
   padding: 24px 20px 32px;
 }
 
@@ -124,9 +124,27 @@
 }
 
 .hist-alerta-itens li {
+  display: block;
+}
+
+.hist-alerta-linha {
   display: flex;
   align-items: stretch;
   gap: 6px;
+}
+
+/* título de cada dia de imagem, na lista */
+.hist-alerta-grupo {
+  margin: 6px 0 8px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.hist-alerta-comeco-grupo:not(:first-child) {
+  margin-top: 8px;
 }
 
 .hist-alerta-item {
@@ -281,4 +299,77 @@
   border: none !important;
   border-radius: 0 !important;
   transition: none !important;
+}
+
+/* ---------- detalhes do alerta selecionado ---------- */
+
+.hist-alerta-detalhe {
+  padding: 16px 18px;
+  border: 1px solid var(--border);
+  border-left-width: 5px;
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.hist-alerta-detalhe.critico {
+  border-left-color: var(--cherry);
+}
+
+.hist-alerta-detalhe.atencao {
+  border-left-color: var(--gold);
+}
+
+.hist-alerta-detalhe header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.hist-alerta-detalhe h3 {
+  margin: 0;
+  font-size: 17px;
+}
+
+.hist-alerta-detalhe h4 {
+  margin: 14px 0 4px;
+  font-size: 13px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.hist-alerta-detalhe p {
+  margin: 6px 0 0;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.hist-alerta-detalhe .hist-alerta-meta {
+  margin-top: 0;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+.hist-alerta-detalhe .hist-alerta-nota {
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--gold-soft);
+  font-size: 13px;
+}
+
+.hist-alerta-detalhe small {
+  display: block;
+  margin-top: 14px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+
+.hist-alerta-detalhe--vazio {
+  border-left-width: 1px;
+  text-align: center;
+  color: var(--ink-soft);
 }

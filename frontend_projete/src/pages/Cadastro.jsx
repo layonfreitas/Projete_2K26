@@ -24,6 +24,31 @@ function formatarDataBR(texto) {
   return `${dia}/${mes}/${ano}`;
 }
 
+// Mensagem específica para cada tipo de resposta do servidor.
+function mensagemDoServidor(status, detalhe) {
+  if (status === 401) {
+    return "Sua sessão expirou. Entre na conta novamente e refaça o cadastro.";
+  }
+  if (status === 403) {
+    return "Esta conta não tem permissão para cadastrar lavouras.";
+  }
+  if (status === 409) {
+    return detalhe || "Já existe uma lavoura com estes dados. Confira suas lavouras antes de cadastrar de novo.";
+  }
+  if (status === 413) {
+    return "Os dados enviados são grandes demais. Reduza a quantidade de pontos do contorno ou de safras e tente de novo.";
+  }
+  if (status === 429) {
+    return "Muitas tentativas seguidas. Aguarde um minuto e tente novamente.";
+  }
+  if (status === 400 || status === 422) {
+    return detalhe
+      ? `O servidor não aceitou o cadastro: ${detalhe}`
+      : "O servidor não aceitou os dados enviados. Revise o nome, o contorno e as datas das safras.";
+  }
+  return detalhe || "Não foi possível salvar a lavoura. Tente novamente.";
+}
+
 export default function Cadastro() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -33,6 +58,8 @@ export default function Cadastro() {
 
   const [nome, setNome] = useState("");
   const [erroNome, setErroNome] = useState("");
+  // Erros por campo de safra: "atual" ou "<posição>-inicio" / "<posição>-fim".
+  const [errosSafras, setErrosSafras] = useState({});
   const [mensagem, setMensagem] = useState("");
   const [carregando, setCarregando] = useState(false);
   const [cadastroSalvo, setCadastroSalvo] = useState(null);
@@ -49,7 +76,17 @@ export default function Cadastro() {
   const anoAtual = hoje.getFullYear();
   const hojeTexto = formatarData(hoje);
 
+  function limparErroSafra(chave) {
+    setErrosSafras((anteriores) => {
+      if (!anteriores[chave]) return anteriores;
+      const resto = { ...anteriores };
+      delete resto[chave];
+      return resto;
+    });
+  }
+
   function alterarSafra(indice, campo, valor) {
+    limparErroSafra(`${indice}-${campo}`);
     setSafras((anteriores) =>
       anteriores.map((safra, posicao) =>
         posicao === indice
@@ -67,6 +104,8 @@ export default function Cadastro() {
   }
 
   function removerSafra(indice) {
+    // As posições mudam; os avisos antigos deixariam de valer.
+    setErrosSafras({});
     setSafras((anteriores) =>
       anteriores.filter((_, posicao) => posicao !== indice)
     );
@@ -82,27 +121,33 @@ export default function Cadastro() {
 
     setMensagem("");
     setErroNome("");
+    setErrosSafras({});
 
     const usuarioId = localStorage.getItem("usuarioId");
 
     if (!usuarioId) {
-      setMensagem("Entre na sua conta antes de cadastrar.");
-      return;
-    }
-
-    if (!nome.trim()) {
-      setErroNome("Dê um nome para identificar a lavoura.");
+      setMensagem("Sua sessão não foi encontrada. Entre na conta antes de cadastrar a lavoura.");
       return;
     }
 
     if (!coordenadas || !temPoligono) {
-      setMensagem("Desenhe o contorno da lavoura primeiro.");
+      setMensagem("Falta o contorno da lavoura. Volte ao mapa e marque pelo menos 3 pontos.");
       return;
     }
 
     // Data recalculada no momento do envio: é o "dia do cadastro".
     const dataCadastro = formatarData(new Date());
     const anoCadastro = Number(dataCadastro.slice(0, 4));
+
+    const erros = {};
+    let erroDeNome = "";
+
+    // ---- Nome ----
+    if (!nome.trim()) {
+      erroDeNome = "Dê um nome para identificar a lavoura (ex.: Lavoura Boa Vista).";
+    } else if (nome.trim().length < 3) {
+      erroDeNome = "O nome está muito curto. Use pelo menos 3 letras.";
+    }
 
     // ---- Safra atual (especial) ----
     // Fim = dia do cadastro. O ano da safra é o ano do cadastro.
@@ -111,94 +156,121 @@ export default function Cadastro() {
       inicio: inicioSafraAtual,
       fim: dataCadastro,
       atual: true,
+      chave: "atual",
     };
 
-    if (
-      !safraAtual.inicio ||
-      safraAtual.inicio < DATA_MINIMA ||
-      safraAtual.inicio > safraAtual.fim
-    ) {
-      setMensagem(
-        "Informe o início da safra atual, entre 28/03/2017 e hoje."
-      );
-      return;
+    if (!safraAtual.inicio) {
+      erros.atual = "Informe o dia em que a safra atual começou.";
+    } else if (safraAtual.inicio < DATA_MINIMA) {
+      erros.atual = `Esta data é anterior a ${formatarDataBR(DATA_MINIMA)}, quando começam as imagens de satélite. Escolha uma data a partir de ${formatarDataBR(DATA_MINIMA)}.`;
+    } else if (safraAtual.inicio > safraAtual.fim) {
+      erros.atual = "O início da safra atual não pode estar no futuro.";
     }
 
     // ---- Safras anteriores ----
-    const periodosAnteriores = safras.map((safra) => ({
+    const periodosAnteriores = safras.map((safra, posicao) => ({
       ano: safra.inicio ? Number(safra.inicio.slice(0, 4)) : null,
       inicio: safra.inicio,
       fim: safra.fim,
       atual: false,
+      chave: String(posicao),
     }));
 
-    const temCampoInvalido = periodosAnteriores.some(
-  (safra) =>
-    !safra.inicio ||
-    !safra.fim ||
-    !Number.isInteger(safra.ano) ||
-    safra.ano < 2017 ||
-    safra.ano > anoCadastro ||
-    safra.inicio < DATA_MINIMA ||
-    safra.fim > dataCadastro ||
-    safra.inicio > safra.fim
-);
+    periodosAnteriores.forEach((safra, posicao) => {
+      const nomeSafra = `Safra anterior ${posicao + 1}`;
 
-    if (temCampoInvalido) {
-      setMensagem(
-        "Preencha o início e o fim de todas as safras anteriores. " +
-        "Use períodos entre 28/03/2017 e hoje."
-      );
-      return;
-    }
+      if (!safra.inicio) {
+        erros[`${posicao}-inicio`] = `${nomeSafra}: informe a data de início.`;
+      } else if (safra.inicio < DATA_MINIMA) {
+        erros[`${posicao}-inicio`] = `${nomeSafra}: o início não pode ser antes de ${formatarDataBR(DATA_MINIMA)}.`;
+      } else if (safra.inicio > dataCadastro) {
+        erros[`${posicao}-inicio`] = `${nomeSafra}: o início não pode estar no futuro.`;
+      }
+
+      if (!safra.fim) {
+        erros[`${posicao}-fim`] = `${nomeSafra}: informe a data de fim.`;
+      } else if (safra.fim > dataCadastro) {
+        erros[`${posicao}-fim`] = `${nomeSafra}: o fim não pode estar no futuro. Use no máximo hoje (${formatarDataBR(dataCadastro)}).`;
+      } else if (safra.inicio && safra.fim < safra.inicio) {
+        erros[`${posicao}-fim`] = `${nomeSafra}: o fim (${formatarDataBR(safra.fim)}) vem antes do início (${formatarDataBR(safra.inicio)}).`;
+      }
+    });
 
     // Todas as safras juntas (anteriores + atual), ordenadas pelo início.
     const periodos = [...periodosAnteriores, safraAtual].sort((a, b) =>
-      a.inicio.localeCompare(b.inicio)
+      (a.inicio || "").localeCompare(b.inicio || "")
     );
 
     const rotulo = (safra) =>
-      safra.atual ? "a safra atual" : `a safra ${safra.ano}`;
+      safra.atual ? "a safra atual" : `a safra anterior ${Number(safra.chave) + 1}`;
 
-    // Ano da safra (colheita) não pode se repetir.
-    if (new Set(periodos.map((safra) => safra.ano)).size !== periodos.length) {
-      setMensagem(
-        "Informe cada ano de safra apenas uma vez " +
-        "(a safra atual usa o ano de hoje)."
-      );
-      return;
-    }
+    const campoInicio = (safra) =>
+      safra.atual ? "atual" : `${safra.chave}-inicio`;
 
-    // Nenhum ano de início repetido: não pode haver duas safras que
-    // começam em 2024, por exemplo.
-    const anosInicio = periodos.map((safra) => safra.inicio.slice(0, 4));
-    const anoInicioRepetido = anosInicio.find(
-      (ano, indice) => anosInicio.indexOf(ano) !== indice
+    // Conflitos entre safras só são conferidos entre datas já válidas.
+    const validas = periodos.filter(
+      (safra) => !erros[campoInicio(safra)] && !erros[`${safra.chave}-fim`]
     );
 
-    if (anoInicioRepetido) {
-      setMensagem(
-        `Mais de uma safra começa em ${anoInicioRepetido}. ` +
-        "Cada safra deve começar em um ano diferente."
-      );
-      return;
+    // Duas safras não podem começar no mesmo ano.
+    const vistos = new Map();
+    for (const safra of validas) {
+      const anoInicio = safra.inicio.slice(0, 4);
+      const anterior = vistos.get(anoInicio);
+
+      if (anterior) {
+        const alvo = campoInicio(safra);
+        erros[alvo] =
+          `${rotulo(safra)[0].toUpperCase()}${rotulo(safra).slice(1)} começa em ${anoInicio}, ` +
+          `o mesmo ano d${rotulo(anterior)}. Cada safra deve começar em um ano diferente.`;
+      } else {
+        vistos.set(anoInicio, safra);
+      }
     }
 
-   
+    // O ano (colheita) também não pode se repetir.
+    const anosColheita = new Map();
+    for (const safra of validas) {
+      const anterior = anosColheita.get(safra.ano);
 
-    
+      if (anterior && !erros[campoInicio(safra)]) {
+        erros[campoInicio(safra)] =
+          `${rotulo(safra)[0].toUpperCase()}${rotulo(safra).slice(1)} usa o mesmo ano de safra (${safra.ano}) ` +
+          `d${rotulo(anterior)}. Informe cada ano apenas uma vez.`;
+      } else if (!anterior) {
+        anosColheita.set(safra.ano, safra);
+      }
+    }
 
     // Nenhum dia em comum: o início de uma safra precisa ser depois do
     // fim da anterior (<= também barra o mesmo dia).
-    for (let i = 1; i < periodos.length; i++) {
-      if (periodos[i].inicio <= periodos[i - 1].fim) {
-        setMensagem(
-          `${rotulo(periodos[i - 1])} e ${rotulo(periodos[i])} ` +
-          "têm dias em comum. Os períodos não podem se sobrepor " +
-          "nem compartilhar nenhum dia."
-        );
-        return;
+    for (let i = 1; i < validas.length; i++) {
+      const anterior = validas[i - 1];
+      const atual = validas[i];
+      const alvo = campoInicio(atual);
+
+      if (!erros[alvo] && atual.inicio <= anterior.fim) {
+        erros[alvo] =
+          `Esta safra começa em ${formatarDataBR(atual.inicio)}, mas ${rotulo(anterior)} ` +
+          `termina em ${formatarDataBR(anterior.fim)}. O início precisa ser depois do fim da anterior.`;
       }
+    }
+
+    const quantidade = Object.keys(erros).length + (erroDeNome ? 1 : 0);
+
+    if (quantidade > 0) {
+      setErroNome(erroDeNome);
+      setErrosSafras(erros);
+      setMensagem(
+        quantidade === 1
+          ? "Há 1 campo para corrigir. Veja o aviso destacado no formulário."
+          : `Há ${quantidade} campos para corrigir. Veja os avisos destacados no formulário.`
+      );
+      // Leva o foco ao primeiro campo com problema.
+      requestAnimationFrame(() => {
+        document.querySelector('input[aria-invalid="true"]')?.focus();
+      });
+      return;
     }
 
     envioEmAndamento.current = true;
@@ -220,11 +292,16 @@ export default function Cadastro() {
           usuarioId,
           nomeLavoura: nome.trim(),
           coordenadas,
-          safras: periodos,
+          safras: periodos.map((safra) => ({
+            ano: safra.ano,
+            inicio: safra.inicio,
+            fim: safra.fim,
+            atual: safra.atual,
+          })),
         }),
       });
 
-      const dados = await resposta.json();
+      const dados = await resposta.json().catch(() => ({}));
       console.info("[CADASTRO] Resposta", {
         http: resposta.status,
         lavouraId: dados.id,
@@ -233,8 +310,12 @@ export default function Cadastro() {
 
       if (!resposta.ok) {
         // Um erro do servidor pode acontecer depois do commit.
-        if (resposta.status >= 500) throw new Error("Confirmação indisponível");
-        setMensagem(dados.mensagem || "Confira os dados do cadastro e tente novamente.");
+        if (resposta.status >= 500) {
+          const falha = new Error("Confirmação indisponível");
+          falha.codigoHttp = resposta.status;
+          throw falha;
+        }
+        setMensagem(mensagemDoServidor(resposta.status, dados.mensagem));
         return;
       }
 
@@ -245,9 +326,19 @@ export default function Cadastro() {
     } catch (erro) {
       console.error("[CADASTRO] Não foi possível confirmar o resultado", erro);
       setCadastroIncerto(true);
+
+      let motivo = "Não foi possível confirmar o resultado do cadastro.";
+      if (erro?.name === "AbortError") {
+        motivo = "O servidor demorou mais de 45 segundos para responder.";
+      } else if (erro?.name === "TypeError") {
+        motivo = "A conexão com o servidor caiu durante o envio.";
+      } else if (erro?.codigoHttp) {
+        motivo = `O servidor teve um problema ao salvar (erro ${erro.codigoHttp}).`;
+      }
+
       setMensagem(
-        "Não foi possível confirmar o resultado do cadastro. " +
-        "A lavoura pode ter sido salva. Confira suas lavouras antes de cadastrar novamente."
+        `${motivo} A lavoura pode ter sido salva. ` +
+        "Confira suas lavouras antes de cadastrar novamente."
       );
     } finally {
       clearTimeout(timeout);
@@ -258,11 +349,15 @@ export default function Cadastro() {
 
   if (cadastroSalvo) {
     const status = cadastroSalvo.mapas?.status;
+    const posicaoFila = cadastroSalvo.mapas?.posicao;
     const avisos = {
-      aceito: "O processamento das séries das safras e dos mapas foi aceito. " +
-        "Os resultados ainda não estão prontos; consulte o histórico.",
-      ocupado: "O serviço está ocupado e não aceitou o processamento desta lavoura. " +
-        "Tente novamente pelo botão Gerar imagens no histórico. Não é necessário cadastrar de novo.",
+      aceito: "A lavoura foi salva e a geração dos mapas e das séries das safras já começou. " +
+        "Isso leva alguns minutos; acompanhe o resultado no histórico.",
+      na_fila: `A lavoura foi salva. O serviço está processando outras lavouras, então a sua entrou na fila` +
+        `${posicaoFila ? ` (posição ${posicaoFila})` : ""} e será processada automaticamente. ` +
+        "Não é necessário fazer nada; volte ao histórico daqui a pouco.",
+      ocupado: "A lavoura foi salva, mas o serviço de processamento estava ocupado e não aceitou o pedido. " +
+        "Use o botão Gerar imagens no histórico para tentar de novo. Não é necessário cadastrar a lavoura outra vez.",
       nao_configurado: "A lavoura foi salva, mas o serviço de processamento não está configurado. " +
         "Entre em contato com o suporte.",
       nao_confirmado: "A lavoura foi salva, mas não foi possível confirmar o processamento. " +
@@ -382,9 +477,11 @@ export default function Cadastro() {
                   min={DATA_MINIMA}
                   max={hojeTexto}
                   value={inicioSafraAtual}
-                  onChange={(evento) =>
-                    setInicioSafraAtual(evento.target.value)
-                  }
+                  error={errosSafras.atual}
+                  onChange={(evento) => {
+                    limparErroSafra("atual");
+                    setInicioSafraAtual(evento.target.value);
+                  }}
                   required
                 />
               </div>
@@ -413,6 +510,7 @@ export default function Cadastro() {
                     min={DATA_MINIMA}
                     max={safra.fim || hojeTexto}
                     value={safra.inicio}
+                    error={errosSafras[`${indice}-inicio`]}
                     onChange={(evento) =>
                       alterarSafra(indice, "inicio", evento.target.value)
                     }
@@ -425,6 +523,7 @@ export default function Cadastro() {
                     min={safra.inicio || DATA_MINIMA}
                     max={hojeTexto}
                     value={safra.fim}
+                    error={errosSafras[`${indice}-fim`]}
                     onChange={(evento) =>
                       alterarSafra(indice, "fim", evento.target.value)
                     }

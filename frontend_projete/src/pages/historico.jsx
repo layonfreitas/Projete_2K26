@@ -28,51 +28,109 @@ const ABAS = [
 
 const estilo = { color: '#2f4a33', weight: 2, fill: false };
 
-const MENSAGENS = {
+// Texto de cada alerta, por índice e por nível (crítico / atenção).
+const INFO_INDICES = {
   NDVI: {
-    critico:
-      "Foi identificada uma alteração acentuada no comportamento " +
-      "da vegetação. Consulte o mapa e verifique a área em campo.",
-    atencao:
-      "Foi identificada uma variação na vegetação que merece " +
-      "acompanhamento. Consulte as áreas sinalizadas no mapa.",
+    nome: "Vigor da vegetação",
+    sigla: "NDVI",
+    explica:
+      "O NDVI mede o vigor e a quantidade de folhagem verde. As áreas coloridas " +
+      "no mapa estão fora do padrão esperado para esta lavoura nesta fase da safra.",
+    resumo: {
+      critico: "Vigor da vegetação muito fora do padrão em parte da lavoura.",
+      atencao: "Vigor da vegetação com variação acima do normal em parte da lavoura.",
+    },
+    acao: {
+      critico:
+        "Vá o quanto antes às áreas destacadas no mapa. Confira falhas no plantio, pragas, " +
+        "doenças e danos recentes (geada, granizo, seca) e, se possível, acione o agrônomo.",
+      atencao:
+        "Acompanhe as áreas destacadas nas próximas imagens. Se a mancha persistir ou crescer, " +
+        "faça uma visita de campo.",
+    },
   },
-
   NDRE: {
-    critico:
-      "Foi identificada uma alteração acentuada na resposta " +
-      "espectral da vegetação. A causa precisa ser avaliada em campo.",
-    atencao:
-      "A resposta espectral da vegetação apresentou uma variação. " +
-      "Acompanhe a área e registre as condições observadas.",
+    nome: "Clorofila e nutrição",
+    sigla: "NDRE",
+    explica:
+      "O NDRE é sensível à clorofila e ao estado nutricional das folhas. As áreas coloridas " +
+      "no mapa destoam do padrão esperado para esta lavoura nesta fase da safra.",
+    resumo: {
+      critico: "Resposta das folhas muito fora do padrão em parte da lavoura.",
+      atencao: "Resposta das folhas com variação acima do normal em parte da lavoura.",
+    },
+    acao: {
+      critico:
+        "Observe nas áreas destacadas folhas amareladas, sinais de deficiência nutricional ou " +
+        "doenças. Converse com o agrônomo sobre uma análise foliar.",
+      atencao:
+        "Registre as condições das folhas nas áreas destacadas e compare com as próximas imagens.",
+    },
   },
-
   NDWI: {
-    critico:
-      "Foi identificada uma alteração acentuada no indicador " +
-      "relacionado à água na vegetação. Verifique as condições em campo.",
-    atencao:
-      "Foi identificada uma variação no indicador relacionado " +
-      "à água na vegetação. Acompanhe as áreas sinalizadas.",
+    nome: "Água na vegetação",
+    sigla: "NDWI",
+    explica:
+      "O NDWI indica o teor de água na vegetação. As áreas coloridas no mapa destoam do padrão " +
+      "esperado para esta lavoura nesta fase da safra.",
+    resumo: {
+      critico: "Água na vegetação muito fora do padrão em parte da lavoura.",
+      atencao: "Água na vegetação com variação acima do normal em parte da lavoura.",
+    },
+    acao: {
+      critico:
+        "Verifique umidade do solo, irrigação e sinais de estresse hídrico nas áreas destacadas, " +
+        "como folhas murchas ou enroladas.",
+      atencao:
+        "Acompanhe a umidade do solo nas áreas destacadas e veja se a variação continua nas próximas imagens.",
+    },
   },
-
   CLMI: {
-    critico:
-      "A classificação automática sinalizou uma condição crítica. " +
-      "Confirme o resultado com avaliação em campo.",
-    atencao:
-      "A classificação automática sinalizou uma condição que " +
-      "merece acompanhamento.",
+    nome: "Classificação automática",
+    sigla: "CLMI",
+    explica:
+      "Este alerta vem de uma classificação automática que combina o índice CLMI da imagem com a " +
+      "temperatura média e a chuva acumulada dos últimos 30 dias na região. " +
+      "Ele vale para a lavoura inteira e por isso não tem mapa.",
+    resumo: {
+      critico: "Classificação automática de risco alta para a lavoura inteira.",
+      atencao: "Classificação automática pede acompanhamento da lavoura inteira.",
+    },
+    acao: {
+      critico:
+        "Peça ao agrônomo uma avaliação em campo e compare com o que você tem observado " +
+        "nas plantas nos últimos dias.",
+      atencao:
+        "Acompanhe a lavoura nos próximos dias e registre qualquer mudança observada.",
+    },
   },
 };
 
-function mensagemAlerta(indice, critico) {
-  return (
-    MENSAGENS[indice]?.[
-      critico ? "critico" : "atencao"
-    ] ||
-    "Foi registrada uma alteração que precisa ser avaliada."
-  );
+const INFO_PADRAO = {
+  nome: "Alteração registrada",
+  sigla: "",
+  explica: "Foi registrada uma alteração que precisa ser avaliada.",
+  resumo: {
+    critico: "Foi registrada uma alteração importante que precisa ser avaliada.",
+    atencao: "Foi registrada uma alteração que merece acompanhamento.",
+  },
+  acao: {
+    critico: "Consulte o agrônomo e verifique a lavoura em campo.",
+    atencao: "Acompanhe a lavoura nas próximas imagens.",
+  },
+};
+
+function infoDoAlerta(indice) {
+  return INFO_INDICES[indice] || INFO_PADRAO;
+}
+
+function nivelDoAlerta(critico) {
+  return critico ? "critico" : "atencao";
+}
+
+function formatarDataBR(texto) {
+  const partes = String(texto || "").split("-");
+  return partes.length === 3 ? `${partes[2]}/${partes[1]}/${partes[0]}` : "";
 }
 
 function HistoricoAlerta() {
@@ -205,6 +263,10 @@ const temMapa = Boolean(
       return () => controller.abort();
     }
 
+    // O mapa fica escondido enquanto o alerta não tem mapa; ao aparecer,
+    // o Leaflet precisa recalcular o tamanho antes de enquadrar a lavoura.
+    map.invalidateSize({ animate: false });
+
     setEstadoMapa({ carregando: true, erro: '', dados: null });
 
     const params = new URLSearchParams({
@@ -297,47 +359,69 @@ const temMapa = Boolean(
             {consultaAlertas.carregando && <p className="hist-alerta-status">Carregando alertas…</p>}
             {consultaAlertas.erro && <p className="hist-alerta-erro" role="alert">{consultaAlertas.erro}</p>}
             {!consultaAlertas.carregando && !alertas.length && !consultaAlertas.erro && (
-              <p className="hist-alerta-vazio">Nenhum alerta registrado para esta lavoura.</p>
+              <p className="hist-alerta-vazio">
+                Nenhum alerta para esta lavoura. Isso é bom sinal: as imagens analisadas
+                não apontaram nada fora do padrão.
+              </p>
             )}
 
             <ul className="hist-alerta-itens">
-              {alertas.map(alerta => (
-                <li key={alerta.id}>
-                  <button
-                    type="button"
-                    className={`hist-alerta-item ${alertaSelecionadoId === alerta.id ? 'ativo' : ''}`}
-                    onClick={() => setAlertaSelecionadoId(alerta.id)}
-                  >
-                    <span className={`hist-alerta-badge ${alerta.critico ? 'critico' : 'atencao'}`}>
-                      {alerta.critico ? 'Crítico' : 'Atenção'}
-                    </span>
-                    <strong>{alerta.indice}</strong>
-                    <p>{mensagemAlerta(alerta.indice, alerta.critico)}</p>
-                  </button>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    icon="lixeira"
-                    className="ui-btn--icon hist-alerta-excluir"
-                    aria-label="Excluir alerta"
-                    title="Excluir alerta"
-                    disabled={excluindoId === alerta.id}
-                    onClick={() => excluirAlerta(alerta.id)}
-                  />
-                </li>
-              ))}
+              {alertas.map((alerta, posicao) => {
+                const info = infoDoAlerta(alerta.indice);
+                const nivel = nivelDoAlerta(alerta.critico);
+                const novaData =
+                  posicao === 0 || alertas[posicao - 1].data_imagem !== alerta.data_imagem;
+
+                return (
+                  <li key={alerta.id} className={novaData ? 'hist-alerta-comeco-grupo' : undefined}>
+                    {novaData && (
+                      <h3 className="hist-alerta-grupo">
+                        {alerta.data_imagem
+                          ? `Imagem de ${formatarDataBR(alerta.data_imagem)}`
+                          : 'Sem data de imagem'}
+                      </h3>
+                    )}
+                    <div className="hist-alerta-linha">
+                      <button
+                        type="button"
+                        className={`hist-alerta-item ${alertaSelecionadoId === alerta.id ? 'ativo' : ''}`}
+                        onClick={() => setAlertaSelecionadoId(alerta.id)}
+                        aria-pressed={alertaSelecionadoId === alerta.id}
+                      >
+                        <span className={`hist-alerta-badge ${nivel}`}>
+                          {alerta.critico ? 'Crítico' : 'Atenção'}
+                        </span>
+                        <strong>
+                          {info.nome}
+                          {info.sigla ? ` (${info.sigla})` : ''}
+                        </strong>
+                        <p>{info.resumo[nivel]}</p>
+                      </button>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        icon="lixeira"
+                        className="ui-btn--icon hist-alerta-excluir"
+                        aria-label={`Excluir alerta de ${info.nome}`}
+                        title="Excluir alerta"
+                        disabled={excluindoId === alerta.id}
+                        onClick={() => excluirAlerta(alerta.id)}
+                      />
+                    </div>
+                  </li>
+                );
+              })}
             </ul>
           </aside>
 
           <div className="hist-alerta-visao">
-            <div className="hist-alerta-mapa-caixa">
+            {/* O contêiner do mapa continua montado (o Leaflet depende dele),
+                mas só aparece quando o alerta tem mapa. */}
+            <div
+              className="hist-alerta-mapa-caixa"
+              style={{ display: temMapa ? undefined : 'none' }}
+            >
               <div ref={container} className="hist-alerta-mapa" aria-label="Mapa do alerta" />
-              {!alertaSelecionado && (
-                <div className="hist-alerta-status-mapa">Selecione um alerta para ver os detalhes.</div>
-              )}
-              {alertaSelecionado && !temMapa && (
-                <div className="hist-alerta-status-mapa">Este alerta não possui mapa associado.</div>
-              )}
               {estadoMapa.carregando && (
                 <div className="hist-alerta-status-mapa" role="status">
                   <span className="ui-spinner" aria-hidden="true" /> Carregando mapa…
@@ -350,6 +434,60 @@ const temMapa = Boolean(
                 </div>
               )}
             </div>
+
+            {!alertaSelecionado && (
+              <div className="hist-alerta-detalhe hist-alerta-detalhe--vazio">
+                <p>
+                  {alertas.length
+                    ? 'Selecione um alerta na lista para ver o que aconteceu e o que fazer.'
+                    : 'Quando houver alertas, os detalhes aparecem aqui.'}
+                </p>
+              </div>
+            )}
+
+            {alertaSelecionado && (() => {
+              const info = infoDoAlerta(alertaSelecionado.indice);
+              const nivel = nivelDoAlerta(alertaSelecionado.critico);
+              const lavoura = lavouras.find(l => String(l.id) === String(lavouraId));
+
+              return (
+                <article className={`hist-alerta-detalhe ${nivel}`} aria-live="polite">
+                  <header>
+                    <span className={`hist-alerta-badge ${nivel}`}>
+                      {alertaSelecionado.critico ? 'Crítico' : 'Atenção'}
+                    </span>
+                    <h3>
+                      {info.nome}
+                      {info.sigla ? ` (${info.sigla})` : ''}
+                    </h3>
+                  </header>
+
+                  <p className="hist-alerta-meta">
+                    {lavoura ? `${lavoura.nomeLavoura} · ` : ''}
+                    {alertaSelecionado.data_imagem
+                      ? `imagem de satélite de ${formatarDataBR(alertaSelecionado.data_imagem)}`
+                      : 'data da imagem não informada'}
+                  </p>
+
+                  <p>{info.explica}</p>
+
+                  {!temMapa && alertaSelecionado.indice !== 'CLMI' && (
+                    <p className="hist-alerta-nota">
+                      O mapa deste alerta não está disponível. Tente reprocessar a lavoura
+                      pelo botão Gerar imagens, na aba Mapas.
+                    </p>
+                  )}
+
+                  <h4>O que fazer</h4>
+                  <p>{info.acao[nivel]}</p>
+
+                  <small>
+                    Este aviso automático indica uma anomalia nos dados; não confirma doença
+                    nem perda de produção.
+                  </small>
+                </article>
+              );
+            })()}
           </div>
         </div>
       </div>

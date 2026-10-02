@@ -77,7 +77,7 @@ def obter_classificao(lat, lon, clmi):
         "precipitacao": dados_climaticos["precipitacao"]
     }
 
-    ia_url = os.getenv("IA_URL", "http://localhost:8000/clmi_clf")
+    ia_url = os.getenv("IA_URL", "http://localhost:8000").rstrip("/")
     resposta = requests.post(
         ia_url + "/clmi_clf",
         json=dados,

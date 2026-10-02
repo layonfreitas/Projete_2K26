@@ -175,8 +175,9 @@
 }
 
 @media (min-width: 900px) {
+  /* A barra ocupa todo o espaço livre até o botão Buscar. */
   .busca-cidade {
-    max-width: 560px;
+    max-width: none;
   }
 
   .barra-superior {
@@ -477,5 +478,161 @@
 @media (min-width: 1000px) {
   #mapa .leaflet-bottom {
     bottom: 0;
+  }
+}
+
+
+/* ============================================================
+   AJUSTES DE LAYOUT — MAPA SEM PAINEL SOBRE A LAVOURA
+   ============================================================ */
+.mapa-corpo {
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  overflow: hidden;
+}
+
+.mapa-canvas {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+}
+
+.mapa-canvas #mapa {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* O botão Buscar permanece sempre na extremidade direita da barra. */
+.barra-superior > .ui-btn {
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+/* Desktop: o cadastro ocupa uma lateral própria; não cobre o mapa. */
+.mapa-corpo > .mapa-painel {
+  position: relative;
+  inset: auto;
+  z-index: 5;
+  flex: 0 0 340px;
+  width: 340px;
+  max-width: 340px;
+  height: 100%;
+  min-height: 0;
+  padding: 18px;
+  border: 0;
+  border-left: 1px solid var(--border);
+  border-radius: 0;
+  background: rgba(255, 253, 248, 0.99);
+  box-shadow: -10px 0 28px rgba(22, 39, 30, 0.08);
+  transform: none;
+  overflow-y: auto;
+}
+
+.mapa-corpo > .mapa-painel.recolhido {
+  flex-basis: 58px;
+  width: 58px;
+  max-width: 58px;
+  padding: 10px 8px;
+  overflow: hidden;
+}
+
+.mapa-corpo > .mapa-painel.recolhido .mapa-painel-topo {
+  height: 100%;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 12px;
+}
+
+.mapa-corpo > .mapa-painel.recolhido .mapa-painel-topo strong {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  font-size: 13px;
+  letter-spacing: .03em;
+}
+
+.mapa-corpo > .mapa-painel.recolhido .mapa-painel-seta {
+  order: -1;
+  margin: 0;
+  background: var(--canopy-soft);
+  color: var(--canopy-dark);
+  border-radius: 10px;
+}
+
+.mapa-corpo > .mapa-painel.recolhido .legenda-seta {
+  transform: rotate(90deg);
+}
+
+.mapa-corpo > .mapa-painel:not(.recolhido) .mapa-painel-seta .legenda-seta {
+  transform: rotate(-90deg);
+}
+
+.mapa-corpo > .mapa-painel .mapa-painel-topo {
+  align-items: flex-start;
+}
+
+.mapa-corpo > .mapa-painel .mapa-painel-botoes {
+  margin-top: auto;
+  flex-wrap: wrap;
+}
+
+.mapa-corpo > .mapa-painel .mapa-painel-botoes .ui-btn {
+  min-width: 0;
+}
+
+/* Em telas menores, o painel vira uma folha compacta no rodapé e pode
+   ser recolhido para um botão discreto à direita. */
+@media (max-width: 760px) {
+  .mapa-corpo > .mapa-painel {
+    position: absolute;
+    right: 12px;
+    bottom: calc(86px + env(safe-area-inset-bottom, 0px));
+    left: 12px;
+    z-index: 1000;
+    width: auto;
+    max-width: none;
+    height: auto;
+    max-height: min(44svh, 360px);
+    padding: 14px 16px;
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    box-shadow: var(--shadow-lg);
+  }
+
+  .mapa-corpo > .mapa-painel.recolhido {
+    right: 12px;
+    left: auto;
+    bottom: calc(88px + env(safe-area-inset-bottom, 0px));
+    width: auto;
+    max-width: none;
+    height: auto;
+    padding: 8px 10px;
+    border-radius: 999px;
+  }
+
+  .mapa-corpo > .mapa-painel.recolhido .mapa-painel-topo {
+    height: auto;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .mapa-corpo > .mapa-painel.recolhido .mapa-painel-topo strong {
+    writing-mode: horizontal-tb;
+    transform: none;
+    font-size: 13px;
+  }
+
+  .mapa-corpo > .mapa-painel.recolhido .mapa-painel-seta {
+    order: 0;
+  }
+
+  .mapa-corpo > .mapa-painel.recolhido .legenda-seta {
+    transform: rotate(180deg);
   }
 }

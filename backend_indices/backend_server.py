@@ -8,7 +8,14 @@ from datetime import date
 from processar_lavouras import processar_todas_lavouras, processar_lavoura
 from georreferencia import criar_geometria
 from gee_auth import inicializar_ee
-from threading import Lock
+from threading import Lock, Thread
+from contextlib import asynccontextmanager
+from datetime import datetime
+from pathlib import Path
+from zoneinfo import ZoneInfo
+import queue
+from collections import deque
+import time
 import faulthandler
 
 faulthandler.enable()
@@ -84,7 +91,183 @@ class Zona_de_manejo_req(BaseModel):
 
 indices = ["NDVI", "NDRE", "NDWI"]
 
-app = FastAPI()
+# ============================================================
+# FILA DE PROCESSAMENTO E AGENDAMENTO DIÁRIO
+# ============================================================
+# Um único worker processa um trabalho por vez (o Earth Engine e o
+# banco aguentam melhor assim). Se o serviço estiver ocupado, o novo
+# pedido entra na fila em vez de ser recusado.
+
+_fila = queue.Queue()
+_fila_lock = Lock()
+_pendentes = []      # trabalhos aguardando, em ordem
+_atual = None        # trabalho em execução
+_historico = deque(maxlen=30)   # resultado dos últimos trabalhos (para /fila/)
+
+FUSO = ZoneInfo(os.getenv("AGENDAMENTO_FUSO", "America/Sao_Paulo"))
+HORA_DIARIA = os.getenv("PROCESSAMENTO_DIARIO_HORA", "06:00")
+AGENDADOR_ATIVO = os.getenv("AGENDADOR_ATIVO", "1") != "0"
+ARQUIVO_ULTIMA_EXECUCAO = Path(
+    os.getenv(
+        "ARQUIVO_ULTIMA_EXECUCAO",
+        str(Path(__file__).with_name("ultima_execucao_diaria.txt")),
+    )
+)
+_espera_agendador_ate = 0.0
+
+
+def _posicao(trabalho):
+    """Posição na fila: 1 = é o próximo ou já está rodando."""
+    ahead = (1 if _atual is not None else 0) + _pendentes.index(trabalho)
+    return ahead + 1
+
+
+def _enfileirar(tipo, chave, funcao, *args):
+    """Coloca um trabalho na fila. Retorna (trabalho, repetido).
+
+    Se já existe um trabalho igual aguardando (ou rodando, no caso do
+    processamento geral), não duplica: devolve o existente.
+    """
+    with _fila_lock:
+        for existente in _pendentes:
+            if existente["tipo"] == tipo and existente["chave"] == chave:
+                return existente, True
+
+        if tipo == "todas" and _atual and _atual["tipo"] == "todas":
+            return _atual, True
+
+        trabalho = {
+            "tipo": tipo,
+            "chave": chave,
+            "funcao": funcao,
+            "args": args,
+            "entrou_em": datetime.now(FUSO).isoformat(timespec="seconds"),
+        }
+        _pendentes.append(trabalho)
+        _fila.put(trabalho)
+        return trabalho, False
+
+
+def _worker():
+    global _atual
+
+    while True:
+        trabalho = _fila.get()
+
+        with _fila_lock:
+            if trabalho in _pendentes:
+                _pendentes.remove(trabalho)
+            _atual = trabalho
+
+        registro = {
+            "tipo": trabalho["tipo"],
+            "chave": trabalho["chave"],
+            "inicio": datetime.now(FUSO).isoformat(timespec="seconds"),
+        }
+
+        try:
+            with _processamento_lock:
+                logging.info(
+                    "[FILA] Iniciando %s (%s)",
+                    trabalho["tipo"], trabalho["chave"],
+                )
+                retorno = trabalho["funcao"](*trabalho["args"])
+            registro["status"] = "ok"
+            registro["resultado"] = retorno
+        except Exception as erro:
+            registro["status"] = "erro"
+            registro["erro"] = f"{type(erro).__name__}: {erro}"
+            logging.exception(
+                "[FILA] Falha no trabalho %s (%s)",
+                trabalho["tipo"], trabalho["chave"],
+            )
+        finally:
+            registro["fim"] = datetime.now(FUSO).isoformat(timespec="seconds")
+            with _fila_lock:
+                _atual = None
+                _historico.appendleft(registro)
+            _fila.task_done()
+
+
+def _ler_ultima_execucao():
+    try:
+        return ARQUIVO_ULTIMA_EXECUCAO.read_text().strip()
+    except OSError:
+        return ""
+
+
+def _executar_todas(diario=False):
+    global _espera_agendador_ate
+
+    try:
+        resultados = processar_todas_lavouras()
+    except Exception:
+        # Evita tentar de novo a cada minuto se algo estiver fora do ar.
+        _espera_agendador_ate = time.time() + 30 * 60
+        raise
+
+    if diario:
+        try:
+            ARQUIVO_ULTIMA_EXECUCAO.write_text(
+                datetime.now(FUSO).date().isoformat()
+            )
+        except OSError:
+            logging.exception("[AGENDADOR] Não consegui gravar a data da última execução.")
+
+    return [
+        {"lavoura": r.get("lavouraId"), "status": r.get("status"),
+         "erros": r.get("erros") or None, "avisos": r.get("avisos") or None}
+        for r in (resultados or [])
+    ]
+
+
+def _agendador():
+    """Dispara o processamento uma vez por dia, no horário configurado.
+
+    Se o computador/servidor estava desligado na hora, roda assim que
+    voltar (recuperação), desde que ainda não tenha rodado hoje.
+    """
+    try:
+        hora, minuto = (int(x) for x in HORA_DIARIA.split(":"))
+    except ValueError:
+        logging.error(
+            "[AGENDADOR] PROCESSAMENTO_DIARIO_HORA inválida (%r). Use HH:MM.",
+            HORA_DIARIA,
+        )
+        return
+
+    logging.info("[AGENDADOR] Ativo: execução diária às %02d:%02d (%s).", hora, minuto, FUSO.key)
+
+    while True:
+        try:
+            agora = datetime.now(FUSO)
+            alvo = agora.replace(hour=hora, minute=minuto, second=0, microsecond=0)
+
+            if (
+                agora >= alvo
+                and _ler_ultima_execucao() != agora.date().isoformat()
+                and time.time() >= _espera_agendador_ate
+            ):
+                _, repetido = _enfileirar("todas", "diario", _executar_todas, True)
+                if not repetido:
+                    logging.info("[AGENDADOR] Processamento diário enfileirado.")
+        except Exception:
+            logging.exception("[AGENDADOR] Erro inesperado.")
+
+        time.sleep(60)
+
+
+@asynccontextmanager
+async def _ciclo_de_vida(_app):
+    Thread(target=_worker, name="fila-processamento", daemon=True).start()
+
+    if AGENDADOR_ATIVO:
+        Thread(target=_agendador, name="agendador-diario", daemon=True).start()
+
+    yield
+
+
+app = FastAPI(lifespan=_ciclo_de_vida)
 
 @app.get("/health", status_code=status.HTTP_200_OK)
 async def health():
@@ -101,8 +284,13 @@ async def health():
 @app.post("/day_maps/")
 def create_day_maps(day_req: Day_req):
     # Mantém o contrato desta rota: pares [longitude, latitude].
-    if not _processamento_lock.acquire(blocking=False):
-        raise HTTPException(status_code=409, detail="Já há um processamento em andamento neste serviço.")
+    espera = int(os.getenv("DAY_MAPS_ESPERA_SEGUNDOS", "300"))
+    if not _processamento_lock.acquire(timeout=espera):
+        raise HTTPException(
+            status_code=503,
+            detail="O serviço continua ocupado. Tente novamente em alguns minutos.",
+            headers={"Retry-After": "60"},
+        )
     try:
         inicializar_ee()
         coordenadas = [
@@ -123,19 +311,41 @@ def create_day_maps(day_req: Day_req):
         _processamento_lock.release()
 
 
-def _processar_em_segundo_plano():
-    try:
-        processar_todas_lavouras()
-    finally:
-        _processamento_lock.release()
-
-
 @app.post("/processar_todas_lavouras/", status_code=202)
-def processar_todas(background_tasks: BackgroundTasks):
-    if not _processamento_lock.acquire(blocking=False):
-        raise HTTPException(status_code=409, detail="Já há um processamento em andamento neste serviço.")
-    background_tasks.add_task(_processar_em_segundo_plano)
-    return {"status":"aceito","mensagem":"Processamento iniciado; acompanhe os resultados nos logs do backend."}
+def processar_todas():
+    trabalho, repetido = _enfileirar("todas", "manual", _executar_todas, False)
+    with _fila_lock:
+        posicao = _posicao(trabalho) if trabalho in _pendentes else 1
+    return {
+        "status": "ja_na_fila" if repetido else ("em_execucao" if posicao == 1 and _atual is trabalho else "na_fila"),
+        "posicao": posicao,
+        "mensagem": (
+            "Já existe um processamento geral aguardando ou em andamento."
+            if repetido else
+            "Processamento geral enfileirado; acompanhe os resultados nos logs."
+        ),
+    }
+
+
+@app.get("/fila/")
+def estado_da_fila():
+    with _fila_lock:
+        return {
+            "em_execucao": (
+                {"tipo": _atual["tipo"], "chave": _atual["chave"]} if _atual else None
+            ),
+            "aguardando": [
+                {"posicao": i + 1 + (1 if _atual else 0), "tipo": t["tipo"], "chave": t["chave"], "entrou_em": t["entrou_em"]}
+                for i, t in enumerate(_pendentes)
+            ],
+            "ultimos_trabalhos": list(_historico),
+            "agendador": {
+                "ativo": AGENDADOR_ATIVO,
+                "hora": HORA_DIARIA,
+                "fuso": FUSO.key,
+                "ultima_execucao_diaria": _ler_ultima_execucao() or None,
+            },
+        }
 
 
 @app.post("/get_zona_de_manejo/", status_code=status.HTTP_201_CREATED)
@@ -154,6 +364,14 @@ async def zonas_de_manejo(zona_de_manejo_req: Zona_de_manejo_req):
     }
 
 def _gerar_mapas_agendados(dados):
+    """Gera as séries históricas das safras e, depois, os mapas do dia.
+
+    Uma falha na série de uma safra (ex.: sem imagem nos meses informados)
+    NÃO impede a geração dos mapas: o erro fica registrado e segue adiante.
+    Devolve um resumo que aparece em GET /fila/ (ultimos_trabalhos).
+    """
+    resumo = {"lavoura": dados["id"], "series": [], "mapas": None}
+
     try:
         from shapely.geometry import Polygon
         from xee import helpers
@@ -167,38 +385,38 @@ def _gerar_mapas_agendados(dados):
         )
 
         if safras:
-            inicializar_ee()
+            try:
+                inicializar_ee()
 
-            geometria = criar_geometria(
-                dados["coordenadas"]
-            )
+                geometria = criar_geometria(dados["coordenadas"])
+                pontos = normalizar_coordenadas(dados["coordenadas"])
 
-            pontos = normalizar_coordenadas(
-                dados["coordenadas"]
-            )
+                poligono = Polygon(pontos)
+                lon = poligono.centroid.x
+                lat = poligono.centroid.y
 
-            poligono = Polygon(pontos)
-            lon = poligono.centroid.x
-            lat = poligono.centroid.y
+                zona = min(60, max(1, int((lon + 180) // 6) + 1))
+                codigo = (32600 if lat >= 0 else 32700) + zona
+                crs = f"EPSG:{codigo}"
 
-            zona = min(
-                60,
-                max(1, int((lon + 180) // 6) + 1),
-            )
+                grade = helpers.fit_geometry(
+                    poligono,
+                    grid_crs=crs,
+                    grid_scale=(10, -10),
+                )
+            except Exception as erro:
+                logging.exception(
+                    "[SERIE] Não foi possível preparar a grade da lavoura %s.",
+                    dados["id"],
+                )
+                resumo["series"].append(
+                    {"erro": f"{type(erro).__name__}: {erro}"}
+                )
+                safras = []
 
-            codigo = (
-                32600 if lat >= 0 else 32700
-            ) + zona
+            salvou_alguma = False
 
-            crs = f"EPSG:{codigo}"
-
-            grade = helpers.fit_geometry(
-                poligono,
-                grid_crs=crs,
-                grid_scale=(10, -10),
-            )
-
-            for posicao, safra in enumerate(safras):
+            for safra in safras:
                 print(
                     "[SERIE] Chamando make_time_series: "
                     f"lavoura={dados['id']} "
@@ -206,26 +424,37 @@ def _gerar_mapas_agendados(dados):
                     flush=True,
                 )
 
-                resultado = make_time_series(
-                    geometria=geometria,
-                    data_inicio=safra["inicio"],
-                    data_fim=safra["fim"],
-                    usuario_id=dados["usuarioId"],
-                    lavoura_id=dados["id"],
-                    ano=safra["ano"],
-                    crs=crs,
-                    crsTransform=list(
-                        grade["crs_transform"]
-                    ),
-                    # Recria o conjunto na primeira safra.
-                    # As seguintes acrescentam suas datas.
-                    reiniciar=(posicao == 0),
-                )
+                try:
+                    resultado = make_time_series(
+                        geometria=geometria,
+                        data_inicio=safra["inicio"],
+                        data_fim=safra["fim"],
+                        usuario_id=dados["usuarioId"],
+                        lavoura_id=dados["id"],
+                        ano=safra["ano"],
+                        crs=crs,
+                        crsTransform=list(grade["crs_transform"]),
+                        # Recria o conjunto na primeira safra gravada.
+                        # As seguintes acrescentam suas datas.
+                        reiniciar=not salvou_alguma,
+                    )
+                    salvou_alguma = True
+                    resumo["series"].append(
+                        {"ano": safra["ano"], "status": "ok"}
+                    )
+                    print(f"[SERIE] Resultado: {resultado}", flush=True)
 
-                print(
-                    f"[SERIE] Resultado: {resultado}",
-                    flush=True,
-                )
+                except Exception as erro:
+                    # Segue para as demais safras e para os mapas.
+                    logging.exception(
+                        "[SERIE] Falha na lavoura %s, safra %s",
+                        dados["id"], safra["ano"],
+                    )
+                    resumo["series"].append({
+                        "ano": safra["ano"],
+                        "status": "erro",
+                        "erro": f"{type(erro).__name__}: {erro}",
+                    })
         else:
             print(
                 "[SERIE] Nenhuma safra recebida; "
@@ -233,24 +462,30 @@ def _gerar_mapas_agendados(dados):
                 flush=True,
             )
 
-        # Executa depois que todas as séries foram salvas.
+        # Executa mesmo que alguma série tenha falhado.
         resultado_mapas = processar_lavoura(dados)
+        resumo["mapas"] = {
+            "status": resultado_mapas.get("status"),
+            "salvos": resultado_mapas.get("salvos"),
+            "erros": resultado_mapas.get("erros") or None,
+            "avisos": resultado_mapas.get("avisos") or None,
+        }
 
-        print(
-            f"[MAPAS] Resultado: {resultado_mapas}",
-            flush=True,
-        )
+        print(f"[MAPAS] Resultado: {resultado_mapas}", flush=True)
 
-    except Exception:
+    except Exception as erro:
         logging.exception(
             "[PROCESSAMENTO] Falha na lavoura %s",
             dados["id"],
         )
+        resumo["mapas"] = {
+            "status": "erro",
+            "erros": [f"{type(erro).__name__}: {erro}"],
+        }
 
-    finally:
-        _processamento_lock.release()
+    return resumo
 
-        
+
 @app.post("/agendar_mapas/", status_code=202)
 def agendar_mapas(
     day_req: Day_req,
@@ -297,20 +532,24 @@ def agendar_mapas(
             detail=str(erro),
         ) from erro
 
-    # Reutiliza a trava que seu projeto já possui.
-    if not _processamento_lock.acquire(blocking=False):
-        raise HTTPException(
-            status_code=409,
-            detail="Já existe um processamento em andamento.",
-        )
-
-    background_tasks.add_task(
+    # Entra na fila; se já há processamento, aguarda a vez.
+    trabalho, repetido = _enfileirar(
+        "lavoura",
+        str(day_req.lavoura_id),
         _gerar_mapas_agendados,
         dados,
     )
 
+    with _fila_lock:
+        if trabalho in _pendentes:
+            posicao = _posicao(trabalho)
+        else:
+            posicao = 1
+
     return {
-        "status": "aceito",
+        "status": "aceito" if posicao == 1 else "na_fila",
+        "posicao": posicao,
+        "repetido": repetido,
         "lavouraId": day_req.lavoura_id,
     }
 

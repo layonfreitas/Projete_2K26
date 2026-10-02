@@ -222,7 +222,10 @@ def save_indice_map(imagem,indice,geometria,usuario_id,lavoura_id,valores_indice
     vis = {'min':-0.5 if indice=='NDWI' else 0,
            'max':0.4 if indice=='NDWI' else 0.8,
            'palette':['d73027','fee08b','1a9850']}
-    conteudo,meta = exportar_png(imagem.select(indice).visualize(**vis),geometria,usuario_id,lavoura_id,imagem)
+    # Reamostragem bilinear: o Sentinel-2 tem pixels de 10 m; sem isso o Earth Engine
+    # amplia por vizinho mais próximo e o mapa fica em blocos "serrilhados".
+    # Só afeta a imagem exportada; os valores dos índices já foram calculados acima.
+    conteudo,meta = exportar_png(imagem.select(indice).resample('bilinear').visualize(**vis),geometria,usuario_id,lavoura_id,imagem)
     meta['visualizacao'] = {'tipo':'indice',**vis}
     data = imagem.date().format('YYYY-MM-dd').getInfo()
     salvo = save_image_indatabase(conteudo,f'{indice}_{data}',pasta_id,usuario_id,lavoura_id,data,valor,meta)

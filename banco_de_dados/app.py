@@ -1,3 +1,4 @@
+import os
 from flask import Flask
 from flask_mysqldb import MySQL
 from flask_cors import CORS
@@ -17,13 +18,21 @@ from routes.alerta_routes import alertas_bp, init_mysql as init_alerta_mysql
 
 app = Flask(__name__)
 app.config.from_object(Config)
-CORS(app, origins=[
+ORIGENS_PERMITIDAS = [
     "http://localhost:5173",
+    "https://coffeevison.projete2k26.workers.dev",
     "https://projete-2k26-frontend.onrender.com",
     "https://projete-2-k26-dyts.vercel.app",
     "https://matched-admit-days-neighborhood.trycloudflare.com",
     "https://alberta-strength-musician-arabic.trycloudflare.com",
-    ])
+]
+
+# A mesma URL usada nos links dos e-mails também é aceita como origem.
+_frontend_url = os.getenv("FRONTEND_URL", "").strip().rstrip("/")
+if _frontend_url and _frontend_url not in ORIGENS_PERMITIDAS:
+    ORIGENS_PERMITIDAS.append(_frontend_url)
+
+CORS(app, origins=ORIGENS_PERMITIDAS)
 
 mysql = MySQL(app)  
 

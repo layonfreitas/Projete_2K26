@@ -10,8 +10,8 @@
 }
 
 .conteudo {
-  max-width: 1280px;
-  margin: 0 auto;
+  max-width: none;
+  margin: 0;
   padding: 40px 24px 32px;
   display: grid;
   grid-template-columns: 1fr;

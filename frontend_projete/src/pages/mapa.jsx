@@ -927,212 +927,226 @@ export default function Mapa() {
       )}
 
       {/* ========================================================
-          MAPA
+          ÁREA DO MAPA
+          No desktop, o cadastro vira uma lateral própria em vez de
+          ficar por cima da lavoura. No celular continua compacto.
       ======================================================== */}
 
-      <div
-        ref={container}
-        id="mapa"
-      />
-
-      {/* ========================================================
-          PAINEL DE CADASTRO DO PRODUTOR
-      ======================================================== */}
-
-      {ehProdutor && (
-        <section
-          className={
-            "mapa-painel" +
-            (painelCadastroRecolhido
-              ? " recolhido"
-              : "")
-          }
-          aria-label="Cadastro da lavoura"
-        >
-          <div className="mapa-painel-topo">
-            <strong>
-              Cadastrar lavoura
-            </strong>
-
-            <div
-              className="mapa-chips"
-              aria-live="polite"
-            >
-              <span>
-                {contar(
-                  totalPontos,
-                  "ponto",
-                  "pontos"
-                )}
-              </span>
-
-              {totalPontos >= 3 && (
-                <span>
-                  {formatarHectares(
-                    areaHectares
-                  )}
-                </span>
-              )}
-            </div>
-
-          <button
-  type="button"
-  className="mapa-painel-seta"
-  onClick={() =>
-    setPainelCadastroRecolhido(prev => !prev)
-  }
-  aria-expanded={!painelCadastroRecolhido}
-  aria-label={
-    painelCadastroRecolhido
-      ? "Expandir cadastro"
-      : "Recolher cadastro"
-  }
-  title={
-    painelCadastroRecolhido
-      ? "Expandir cadastro"
-      : "Recolher cadastro"
-  }
->
-  <Icon
-    nome="setaBaixo"
-    className="legenda-seta"
-  />
-</button>
-          </div>
-
-          {!painelCadastroRecolhido && (
-            <>
-              <p className="mapa-painel-texto">
-                {instrucao}
-              </p>
-
-              <div className="mapa-painel-botoes">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  icon="lixeira"
-                  onClick={apagarContorno}
-                  disabled={totalPontos === 0}
-                >
-                  Apagar
-                </Button>
-
-                {confirmado ? (
-                  <Button
-                    variant="gold"
-                    size="sm"
-                    icon="avancar"
-                    onClick={cadastrar}
-                  >
-                    Continuar cadastro
-                  </Button>
-                ) : (
-                  <Button
-                    size="sm"
-                    icon="check"
-                    onClick={confirmarContorno}
-                    disabled={totalPontos < 3}
-                  >
-                    Confirmar contorno
-                  </Button>
-                )}
-              </div>
-            </>
-          )}
-        </section>
-      )}
-
-      {/* ========================================================
-          LEGENDA DAS LAVOURAS — AGRÔNOMO
-      ======================================================== */}
-
-      {tipo === "agronomo" &&
-        lavourasLegenda.length > 0 && (
+      <div className="mapa-corpo">
+        <div className="mapa-canvas">
           <div
-            className={
-              "legenda-lavouras" +
-              (legendaAberta
-                ? ""
-                : " recolhida")
-            }
-          >
-            <button
-              type="button"
-              className="legenda-cabecalho"
-              onClick={() =>
-                setLegendaAberta(
-                  aberta => !aberta
-                )
-              }
-              aria-expanded={legendaAberta}
-              aria-controls="lista-legenda"
-              title={
-                legendaAberta
-                  ? "Recolher legenda"
-                  : "Expandir legenda"
-              }
-            >
-              <span className="legenda-titulo">
-                Lavouras
-                <small>
-                  {lavourasLegenda.length}
-                </small>
-              </span>
+            ref={container}
+            id="mapa"
+          />
 
-              <Icon
-                nome="setaBaixo"
-                className="legenda-seta"
-              />
-            </button>
+          {/* ========================================================
+              LEGENDA DAS LAVOURAS — AGRÔNOMO
+          ======================================================== */}
 
-            {legendaAberta && (
+          {tipo === "agronomo" &&
+            lavourasLegenda.length > 0 && (
               <div
-                id="lista-legenda"
-                className="legenda-lista"
+                className={
+                  "legenda-lavouras" +
+                  (legendaAberta
+                    ? ""
+                    : " recolhida")
+                }
               >
-                {lavourasLegenda.map(
-                  lavoura => (
-                    <button
-                      type="button"
-                      key={lavoura.id}
-                      className="item-legenda"
-                      onClick={() => {
-                        mapa.current.fitBounds(
-                          lavoura.poligono.getBounds(),
-                          {
-                            padding: [40, 40],
-                            maxZoom: 17,
-                            animate: true,
-                          }
-                        );
+                <button
+                  type="button"
+                  className="legenda-cabecalho"
+                  onClick={() =>
+                    setLegendaAberta(
+                      aberta => !aberta
+                    )
+                  }
+                  aria-expanded={legendaAberta}
+                  aria-controls="lista-legenda"
+                  title={
+                    legendaAberta
+                      ? "Recolher legenda"
+                      : "Expandir legenda"
+                  }
+                >
+                  <span className="legenda-titulo">
+                    Lavouras
+                    <small>
+                      {lavourasLegenda.length}
+                    </small>
+                  </span>
 
-                        lavoura.poligono.bringToFront();
-                      }}
-                    >
-                      <span
-                        className="quadrado-cor"
-                        style={{
-                          backgroundColor:
-                            lavoura.cor,
-                        }}
-                      />
+                  <Icon
+                    nome="setaBaixo"
+                    className="legenda-seta"
+                  />
+                </button>
 
-                      <span className="texto-legenda">
-                        <strong>
-                          {lavoura.nome}
-                        </strong>
+                {legendaAberta && (
+                  <div
+                    id="lista-legenda"
+                    className="legenda-lista"
+                  >
+                    {lavourasLegenda.map(
+                      lavoura => (
+                        <button
+                          type="button"
+                          key={lavoura.id}
+                          className="item-legenda"
+                          onClick={() => {
+                            mapa.current.fitBounds(
+                              lavoura.poligono.getBounds(),
+                              {
+                                padding: [40, 40],
+                                maxZoom: 17,
+                                animate: true,
+                              }
+                            );
 
-                        <small>
-                          {lavoura.produtor}
-                        </small>
-                      </span>
-                    </button>
-                  )
+                            lavoura.poligono.bringToFront();
+                          }}
+                        >
+                          <span
+                            className="quadrado-cor"
+                            style={{
+                              backgroundColor:
+                                lavoura.cor,
+                            }}
+                          />
+
+                          <span className="texto-legenda">
+                            <strong>
+                              {lavoura.nome}
+                            </strong>
+
+                            <small>
+                              {lavoura.produtor}
+                            </small>
+                          </span>
+                        </button>
+                      )
+                    )}
+                  </div>
                 )}
               </div>
             )}
-          </div>
+        </div>
+
+        {/* ========================================================
+            PAINEL DE CADASTRO DO PRODUTOR
+        ======================================================== */}
+
+        {ehProdutor && (
+          <aside
+            className={
+              "mapa-painel" +
+              (painelCadastroRecolhido
+                ? " recolhido"
+                : "")
+            }
+            aria-label="Cadastro da lavoura"
+          >
+            <div className="mapa-painel-topo">
+              <strong>
+                {painelCadastroRecolhido ? "Cadastro" : "Cadastrar lavoura"}
+              </strong>
+
+              {!painelCadastroRecolhido && (
+                <div
+                  className="mapa-chips"
+                  aria-live="polite"
+                >
+                  <span>
+                    {contar(
+                      totalPontos,
+                      "ponto",
+                      "pontos"
+                    )}
+                  </span>
+
+                  {totalPontos >= 3 && (
+                    <span>
+                      {formatarHectares(
+                        areaHectares
+                      )}
+                    </span>
+                  )}
+                </div>
+              )}
+
+              <button
+                type="button"
+                className="mapa-painel-seta"
+                onClick={() => {
+                  setPainelCadastroRecolhido(prev => !prev);
+                  // O painel muda a largura disponível do mapa no desktop.
+                  // Recalcula o Leaflet após a animação/layout para evitar
+                  // tiles cortados ou mapa deslocado.
+                  window.setTimeout(() => {
+                    mapa.current?.invalidateSize({ animate: false });
+                  }, 80);
+                }}
+                aria-expanded={!painelCadastroRecolhido}
+                aria-label={
+                  painelCadastroRecolhido
+                    ? "Abrir cadastro"
+                    : "Recolher cadastro"
+                }
+                title={
+                  painelCadastroRecolhido
+                    ? "Abrir cadastro"
+                    : "Recolher cadastro"
+                }
+              >
+                <Icon
+                  nome="setaBaixo"
+                  className="legenda-seta"
+                />
+              </button>
+            </div>
+
+            {!painelCadastroRecolhido && (
+              <>
+                <p className="mapa-painel-texto">
+                  {instrucao}
+                </p>
+
+                <div className="mapa-painel-botoes">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    icon="lixeira"
+                    onClick={apagarContorno}
+                    disabled={totalPontos === 0}
+                  >
+                    Apagar
+                  </Button>
+
+                  {confirmado ? (
+                    <Button
+                      variant="gold"
+                      size="sm"
+                      icon="avancar"
+                      onClick={cadastrar}
+                    >
+                      Continuar cadastro
+                    </Button>
+                  ) : (
+                    <Button
+                      size="sm"
+                      icon="check"
+                      onClick={confirmarContorno}
+                      disabled={totalPontos < 3}
+                    >
+                      Confirmar contorno
+                    </Button>
+                  )}
+                </div>
+              </>
+            )}
+          </aside>
         )}
+      </div>
 
       <BottomNav />
     </div>

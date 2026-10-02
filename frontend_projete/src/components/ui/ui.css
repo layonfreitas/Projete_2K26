@@ -416,15 +416,15 @@
    desktop: folha centralizada sobre o fundo de grãos) */
 .ui-coluna {
   width: 100%;
-  max-width: 560px;
+  max-width: none;
   min-height: 100svh;
-  margin: 0 auto;
+  margin: 0;
   background: var(--parchment);
   padding-bottom: calc(120px + env(safe-area-inset-bottom, 0px));
 }
 
 .ui-coluna--larga {
-  max-width: 880px;
+  max-width: none;
 }
 
 /* tela cheia: ocupa toda a largura do dispositivo (usada nas telas de
@@ -437,8 +437,8 @@
 
 .ui-coluna--cheia .ui-conteudo {
   width: 100%;
-  max-width: 1480px;
-  margin-inline: auto;
+  max-width: none;
+  margin-inline: 0;
   padding-inline: 20px;
 }
 
@@ -468,7 +468,7 @@
 
 @media (min-width: 800px) {
   .ui-coluna {
-    box-shadow: var(--shadow-lg);
+    box-shadow: none;
   }
 }
 

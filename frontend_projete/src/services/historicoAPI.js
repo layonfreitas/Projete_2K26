@@ -6,12 +6,25 @@ export async function buscarJson(url, signal) {
   const timer = setTimeout(cancelar, 60000);
   try {
     const resposta = await fetch(url, { signal: controller.signal });
-    const dados = await resposta.json();
+    let dados;
+    try {
+      dados = await resposta.json();
+    } catch {
+      // Resposta que não é JSON (ex.: servidor ou túnel fora do ar).
+      throw new Error(
+        resposta.ok
+          ? 'O servidor respondeu em um formato inesperado. Tente novamente.'
+          : `O servidor está indisponível no momento (erro ${resposta.status}). Tente novamente em instantes.`
+      );
+    }
     if (!resposta.ok) throw new Error(dados.mensagem || 'Não foi possível consultar o histórico.');
     return dados;
   } catch (erro) {
     if (controller.signal.aborted && !signal?.aborted) {
       throw new Error('O servidor demorou para responder. Tente novamente.', { cause: erro });
+    }
+    if (erro?.name === 'TypeError') {
+      throw new Error('Não foi possível conectar ao servidor. Verifique sua internet e tente de novo.', { cause: erro });
     }
     throw erro;
   } finally {

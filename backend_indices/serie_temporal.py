@@ -11,7 +11,6 @@ import s3fs
 import time
 
 
-
 load_dotenv()
 
 
@@ -22,7 +21,6 @@ credentials_r2 = {
 }
 
 indices = ["NDVI", "NDRE", "NDWI"]
-
 
 
 def add_NDVI_zscore(image):
@@ -208,6 +206,7 @@ def make_time_series(
                         )
 
     dias_salvos = 0
+    buffer = {indice: [] for indice in bandas}
 
     log.info(
         "[SERIE] make_time_series: lavoura=%s safra=%s",
@@ -235,18 +234,6 @@ def make_time_series(
         })
 
         dias = pd.DatetimeIndex(ds.time.values).normalize()
-
-        for dia in dias.unique().sort_values():
-            posicoes = np.flatnonzero(dias == dia)
-
-            # Carrega apenas um dia por vez.
-            cena = (
-                ds.isel(time=posicoes)
-                .load()
-                .mean("time", skipna=True)
-            )
-
-            padronizados = {}
 
         for dia in dias.unique().sort_values():
             posicoes = np.flatnonzero(dias == dia)
@@ -304,105 +291,53 @@ def make_time_series(
                         ),
                     )
                 )
-
-                saida.attrs.update(
-                    crs=crs,
-                    crs_transform=list(grade["crs_transform"]),
-                )
-
-                criar = (
-                    reiniciar and dias_salvos == 0
-                ) or not existentes[indice]
-
-                opcoes = {
-                    "mode": "w" if criar else "a",
-                    "consolidated": False,
-                    "zarr_format": 2,
-                }
-
-                if criar:
-                    saida.tempo.encoding.update(
-                        units="days since 1970-01-01",
-                        dtype="int64",
-                    )
-                else:
-                    opcoes["append_dim"] = "tempo"
-
-                t1 = time.perf_counter()
-                saida.to_zarr(
-                    fs.get_mapper(caminhos[indice]),
-                    **opcoes,
-                )
-                log.info(
-                    "[SERIE] %s %s: R2 %.1fs",
-                    dia.date(),
-                    indice,
-                    time.perf_counter() - t1,
-                )
-
-                existentes[indice] = True
+                buffer[indice].append(saida)
 
             dias_salvos += 1
 
-            if not any(
-                np.isfinite(valores.values).any()
-                for valores in padronizados.values()
-            ):
-                log.info(
-                    "[SERIE] Dia descartado: %s; "
-                    "sem pixels válidos ou MAD zero.",
-                    dia.date(),
-                )
-                continue
+    # Grava tudo de uma vez, uma escrita por índice.
+    for indice, partes in buffer.items():
+        if not partes:
+            continue
 
-            for indice, valores in padronizados.items():
-                saida = (
-                    valores.rename("z_score")
-                    .expand_dims(tempo=[dia.to_datetime64()])
-                    .to_dataset()
-                    .assign_coords(
-                        graus_dia=(
-                            "tempo",
-                            [float(graus_dia.loc[dia])],
-                        ),
-                        safra=(
-                            "tempo",
-                            np.array([ano], dtype="int32"),
-                        ),
-                    )
-                )
+        serie = xr.concat(partes, dim="tempo")
+        serie.attrs.update(
+            crs=crs,
+            crs_transform=list(grade["crs_transform"]),
+        )
 
-                saida.attrs.update(
-                    crs=crs,
-                    crs_transform=list(grade["crs_transform"]),
-                )
+        criar = reiniciar or not existentes[indice]
 
-                criar = (
-                    reiniciar and dias_salvos == 0
-                ) or not existentes[indice]
+        opcoes = {
+            "mode": "w" if criar else "a",
+            "consolidated": False,
+            "zarr_format": 2,
+        }
 
-                opcoes = {
-                    "mode": "w" if criar else "a",
-                    "consolidated": False,
-                    "zarr_format": 2,
-                }
+        if criar:
+            serie.tempo.encoding.update(
+                units="days since 1970-01-01",
+                dtype="int64",
+            )
+            # Um chunk por dia, como antes.
+            serie["z_score"].encoding["chunks"] = (
+                1,
+                serie.sizes["y"],
+                serie.sizes["x"],
+            )
+        else:
+            opcoes["append_dim"] = "tempo"
 
-                if criar:
-                    saida.tempo.encoding.update(
-                        units="days since 1970-01-01",
-                        dtype="int64",
-                    )
-                else:
-                    opcoes["append_dim"] = "tempo"
+        t1 = time.perf_counter()
+        serie.to_zarr(fs.get_mapper(caminhos[indice]), **opcoes)
+        log.info(
+            "[SERIE] %s: %d dias gravados no R2 em %.1fs",
+            indice,
+            len(partes),
+            time.perf_counter() - t1,
+        )
 
-                saida.to_zarr(
-                    fs.get_mapper(caminhos[indice]),
-                    **opcoes,
-                )
-
-                existentes[indice] = True
-
-            dias_salvos += 1
+        existentes[indice] = True
 
     if dias_salvos == 0:
         raise ValueError(
