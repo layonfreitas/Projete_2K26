@@ -9,6 +9,7 @@ from z_score import salvar_mapa_z_score, ee_image_para_xarray
 from detectar_anomalias import salvar_mapa_anomalia
 from georreferencia import normalizar_coordenadas, criar_geometria
 from gee_auth import inicializar_ee
+from travas import processamento_exclusivo
 from shapely.geometry import Polygon
 from serie_safras import graus_dia_periodo
 from flask import Flask, jsonify, request
@@ -464,7 +465,9 @@ def processar_todas_lavouras():
             crs = lavoura.get('crs')
             crs_transformation = lavoura.get('crs_transformation')
             graus_dia = lavoura.get('graus_dia')
-            resultados.append(processar_lavoura(lavoura=lavoura, crs=crs, crs_transformation=crs_transformation, safra_atual=safra_atual, graus_dia=graus_dia))
+            # Não processa a mesma lavoura que um cadastro está rodando agora.
+            with processamento_exclusivo(lavoura.get('id')):
+                resultados.append(processar_lavoura(lavoura=lavoura, crs=crs, crs_transformation=crs_transformation, safra_atual=safra_atual, graus_dia=graus_dia))
         except Exception as erro:
             log.exception('Falha na lavoura %s', lavoura.get('id'))
             resultados.append({'lavouraId': lavoura.get('id'), 'status': 'erro', 'erros': [str(erro)]})

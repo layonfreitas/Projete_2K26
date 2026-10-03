@@ -274,20 +274,23 @@ export default function HistoricoMapas() {
               <p>{erro}</p>
               {usuarioId && <Button variant="secondary" size="sm" icon="atualizar" onClick={() => setAtualizacao(n => n + 1)}>Tentar novamente</Button>}
             </div>}
-          </div>
 
-          {meta && <div className="hm-legenda" aria-label="Legenda do mapa">
-            <strong>{selecao.indice}{selecao.modo === 'zscore' ? ' · Z-score robusto' : ''} · {formatarData(selecao.data)}</strong>
-            {Number.isFinite(meta.coberturaValida) && <span>Cobertura válida: {(meta.coberturaValida * 100).toFixed(0)}% da lavoura</span>}
-            {vis?.tipo === 'zscore' ? <div className="hm-cores">{vis.palette.map((cor, i) => <span key={cor}><i style={{ background: `#${cor}` }} />{vis.rotulos[i]}</span>)}</div>
-              : vis?.palette && <div className="hm-escala"><span>{vis.min}</span><div style={{ background: `linear-gradient(to right, ${vis.palette.map(c => `#${c}`).join(',')})` }} /><span>{vis.max}</span></div>}
-            {selecao.modo === 'indice' && exibicao.dados.valor_indice != null && <span>Média na área válida: {Number(exibicao.dados.valor_indice).toFixed(3)}</span>}
-            <label className="hm-opacidade">
-              <span>Opacidade da imagem</span>
-              <input type="range" min="0.2" max="1" step="0.05" value={opacidade} onChange={e => setOpacidade(Number(e.target.value))} />
-              <output>{Math.round(opacidade * 100)}%</output>
-            </label>
-          </div>}
+            {meta && <div className="hm-mapa-informacoes">
+              <label className="hm-opacidade hm-opacidade-mapa">
+                <span>Opacidade</span>
+                <input type="range" min="0.2" max="1" step="0.05" value={opacidade} onChange={e => setOpacidade(Number(e.target.value))} />
+                <output>{Math.round(opacidade * 100)}%</output>
+              </label>
+
+              <div className="hm-legenda" aria-label="Legenda do mapa">
+                <strong>{selecao.indice}{selecao.modo === 'zscore' ? ' · Z-score robusto' : ''} · {formatarData(selecao.data)}</strong>
+                {Number.isFinite(meta.coberturaValida) && <span>Cobertura válida: {(meta.coberturaValida * 100).toFixed(0)}% da lavoura</span>}
+                {vis?.tipo === 'zscore' ? <div className="hm-cores">{vis.palette.map((cor, i) => <span key={cor}><i style={{ background: `#${cor}` }} />{vis.rotulos[i]}</span>)}</div>
+                  : vis?.palette && <div className="hm-escala"><span>{vis.min}</span><div style={{ background: `linear-gradient(to right, ${vis.palette.map(c => `#${c}`).join(',')})` }} /><span>{vis.max}</span></div>}
+                {selecao.modo === 'indice' && exibicao.dados.valor_indice != null && <span>Média na área válida: {Number(exibicao.dados.valor_indice).toFixed(3)}</span>}
+              </div>
+            </div>}
+          </div>
         </div>
       </div>
     </div>

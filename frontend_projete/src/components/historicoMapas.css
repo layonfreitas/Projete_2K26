@@ -167,6 +167,8 @@
   opacity: 0.4;
 }
 
+/* ---------- mapa ---------- */
+
 .hm-mapa-caixa {
   position: relative;
   min-width: 0;
@@ -180,6 +182,8 @@
   width: 100%;
   height: clamp(340px, 62svh, 640px);
 }
+
+/* ---------- status ---------- */
 
 .hm-status {
   position: absolute;
@@ -201,6 +205,8 @@
 .hm-status .ui-spinner {
   color: var(--canopy);
 }
+
+/* ---------- erro ---------- */
 
 .hm-erro {
   position: absolute;
@@ -228,66 +234,79 @@
   line-height: 1.5;
 }
 
+/* ---------- legenda base ---------- */
+
 .hm-legenda {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding: 16px;
+  gap: 7px;
+  padding: 10px 11px;
   border: 1px solid var(--border);
-  border-radius: var(--radius-md);
+  border-radius: 10px;
   background: var(--surface);
-  font-size: 13.5px;
+  font-size: 11px;
+  line-height: 1.25;
 }
 
 .hm-legenda strong {
-  font-size: 14.5px;
+  font-size: 12px;
+  line-height: 1.2;
 }
 
 .hm-cores {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px 18px;
+  gap: 5px 10px;
 }
 
 .hm-cores span {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
+  white-space: nowrap;
 }
 
 .hm-cores i {
   display: inline-block;
-  width: 16px;
-  height: 16px;
+  flex: 0 0 auto;
+  width: 11px;
+  height: 11px;
   border: 1px solid rgba(36, 28, 21, 0.2);
-  border-radius: 4px;
+  border-radius: 3px;
 }
+
+/* ---------- escala ---------- */
 
 .hm-escala {
   display: flex;
   align-items: center;
-  gap: 10px;
-  max-width: 320px;
+  gap: 6px;
+  max-width: 250px;
+  font-size: 10.5px;
 }
 
 .hm-escala div {
   flex: 1;
-  height: 12px;
-  border-radius: 4px;
+  height: 8px;
+  border-radius: 3px;
 }
+
+/* ---------- opacidade base ---------- */
 
 .hm-opacidade {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) 3.5ch;
   align-items: center;
-  gap: 12px;
-  max-width: 420px;
-  padding-top: 10px;
+  gap: 8px;
+  max-width: 320px;
+  padding-top: 7px;
   border-top: 1px solid var(--border);
+  font-size: 11px;
 }
 
 .hm-opacidade input[type="range"] {
   min-width: 0;
+  height: 16px;
   padding: 0;
   border: 0;
   background: transparent;
@@ -299,11 +318,126 @@
 }
 
 .hm-opacidade output {
+  font-size: 10.5px;
   font-variant-numeric: tabular-nums;
   text-align: right;
 }
 
-/* ---------- celular: datas viram uma faixa rolável ---------- */
+/* ---------- botão atualizar ---------- */
+
+.hm-atualizar {
+  width: 48px;
+  min-height: 48px;
+}
+
+/* ========================================================= */
+/* informações flutuantes sobre o mapa                       */
+/* ========================================================= */
+
+.hm-mapa-informacoes {
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+  z-index: 900;
+
+  display: flex;
+  flex-direction: column;
+
+  gap: 5px;
+
+  width: min(260px, calc(100% - 20px));
+
+  pointer-events: none;
+}
+
+.hm-mapa-informacoes .hm-legenda,
+.hm-mapa-informacoes .hm-opacidade {
+  pointer-events: auto;
+
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+/* ---------- legenda em cima do mapa ---------- */
+
+.hm-mapa-informacoes .hm-legenda {
+  gap: 5px;
+
+  padding: 7px 8px;
+
+  border: 1px solid rgba(255, 255, 255, 0.48);
+  border-radius: 8px;
+
+  background: rgba(255, 255, 255, 0.88);
+
+  box-shadow: 0 4px 14px rgba(36, 28, 21, 0.14);
+
+  font-size: 10px;
+  line-height: 1.18;
+}
+
+.hm-mapa-informacoes .hm-legenda strong {
+  font-size: 11px;
+}
+
+.hm-mapa-informacoes .hm-cores {
+  gap: 4px 8px;
+}
+
+.hm-mapa-informacoes .hm-cores span {
+  gap: 3px;
+}
+
+.hm-mapa-informacoes .hm-cores i {
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+}
+
+.hm-mapa-informacoes .hm-escala {
+  gap: 5px;
+  max-width: 210px;
+  font-size: 9.5px;
+}
+
+.hm-mapa-informacoes .hm-escala div {
+  height: 7px;
+}
+
+/* ---------- opacidade acima da legenda ---------- */
+
+.hm-opacidade-mapa {
+  grid-template-columns: auto minmax(70px, 1fr) 3.5ch;
+
+  gap: 6px;
+
+  width: 100%;
+  max-width: 260px;
+
+  padding: 6px 8px;
+
+  border: 1px solid rgba(255, 255, 255, 0.48);
+  border-radius: 8px;
+
+  background: rgba(255, 255, 255, 0.88);
+
+  box-shadow: 0 4px 14px rgba(36, 28, 21, 0.14);
+
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.hm-opacidade-mapa input[type="range"] {
+  height: 14px;
+}
+
+.hm-opacidade-mapa output {
+  font-size: 9.5px;
+}
+
+/* ========================================================= */
+/* celular                                                   */
+/* ========================================================= */
 
 @media (max-width: 800px) {
   .hm-area {
@@ -337,7 +471,52 @@
   }
 }
 
-.hm-atualizar {
-  width: 48px;
-  min-height: 48px;
+@media (max-width: 600px) {
+  .hm-mapa-informacoes {
+    left: 7px;
+    bottom: 7px;
+
+    gap: 4px;
+
+    width: min(230px, calc(100% - 14px));
+  }
+
+  .hm-mapa-informacoes .hm-legenda {
+    max-height: 32svh;
+
+    padding: 6px 7px;
+
+    overflow-y: auto;
+
+    font-size: 9.5px;
+  }
+
+  .hm-mapa-informacoes .hm-legenda strong {
+    font-size: 10.5px;
+  }
+
+  .hm-mapa-informacoes .hm-cores {
+    gap: 3px 7px;
+  }
+
+  .hm-mapa-informacoes .hm-cores i {
+    width: 8px;
+    height: 8px;
+  }
+
+  .hm-opacidade-mapa {
+    grid-template-columns: auto minmax(55px, 1fr) 3ch;
+
+    gap: 5px;
+
+    max-width: 230px;
+
+    padding: 5px 7px;
+
+    font-size: 9.5px;
+  }
+
+  .hm-opacidade-mapa output {
+    font-size: 9px;
+  }
 }

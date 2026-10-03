@@ -188,7 +188,7 @@ def calcular_zscore_historico(
             )
 
 
-        tolerancia = 200.0
+        tolerancia = 50.0
 
         filtros = (
             (ds["safra"] != safra_atual)

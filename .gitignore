@@ -1,0 +1,15 @@
+# Dependências JavaScript
+node_modules/
+
+# Ambientes virtuais Python
+venv/
+.venv/
+
+# Cache Python
+__pycache__/
+*.pyc
+
+# Variáveis de ambiente
+.env
+.env.*
+!.env.example

@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field, model_validator
 from fastapi import FastAPI, status, HTTPException, BackgroundTasks, Header
 from datetime import date
 from processar_lavouras import processar_todas_lavouras, processar_lavoura
+from travas import processamento_exclusivo, ServicoOcupado, VAGAS
 from georreferencia import criar_geometria
 from gee_auth import inicializar_ee
 from threading import Lock, Thread
@@ -27,7 +28,6 @@ print("[INICIO] Carregando backend_server", flush=True)
 
 
 
-_processamento_lock = Lock()
 from dotenv import load_dotenv
 load_dotenv()
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
@@ -93,14 +93,16 @@ indices = ["NDVI", "NDRE", "NDWI"]
 # ============================================================
 # FILA DE PROCESSAMENTO E AGENDAMENTO DIÁRIO
 # ============================================================
-# Um único worker processa um trabalho por vez (o Earth Engine e o
-# banco aguentam melhor assim). Se o serviço estiver ocupado, o novo
-# pedido entra na fila em vez de ser recusado.
+# O LOTE GERAL (diário/manual) usa um único worker, um trabalho por vez.
+# Já cada lavoura cadastrada/regerada roda NA HORA, em thread própria,
+# sem esperar o lote nem outros produtores. O limite de processamentos
+# pesados em paralelo (e a trava por lavoura) fica em travas.py.
 
-_fila = queue.Queue()
+_fila = queue.Queue()      # só o lote geral
 _fila_lock = Lock()
-_pendentes = []      # trabalhos aguardando, em ordem
-_atual = None        # trabalho em execução
+_pendentes = []            # lotes gerais aguardando, em ordem
+_atual = None              # lote geral em execução
+_lavouras_ativas = []      # lavouras aguardando vaga ou rodando
 
 FUSO = ZoneInfo(os.getenv("AGENDAMENTO_FUSO", "America/Sao_Paulo"))
 HORA_DIARIA = os.getenv("PROCESSAMENTO_DIARIO_HORA", "06:00")
@@ -158,12 +160,11 @@ def _worker():
             _atual = trabalho
 
         try:
-            with _processamento_lock:
-                logging.info(
-                    "[FILA] Iniciando %s (%s)",
-                    trabalho["tipo"], trabalho["chave"],
-                )
-                trabalho["funcao"](*trabalho["args"])
+            logging.info(
+                "[FILA] Iniciando %s (%s)",
+                trabalho["tipo"], trabalho["chave"],
+            )
+            trabalho["funcao"](*trabalho["args"])
         except Exception:
             logging.exception(
                 "[FILA] Falha no trabalho %s (%s)",
@@ -173,6 +174,53 @@ def _worker():
             with _fila_lock:
                 _atual = None
             _fila.task_done()
+
+
+def _iniciar_lavoura(lavoura_id, dados):
+    """Processa a lavoura já, em thread própria. Retorna (trabalho, repetido).
+
+    Se já existe um pedido igual ainda aguardando vaga, não duplica.
+    Um pedido que já está rodando não conta: o novo roda logo depois.
+    """
+    chave = str(lavoura_id)
+
+    with _fila_lock:
+        for existente in _lavouras_ativas:
+            if existente["chave"] == chave and existente["estado"] == "aguardando":
+                return existente, True
+
+        trabalho = {
+            "tipo": "lavoura",
+            "chave": chave,
+            "estado": "aguardando",
+            "entrou_em": datetime.now(FUSO).isoformat(timespec="seconds"),
+        }
+        _lavouras_ativas.append(trabalho)
+
+    Thread(
+        target=_executar_lavoura,
+        args=(trabalho, dados),
+        name=f"lavoura-{chave}",
+        daemon=True,
+    ).start()
+
+    return trabalho, False
+
+
+def _executar_lavoura(trabalho, dados):
+    try:
+        with processamento_exclusivo(dados["id"]):
+            with _fila_lock:
+                trabalho["estado"] = "rodando"
+
+            logging.info("[LAVOURA] Iniciando lavoura %s", trabalho["chave"])
+            _gerar_mapas_agendados(dados)
+    except Exception:
+        logging.exception("[LAVOURA] Falha na lavoura %s", trabalho["chave"])
+    finally:
+        with _fila_lock:
+            if trabalho in _lavouras_ativas:
+                _lavouras_ativas.remove(trabalho)
 
 
 def _ler_ultima_execucao():
@@ -265,30 +313,34 @@ async def health():
 def create_day_maps(day_req: Day_req):
     # Mantém o contrato desta rota: pares [longitude, latitude].
     espera = int(os.getenv("DAY_MAPS_ESPERA_SEGUNDOS", "300"))
-    if not _processamento_lock.acquire(timeout=espera):
+
+    try:
+        with processamento_exclusivo(day_req.lavoura_id, espera=espera):
+            inicializar_ee()
+            coordenadas = [[p.lng, p.lat] for p in day_req.coordenadas]
+            geometria = criar_geometria(coordenadas, ordem='lnglat')
+            resultado = processar_lavoura(
+                {
+                    'id': day_req.lavoura_id,
+                    'usuarioId': day_req.usuario_id,
+                    'coordenadas': coordenadas,
+                },
+                geometria=geometria,
+            )
+            print('geometria processada.')
+            if resultado['status'] == 'sem_dados':
+                raise HTTPException(status_code=422, detail=resultado)
+            if resultado['status'] == 'erro':
+                raise HTTPException(status_code=502, detail=resultado)
+
+            print(resultado)
+            return resultado
+    except ServicoOcupado:
         raise HTTPException(
             status_code=503,
             detail="O serviço continua ocupado. Tente novamente em alguns minutos.",
             headers={"Retry-After": "60"},
         )
-    try:
-        inicializar_ee()
-        coordenadas = [
-        [p.lng, p.lat]
-        for p in day_req.coordenadas
-    ]
-        geometria = criar_geometria(coordenadas, ordem='lnglat')
-        resultado = processar_lavoura({'id':day_req.lavoura_id,'usuarioId':day_req.usuario_id, 'coordenadas': coordenadas}, geometria=geometria)
-        print('geometria processada.')
-        if resultado['status'] == 'sem_dados':
-            raise HTTPException(status_code=422, detail=resultado)
-        if resultado['status'] == 'erro':
-            raise HTTPException(status_code=502, detail=resultado)
-
-        print(resultado)
-        return resultado
-    finally:
-        _processamento_lock.release()
 
 
 @app.post("/processar_todas_lavouras/", status_code=202)
@@ -311,6 +363,7 @@ def processar_todas():
 def estado_da_fila():
     with _fila_lock:
         return {
+            # Lote geral (diário/manual): um por vez.
             "em_execucao": (
                 {"tipo": _atual["tipo"], "chave": _atual["chave"]} if _atual else None
             ),
@@ -318,6 +371,12 @@ def estado_da_fila():
                 {"posicao": i + 1 + (1 if _atual else 0), "tipo": t["tipo"], "chave": t["chave"], "entrou_em": t["entrou_em"]}
                 for i, t in enumerate(_pendentes)
             ],
+            # Lavouras cadastradas/regeradas: rodam em paralelo.
+            "lavouras": [
+                {"lavoura": t["chave"], "estado": t["estado"], "entrou_em": t["entrou_em"]}
+                for t in _lavouras_ativas
+            ],
+            "limite_simultaneo": VAGAS,
             "agendador": {
                 "ativo": AGENDADOR_ATIVO,
                 "hora": HORA_DIARIA,
@@ -483,23 +542,14 @@ def agendar_mapas(
             detail=str(erro),
         ) from erro
 
-    # Entra na fila; se já há processamento, aguarda a vez.
-    trabalho, repetido = _enfileirar(
-        "lavoura",
-        str(day_req.lavoura_id),
-        _gerar_mapas_agendados,
-        dados,
-    )
-
-    with _fila_lock:
-        if trabalho in _pendentes:
-            posicao = _posicao(trabalho)
-        else:
-            posicao = 1
+    # Começa na hora, em thread própria: não espera o lote diário nem
+    # outros produtores. Só aguarda se as vagas simultâneas estiverem
+    # cheias ou se a mesma lavoura já estiver sendo processada.
+    trabalho, repetido = _iniciar_lavoura(day_req.lavoura_id, dados)
 
     return {
-        "status": "aceito" if posicao == 1 else "na_fila",
-        "posicao": posicao,
+        "status": "aceito",
+        "posicao": 1,
         "repetido": repetido,
         "lavouraId": day_req.lavoura_id,
     }
